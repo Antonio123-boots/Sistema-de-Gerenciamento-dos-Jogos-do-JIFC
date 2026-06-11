@@ -1,0 +1,250 @@
+/* ==========================================================================
+   6. COMPONENTES GERAIS: LOGIN, PERFIL, CARDS E BOTÕES
+   - Estiliza os blocos principais usados em várias telas
+   - Define aparência de caixas, cards, badges, formulários e botões
+   - Reúne os elementos reutilizáveis do sistema visual do projeto
+   ========================================================================== */
+.login-shell,
+.profile-shell {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 70vh;
+    padding: 1rem 0 2rem;
+}
+
+.login-card,
+.profile-card {
+    width: min(100%, 480px);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(236, 228, 45, 0.25);
+    border-radius: 24px;
+    padding: 2rem;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
+}
+
+.profile-card--wide {
+    width: min(100%, 980px);
+    padding: 1.5rem;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(236, 228, 45, 0.18);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
+}
+
+.profile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.profile-chip {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.45rem 0.75rem;
+    background: rgba(236, 228, 45, 0.12);
+    color: #fff;
+    font-size: 0.9rem;
+}
+
+.login-card__icon,
+.profile-badge {
+    width: 56px;
+    height: 56px;
+    display: grid;
+    place-items: center;
+    border-radius: 16px;
+    background: rgba(236, 228, 45, 0.14);
+    font-size: 1.4rem;
+    margin-bottom: 0.8rem;
+}
+
+.login-card h1,
+.profile-card h1 {
+    font-size: 1.7rem;
+    margin-bottom: 0.4rem;
+}
+
+.login-card__subtitle,
+.profile-subtitle {
+    color: rgba(255, 255, 255, 0.78);
+    margin-bottom: 1rem;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.login-form label {
+    font-weight: 600;
+}
+
+.login-form input {
+    padding: 0.8rem 0.9rem;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+}
+
+.login-form input:focus {
+    outline: 2px solid rgba(236, 228, 45, 0.45);
+}
+
+.btn {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background: #ece42d;
+    color: #181a35;
+}
+
+.btn-primary:hover {
+    background: #fff56b;
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.16);
+}
+
+.login-error {
+    color: #ffb4b4;
+    background: rgba(255, 0, 0, 0.08);
+    border: 1px solid rgba(255, 0, 0, 0.18);
+    border-radius: 10px;
+    padding: 0.7rem;
+    margin-bottom: 0.8rem;
+}
+
+.login-hint {
+    margin-top: 1rem;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 0.95rem;
+}
+
+.login-hint ul {
+    margin-top: 0.4rem;
+    padding-left: 1.1rem;
+}
+
+.panel-card {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(236, 228, 45, 0.18);
+    border-radius: 24px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.22);
+}
+
+.panel-subtitle {
+    color: rgba(255, 255, 255, 0.78);
+    margin-bottom: 1rem;
+}
+
+.chip-row,
+.day-row,
+.toggle-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+}
+
+.chip,
+.day-pill,
+.toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.6rem 0.9rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    text-decoration: none;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    font-size: 0.95rem;
+}
+
+.chip-active,
+.day-active,
+.toggle-active {
+    background: #ece42d;
+    color: #1c1d3b;
+    border-color: #ece42d;
+}
+
+.game-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.game-card,
+.mini-card {
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 1rem;
+}
+
+.sport-card h2 {
+    font-size: 1.1rem;
+    margin-bottom: 0.2rem;
+}
+
+.sport-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    gap: 0.8rem;
+    margin-bottom: 0.8rem;
+}
+
+.mini-match {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 0.7rem;
+    margin-top: 0.7rem;
+}
+
+.game-time {
+    font-size: 0.88rem;
+    color: #ece42d;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.game-result {
+    color: rgba(255, 255, 255, 0.8);
+    margin-top: 0.2rem;
+}
+
+.status-pill {
+    display: inline-block;
+    margin-top: 0.45rem;
+    padding: 0.25rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(236, 228, 45, 0.12);
+    color: #fff;
+    font-size: 0.82rem;
+}

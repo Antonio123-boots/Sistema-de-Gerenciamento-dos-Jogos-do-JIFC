@@ -1,0 +1,35 @@
+<section class="panel-card">
+  <h1>Registro de placar</h1>
+  <p class="panel-subtitle">Atualize o resultado do jogo e marque o status do confronto para refletir na tabela.</p>
+
+  <% if (jogo) { %>
+    <article class="mini-card">
+      <h2>Jogo #<%= jogo.id %></h2>
+      <ul class="profile-list">
+        <li><span>Modalidade</span><strong><%= jogo.modalidade %></strong></li>
+        <li><span>Confronto</span><strong><%= jogo.casa %> x <%= jogo.fora %></strong></li>
+        <li><span>Horário</span><strong><%= jogo.data %> · <%= jogo.horario %></strong></li>
+      </ul>
+
+      <form class="form-grid" action="/admin/jogos/placar/<%= jogo.id %>/salvar" method="POST">
+        <label>Time 1<input type="text" name="time1" value="<%= jogo.casa %>" required></label>
+        <label>Placar time 1<input type="number" name="placar1" value="2" min="0" required></label>
+        <label>Time 2<input type="text" name="time2" value="<%= jogo.fora %>" required></label>
+        <label>Placar time 2<input type="number" name="placar2" value="1" min="0" required></label>
+        <label>Status
+          <select name="status">
+            <option value="Encerrado" selected>Encerrado</option>
+            <option value="Em Andamento">Em Andamento</option>
+            <option value="Agendado">Agendado</option>
+          </select>
+        </label>
+        <button class="btn btn-primary" type="submit">Salvar resultado</button>
+      </form>
+    </article>
+  <% } else { %>
+    <article class="mini-card">
+      <h2>Jogo não encontrado</h2>
+      <p class="panel-subtitle">Não foi possível localizar esse confronto.</p>
+    </article>
+  <% } %>
+</section>

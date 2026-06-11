@@ -1,0 +1,167 @@
+/* ==========================================================================
+   A JUSTES E COMPONENTES ESPECÍFICOS PARA O CHAVEAMENTO (JIFC)
+   ========================================================================== */
+
+/* Layout Principal com Sidebar no Painel Admin */
+.chaveamento-layout {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+    border-spacing: 1.5rem 0;
+    margin-top: 1rem;
+}
+
+.chaveamento-sidebar {
+    display: table-cell;
+    width: 300px;
+    vertical-align: top;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
+    padding: 1.2rem;
+}
+
+.chaveamento-content {
+    display: table-cell;
+    vertical-align: top;
+}
+
+/* Sub-abas (Usado no Tênis de Mesa: Individual x Duplas) */
+.sub-tabs-container {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 0.5rem;
+    border-radius: 50px;
+    width: fit-content;
+    margin: 0 auto 1.5rem auto;
+    border: 1px solid rgba(236, 228, 45, 0.1);
+}
+
+.btn-sub-tab {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    padding: 0.5rem 1.5rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-sub-tab:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.btn-sub-tab.active {
+    background: #ece42d;
+    color: #1c1d3b;
+    box-shadow: 0 2px 8px rgba(236, 228, 45, 0.25);
+}
+
+/* Grid de Chaves Acadêmicas */
+.chaves-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.chave-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    border-top: 4px solid #ece42d;
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 1.2rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.chave-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #ece42d;
+    margin-bottom: 0.8rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 0.4rem;
+}
+
+/* Lista Ordenada dentro de cada Chave */
+.chave-equipes-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.chave-equipe-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 0.6rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 0.95rem;
+}
+
+.chave-equipe-pos {
+    font-weight: 800;
+    color: rgba(236, 228, 45, 0.6);
+    margin-right: 0.5rem;
+}
+
+.chave-equipe-pontos {
+    font-weight: 700;
+    color: #ece42d;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+/* Sidebar Listas */
+.sidebar-title {
+    font-size: 1rem;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.6);
+    letter-spacing: 0.5px;
+    margin-bottom: 0.8rem;
+    font-weight: 700;
+}
+
+.sidebar-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.sidebar-item {
+    padding: 0.5rem 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    border-left: 3px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Responsividade Adaptada para o formato Table do CSS antigo */
+@media (max-width: 992px) {
+    .chaveamento-layout {
+        display: block;
+    }
+    .chaveamento-sidebar {
+        display: block;
+        width: 100%;
+        margin-bottom: 1.5rem;
+    }
+    .chaveamento-content {
+        display: block;
+    }
+}

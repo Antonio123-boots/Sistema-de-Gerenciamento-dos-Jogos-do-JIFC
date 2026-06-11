@@ -1,0 +1,257 @@
+/* ==========================================================================
+   7. PERFIL E DASHBOARD DO USUÁRIO / ADMIN
+   - Cuida da área de perfil, cabeçalho da instituição e cartões do dashboard
+   - Define abas, listas de dados, status e ações administrativas
+   - Mantém a experiência visual organizada para tela de perfil e painel
+   ========================================================================== */
+
+.profile-shell {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 70vh;
+    padding: 1rem 0 2rem;
+}
+
+.profile-card {
+    width: min(100%, 480px);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(236, 228, 45, 0.25);
+    border-radius: 24px;
+    padding: 2rem;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
+}
+
+.profile-card--wide {
+    width: min(100%, 960px);
+    background: rgba(30, 31, 66, 0.6);
+    border: 1px solid rgba(236, 228, 45, 0.15);
+    border-radius: 20px;
+    padding: 2.5rem;
+    backdrop-filter: blur(10px);
+}
+
+.institution-header {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    margin-bottom: 2.5rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.institution-avatar-container {
+    flex-shrink: 0;
+}
+
+.institution-img {
+    width: 110px;
+    height: 110px;
+    border-radius: 16px;
+    object-fit: cover;
+    border: 3px solid #ece42d;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.institution-details {
+    flex-grow: 1;
+}
+
+.institution-title {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin: 0.5rem 0;
+    letter-spacing: -0.5px;
+}
+
+.institution-meta {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.95rem;
+    margin-bottom: 0.25rem;
+}
+
+.badge-row {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.badge {
+    padding: 0.3rem 0.8rem;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.badge--role {
+    background: #ece42d;
+    color: #1c1d3b;
+}
+
+.badge--status {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.dashboard-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.tab-trigger {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+    padding: 1.2rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.tab-trigger:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(236, 228, 45, 0.3);
+}
+
+.tab-trigger.is-active {
+    background: #ece42d;
+    color: #1c1d3b;
+    border-color: #ece42d;
+    box-shadow: 0 4px 15px rgba(236, 228, 45, 0.2);
+}
+
+.dashboard-view {
+    display: none;
+}
+
+.dashboard-view.is-active {
+    display: block;
+}
+
+.data-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.data-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    gap: 1rem;
+}
+
+.item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.item-name {
+    font-size: 1.1rem;
+    color: #ffffff;
+}
+
+.item-subtext {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.status-tag {
+    padding: 0.35rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    background: rgba(236, 228, 45, 0.15);
+    color: #ece42d;
+}
+
+.item-score-box {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 0.4rem 1rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.score-display {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #ece42d;
+    letter-spacing: 1px;
+}
+
+.feedback-empty {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: rgba(255, 255, 255, 0.4);
+    font-style: italic;
+}
+
+.dashboard-footer {
+    margin-top: 2.5rem;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.btn-cta-jifc {
+    width: 100%;
+    padding: 1.2rem;
+    font-size: 1.15rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 20px rgba(236, 228, 45, 0.15);
+}
+
+.utility-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.btn-danger {
+    background: rgba(255, 75, 75, 0.1);
+    color: #ff6b6b;
+    border: 1px solid rgba(255, 75, 75, 0.2);
+}
+
+.btn-danger:hover {
+    background: #ff4b4b;
+    color: #ffffff;
+    border-color: #ff4b4b;
+}
+
+.admin-actions-zone {
+    background: rgba(236, 228, 45, 0.05);
+    border: 1px solid rgba(236, 228, 45, 0.2);
+    border-radius: 14px;
+    padding: 1.2rem;
+    margin-bottom: 2rem;
+}
+
+.admin-actions-zone h2 {
+    font-size: 1.1rem;
+    margin-bottom: 0.8rem;
+    color: #ece42d;
+}
+
+.profile-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}

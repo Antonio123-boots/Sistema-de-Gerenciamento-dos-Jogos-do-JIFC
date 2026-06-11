@@ -1,0 +1,22 @@
+<section class="panel-card">
+  <h1>Verificação de atletas</h1>
+  <p class="panel-subtitle">Acompanhe os atletas pendentes e valide as inscrições para liberar o acesso ao campeonato.</p>
+
+  <article class="mini-card">
+    <h2>Atletas pendentes</h2>
+    <% if (atletas.length) { %>
+      <ul class="profile-list">
+        <% atletas.forEach((atleta) => { %>
+          <li>
+            <span><strong><%= atleta.nome %></strong> — <%= atleta.campus %><br><small><%= atleta.modalidade %> · Status: <%= atleta.status %></small></span>
+            <form action="/admin/laudos/validar/<%= atleta.id %>" method="POST">
+              <button class="btn btn-primary" type="submit">Validar</button>
+            </form>
+          </li>
+        <% }) %>
+      </ul>
+    <% } else { %>
+      <p class="panel-subtitle">Nenhum atleta pendente no momento.</p>
+    <% } %>
+  </article>
+</section>

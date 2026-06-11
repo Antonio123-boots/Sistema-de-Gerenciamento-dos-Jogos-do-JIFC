@@ -1,0 +1,35 @@
+<section class="panel-card">
+  <h1>Atualização de placar</h1>
+  <p class="panel-subtitle">Registre o resultado final e atualize o status do confronto diretamente no painel do juiz.</p>
+
+  <% if (jogo) { %>
+    <article class="mini-card">
+      <h2>Jogo #<%= jogo.id %></h2>
+      <ul class="profile-list">
+        <li><span>Modalidade</span><strong><%= jogo.modalidade || 'Modalidade' %></strong></li>
+        <li><span>Confronto</span><strong><%= jogo.casa || jogo.atletaCasa || 'Equipe A' %> x <%= jogo.fora || jogo.atletaFora || 'Equipe B' %></strong></li>
+        <li><span>Status atual</span><strong><%= jogo.status || 'Agendado' %></strong></li>
+      </ul>
+
+      <form class="form-grid" action="/juiz/jogos/placar/<%= jogo.id %>/salvar" method="POST">
+        <label>Equipe / Atleta 1<input type="text" name="time1" value="<%= jogo.casa || jogo.atletaCasa || 'Equipe A' %>" required></label>
+        <label>Placar 1<input type="number" name="placar1" value="0" min="0" required></label>
+        <label>Equipe / Atleta 2<input type="text" name="time2" value="<%= jogo.fora || jogo.atletaFora || 'Equipe B' %>" required></label>
+        <label>Placar 2<input type="number" name="placar2" value="0" min="0" required></label>
+        <label>Status
+          <select name="status">
+            <option value="Encerrado" selected>Encerrado</option>
+            <option value="Em Andamento">Em Andamento</option>
+            <option value="Agendado">Agendado</option>
+          </select>
+        </label>
+        <button class="btn btn-primary" type="submit">Salvar placar</button>
+      </form>
+    </article>
+  <% } else { %>
+    <article class="mini-card">
+      <h2>Jogo não encontrado</h2>
+      <p class="panel-subtitle">Não foi possível localizar esse confronto no painel de juiz.</p>
+    </article>
+  <% } %>
+</section>

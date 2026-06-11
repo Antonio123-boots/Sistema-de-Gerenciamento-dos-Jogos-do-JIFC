@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JIFC - Jogos Internos</title>
+    <link rel="stylesheet" href="/css/styles.css"> 
+</head>
+<body>
+
+    <div class="menu-superior">
+        <div class="menu-container">
+            <div class="menu-left">
+                <div class="logo-area">
+                    <a href="/"><img src="/imagens/jifc original-Picsart-AiImageEnhancer.jfif" alt="logo" class="logo-menu"></a>
+                </div>
+                <div class="nav-buttons">
+                    <a href="/about" class="nav-btn">SOBRE</a>
+                    <a href="/ajuda" class="nav-btn">AJUDA</a>
+                    <a href="/equipes" class="nav-btn">EQUIPES</a>
+                    <% if (typeof usuarioLogado !== 'undefined' && usuarioLogado) { %>
+                        <% if (usuarioLogado.tipo === 'admin') { %>
+                            <a href="/admin/configurar" class="nav-btn">JIFC 2026</a>
+                            <a href="/admin/chaveamento" class="nav-btn">CHAVEAMENTO</a>
+                        <% } %>
+                        <% if (usuarioLogado.tipo === 'juiz') { %>
+                            <a href="/juiz/tabelas" class="nav-btn">PLACARES</a>
+                            <a href="/juiz/tabelas" class="nav-btn">TABELAS</a>
+                        <% } %>
+                        <% if (usuarioLogado.tipo === 'campus') { %>
+                            <a href="/perfil#meus-atletas" class="nav-btn">ATLETAS</a>
+                            <a href="/campus/jogos" class="nav-btn">MEUS JOGOS</a>
+                        <% } %>
+                    <% } %>
+                </div>
+            </div>
+            <div class="menu-right">
+                <div class="search-box">
+                    <input type="text" placeholder="Pesquisar...">
+                    <button>🔍</button>
+                </div>
+                
+                <% if (typeof usuarioLogado !== 'undefined' && usuarioLogado) { %>
+                    <div class="perfil">
+                        <a href="/perfil"><img src="/imagens/avatar.svg" alt="perfil" class="avatar"></a>
+                    </div>
+                <% } else { %>
+                    <div class="login-area">
+                        <a href="/login" class="login-btn">LOGIN</a>
+                    </div>
+                <% } %>
+                
+            </div>
+        </div>
+    </div>
+
+    <% if (typeof mostrarFiltros !== 'undefined' && mostrarFiltros) { %>
+        <div class="menu-modalidades">
+            <div class="modalidades-container">
+                <ul class="modalidades-list">
+                    <li class="modalidade-item"><a><span class="modalidade-icon">🏃</span><span>ATLETISMO</span></a></li>
+                    <li class="modalidade-item"><a><span class="modalidade-icon">🏀</span><span>BASQUETE</span></a></li>
+                    <li class="modalidade-item"><a><span class="modalidade-icon">⚽</span><span>FUTSAL</span></a></li>
+                    <li class="modalidade-item"><a><span class="modalidade-icon">🤾</span><span>HANDEBOL</span></a></li>
+                    <li class="modalidade-item"><a><span class="modalidade-icon">🏓</span><span>TÊNIS DE MESA</span></a></li>
+                    <li class="modalidade-item"><a><span class="modalidade-icon">🏐</span><span>VOLEIBOL</span></a></li>
+                    <li class="modalidade-item"><a><span class="modalidade-icon">🏖️</span><span>VOLEI DE PRAIA</span></a></li>
+                    <li class="modalidade-item"><a><span class="modalidade-icon">♟️</span><span>XADREZ</span></a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="menu-dias">
+            <div class="dias-container">
+                <ul class="dias-list">
+                    <li class="dia-item"><a>DIA 1</a></li>
+                    <li class="dia-item"><a>DIA 2</a></li>
+                    <li class="dia-item"><a>DIA 3</a></li>
+                </ul>
+            </div>
+        </div>
+    <% } %>
+
+    <div class="main-content">
+        <%- body %>
+    </div>
+
+</body>
+</html>

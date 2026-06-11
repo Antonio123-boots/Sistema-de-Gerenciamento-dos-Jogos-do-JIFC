@@ -1,0 +1,36 @@
+<section class="panel-card">
+  <div class="profile-header">
+    <div>
+      <h1>Painel do Juiz / Mesário</h1>
+      <p class="panel-subtitle">Atualize placares, acompanhe a tabela e mantenha os jogos sempre em dia.</p>
+    </div>
+    <span class="status-tag">Acesso exclusivo para juiz</span>
+  </div>
+
+  <div class="admin-actions-zone" style="margin-top: 1rem;">
+    <h2 style="margin-bottom: 0.5rem;">Jogos disponíveis</h2>
+    <p class="item-subtext">Use o botão de atualização para registrar resultados em tempo real.</p>
+  </div>
+
+  <% if (jogos && jogos.length) { %>
+    <div class="game-grid" style="margin-top: 1rem;">
+      <% jogos.forEach((jogo) => { %>
+        <article class="game-card">
+          <p class="game-time"><%= jogo.data %> · <%= jogo.horario %></p>
+          <h3><%= jogo.modalidade %></h3>
+          <p class="game-result"><%= jogo.casa || jogo.atletaCasa || 'Equipe A' %> x <%= jogo.fora || jogo.atletaFora || 'Equipe B' %></p>
+          <p class="game-result">Placar atual: <strong style="color: #ece42d;"><%= jogo.placar || 'A definir' %></strong></p>
+          <p class="item-subtext">Status: <%= jogo.status || 'Agendado' %></p>
+          <div class="profile-actions" style="margin-top: 1rem;">
+            <a class="btn btn-primary" href="/juiz/jogos/placar/<%= jogo.id %>">Atualizar placar</a>
+          </div>
+        </article>
+      <% }) %>
+    </div>
+  <% } else { %>
+    <article class="mini-card">
+      <h2>Nenhum jogo encontrado</h2>
+      <p class="panel-subtitle">Ainda não existem confrontos programados para o painel do juiz.</p>
+    </article>
+  <% } %>
+</section>

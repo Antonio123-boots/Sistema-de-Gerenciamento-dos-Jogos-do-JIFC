@@ -1,0 +1,144 @@
+<section class="profile-shell">
+  <article class="profile-card profile-card--wide">
+    
+    <header class="institution-header">
+      <div class="institution-avatar-container">
+        <img class="institution-img" src="/img/campi/<%= usuarioLogado.id %>.png" alt="Logotipo do Campus" onerror="this.src='https://placehold.co/120x120/1c1d3b/ffffff?text=🏛️'">
+      </div>
+      
+      <div class="institution-details">
+        <div class="badge-row">
+          <span class="badge badge--role"><%= usuarioLogado.perfil %></span>
+          <span class="badge badge--status">Status da Inscrição: <%= statusInscricao %></span>
+        </div>
+        <h1 class="institution-title"><%= usuarioLogado.nome %></h1>
+        <p class="institution-meta"> <%= usuarioLogado.email %></p>
+        <p class="institution-meta"> Nível de Acesso: <strong>Campus Institucional</strong></p>
+      </div>
+    </header>
+
+    <% if (usuarioLogado.tipo === 'admin') { %>
+      <nav class="admin-actions-zone" aria-label="Ferramentas do Administrador">
+        <h2>Gestão Geral do JIFC</h2>
+        <div class="profile-actions">
+          <a class="btn btn-primary" href="/admin/configurar">Configurar prazos</a>
+          <a class="btn btn-secondary" href="/admin/chaveamento">Chaveamento</a>
+          <a class="btn btn-secondary" href="/admin/laudos">Validar atletas</a>
+        </div>
+      </nav>
+    <% } %>
+
+    <% if (usuarioLogado.tipo === 'juiz') { %>
+      <nav class="admin-actions-zone" aria-label="Painel do Juiz">
+        <h2>Atualização de Placar e Tabelas</h2>
+        <div class="profile-actions">
+          <a class="btn btn-primary" href="/juiz/tabelas">Painel do Juiz</a>
+          <a class="btn btn-secondary" href="/juiz/tabelas">Ver tabelas</a>
+        </div>
+      </nav>
+    <% } %>
+
+    <% if (usuarioLogado.tipo === 'campus') { %>
+      <section class="dashboard-section">
+        
+        <div class="dashboard-tabs" role="tablist">
+          <button type="button" class="tab-trigger is-active" data-target="meus-atletas">🏃‍♂️ Atletas Inscritos</button>
+          <button type="button" class="tab-trigger" data-target="meus-jogos">📅 Calendário de Jogos</button>
+        </div>
+
+        <div class="dashboard-view is-active" id="meus-atletas">
+          <% if (atletasCampus.length) { %>
+            <ul class="data-list">
+              <% atletasCampus.forEach((atleta) => { %>
+                <li class="data-item">
+                  <div class="item-info">
+                    <strong class="item-name"><%= atleta.nome %></strong>
+                    <span class="item-subtext">Modalidade: <%= atleta.modalidade %></span>
+                  </div>
+                  <span class="status-tag"><%= atleta.status %></span>
+                </li>
+              <% }) %>
+            </ul>
+          <% } else { %>
+            <div class="feedback-empty">
+              <p>Nenhum atleta inscrito neste campus até o momento.</p>
+            </div>
+          <% } %>
+        </div>
+
+        <div class="dashboard-view" id="meus-jogos">
+          <% if (jogosCampus.length) { %>
+            <ul class="data-list">
+              <% jogosCampus.forEach((jogo) => { %>
+                <li class="data-item">
+                  <div class="item-info">
+                    <strong class="item-name"><%= jogo.modalidade %></strong>
+                    <span class="item-subtext"><%= jogo.data %> · <%= jogo.horario %></span>
+                  </div>
+                  <div class="item-score-box">
+                    <span class="score-display"><%= jogo.placar %></span>
+                  </div>
+                </li>
+              <% }) %>
+            </ul>
+          <% } else { %>
+            <div class="feedback-empty">
+              <p>Não existem jogos agendados para este campus.</p>
+            </div>
+          <% } %>
+        </div>
+      </section>
+    <% } %>
+
+    <footer class="dashboard-footer">
+      <% if (usuarioLogado.tipo === 'campus' && mostrarAcoesInscricao) { %>
+        <a id="btn-jifc-dinamico" class="btn btn-primary btn-cta-jifc" href="/campus/inscricoes">
+          JIFC
+        </a>
+      <% } %>
+
+      <div class="utility-actions">
+        <a class="btn btn-secondary" href="/">Voltar ao Início</a>
+        <a class="btn btn-danger" href="/auth/logout">Encerrar Sessão</a>
+      </div>
+    </footer>
+
+  </article>
+</section>
+
+<script>
+  // 1. Alternância Visual entre as Abas (Atletas / Jogos)
+  document.querySelectorAll('.tab-trigger').forEach((button) => {
+    button.addEventListener('click', () => {
+      const targetId = button.dataset.target;
+
+      // Remove a classe ativa de todos e adiciona apenas no clicado
+      document.querySelectorAll('.tab-trigger').forEach((item) => item.classList.toggle('is-active', item === button));
+      document.querySelectorAll('.dashboard-view').forEach((view) => view.classList.toggle('is-active', view.id === targetId));
+    });
+  });
+
+  // 2. Virada Automática do Ano do JIFC (Baseado no dia limite de 26/06)
+  document.addEventListener("DOMContentLoaded", () => {
+    const btnJifc = document.getElementById("btn-jifc-dinamico");
+    
+    if (btnJifc) {
+      const dataAtual = new Date();
+      const anoAtual = dataAtual.getFullYear();
+      
+      // Define a data final do JIFC do ano corrente (26 de Junho às 23:59:59)
+      // Mês em JS começa em 0 (Janeiro = 0, Junho = 5)
+      const dataLimiteJifc = new Date(anoAtual, 5, 26, 23, 59, 59);
+
+      let anoEvento = anoAtual;
+
+      // Se o dia de hoje passou de 26/06, o sistema assume que o próximo JIFC é o do ano que vem
+      if (dataAtual > dataLimiteJifc) {
+        anoEvento = anoAtual + 1;
+      }
+
+      // Altera o texto do botão mantendo a estética limpa
+      btnJifc.textContent = `Inscrições JIFC ${anoEvento}`;
+    }
+  });
+</script>

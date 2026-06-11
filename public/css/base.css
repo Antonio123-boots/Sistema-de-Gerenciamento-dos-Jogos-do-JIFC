@@ -1,0 +1,338 @@
+/* ==========================================================================
+   1. RESET E CONFIGURAÇÕES GLOBAIS
+   - Remove margens/paddings padrão do navegador
+   - Define a fonte base, a cor de fundo escura e a altura mínima da página
+   - Serve como base visual para toda a interface
+   ========================================================================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+    background-color: #1c1d3b;
+    color: #ffffff;
+    min-height: 100vh;
+}
+
+/* ==========================================================================
+   2. MENU SUPERIOR (HEADER PRINCIPAL)
+   - Estiliza a barra fixa no topo da página
+   - Controla logo, navegação principal, campo de busca e avatar do usuário
+   - Usa gradiente escuro, sombra e layout em linha para manter o menu organizado
+   ========================================================================== */
+.menu-superior {
+    background: linear-gradient(135deg, #1d1e3e 0%, #1a1b3d 100%);
+    padding: 0.8rem 2rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.menu-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.menu-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.logo-area {
+    display: flex;
+    align-items: center;
+}
+
+.logo-menu {
+    width: auto;
+    height: 65px;
+    max-width: 180px;
+    border-radius: 18px;
+    object-fit: contain;
+}
+
+.nav-buttons {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.nav-btn {
+    background: none;
+    border: none;
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    position: relative;
+    text-decoration: none;
+}
+
+.nav-btn:hover {
+    color: #ece42d;
+    background: rgba(236, 228, 45, 0.1);
+}
+
+.nav-btn::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 2px;
+    background: #ece42d;
+    transition: width 0.3s ease;
+}
+
+.nav-btn:hover::after {
+    width: 70%;
+}
+
+.menu-right {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.search-box {
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50px;
+    padding: 0.5rem 1rem;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.search-box:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.search-box input {
+    background: none;
+    border: none;
+    color: #ffffff;
+    font-size: 0.9rem;
+    padding: 0.3rem;
+    outline: none;
+    width: 200px;
+}
+
+.search-box input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.search-box button {
+    background: none;
+    border: none;
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: color 0.3s ease;
+}
+
+.search-box button:hover {
+    color: #ece42d;
+}
+
+.perfil {
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.perfil:hover {
+    transform: scale(1.1);
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #ece42d;
+}
+
+/* ==========================================================================
+   3. MENU DE MODALIDADES (BARRA HORIZONTAL DE ESPORTES)
+   - Exibe os esportes como botões curtos e alinhados em linha
+   - Permite rolagem horizontal quando há muitos itens
+   - Destaque visual para a modalidade ativa com fundo amarelo/escuro
+   ========================================================================== */
+.menu-modalidades {
+    background: rgba(236, 228, 45, 0.08);
+    backdrop-filter: blur(10px);
+    padding: 0.8rem 2rem;
+    border-bottom: 1px solid rgba(236, 228, 45, 0.2);
+    margin-top: 0.5rem;
+}
+
+.modalidades-container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.modalidades-list {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    padding: 0.5rem 0;
+}
+
+.modalidades-list::-webkit-scrollbar {
+    height: 4px;
+}
+
+.modalidades-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.modalidades-list::-webkit-scrollbar-thumb {
+    background: #ece42d;
+}
+
+.modalidade-item {
+    list-style: none;
+    white-space: nowrap;
+    text-align: center;
+}
+
+.modalidade-item a {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.8rem 1.2rem;
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.modalidade-icon {
+    font-size: 1.3rem;
+}
+
+.modalidade-item a:hover {
+    background: #ece42d;
+    color: #1c1d3b;
+    transform: translateY(-2px);
+}
+
+.active-sport {
+    background: rgba(236, 228, 45, 0.18) !important;
+    color: #fff !important;
+    border: 1px solid rgba(236, 228, 45, 0.35);
+}
+
+/* ==========================================================================
+   4. MENU DE DIAS (FILTRO POR DATA)
+   - Mostra os dias do evento como botões pequenos em formato de abas
+   - Centraliza os filtros e permite alternar entre datas rapidamente
+   - O hover deixa o item mais destacado visualmente
+   ========================================================================== */
+.menu-dias {
+    background: transparent;
+    padding: 1rem 2rem;
+    margin-top: 1rem;
+}
+
+.dias-container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.dias-list {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.dia-item {
+    list-style: none;
+}
+
+.dia-item a {
+    display: inline-block;
+    padding: 0.6rem 2rem;
+    background: rgba(255, 255, 255, 0.05);
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.9rem;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: 1px solid rgba(236, 228, 45, 0.3);
+}
+
+.dia-item a:hover {
+    background: #ece42d;
+    color: #1c1d3b;
+    border-color: #ece42d;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(236, 228, 45, 0.3);
+}
+
+/* ==========================================================================
+   5. CONTEÚDO PRINCIPAL E BOAS-VINDAS
+   - Define a largura máxima do conteúdo central da página
+   - Estiliza o card de apresentação inicial e o botão de login
+   - Mantém o layout principal consistente em telas maiores
+   ========================================================================== */
+.main-content {
+    max-width: 1400px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+}
+
+.welcome-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 3rem;
+    text-align: center;
+    backdrop-filter: blur(5px);
+}
+
+.welcome-card h1 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.welcome-card p {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.login-btn {
+    display: inline-block;
+    padding: 8px 16px;
+    background-color: #e5df1c;
+    color: #1c1d3b;
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+}
+
+.login-btn:hover {
+    background-color: #1d4ed8;
+}

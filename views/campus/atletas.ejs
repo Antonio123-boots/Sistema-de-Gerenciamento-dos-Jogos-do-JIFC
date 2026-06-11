@@ -1,0 +1,40 @@
+<section class="panel-card">
+  <h1>Cadastro e substituição de atletas</h1>
+  <p class="panel-subtitle">O campus registra atletas em fase regular ou faz substituição quando houver necessidade de laudo.</p>
+
+  <article class="mini-card">
+    <h2>Inscrição regular</h2>
+    <form class="form-grid" action="/campus/atletas/cadastrar" method="POST">
+      <label>Nome<input type="text" name="nome" required></label>
+      <label>Matrícula<input type="text" name="matricula" required></label>
+      <label>Modalidade<input type="text" name="modalidade" value="Futsal Masculino" required></label>
+      <label>Gênero<select name="genero"><option value="Masculino">Masculino</option><option value="Feminino">Feminino</option></select></label>
+      <label>Data de nascimento<input type="date" name="dataNascimento" required></label>
+      <button class="btn btn-primary" type="submit">Cadastrar atleta</button>
+    </form>
+  </article>
+
+  <article class="mini-card">
+    <h2>Substituição com laudo</h2>
+    <form class="form-grid" action="/campus/atletas/substituir" method="POST">
+      <label>Nome<input type="text" name="nome" required></label>
+      <label>Matrícula<input type="text" name="matricula" required></label>
+      <label>Modalidade<input type="text" name="modalidade" value="Futsal Masculino" required></label>
+      <label>Motivo<input type="text" name="motivo" value="Substituição por laudo" required></label>
+      <button class="btn btn-secondary" type="submit">Enviar substituição</button>
+    </form>
+  </article>
+
+  <article class="mini-card">
+    <h2>Atletas registrados</h2>
+    <% if (atletas.length) { %>
+      <ul class="profile-list">
+        <% atletas.forEach((atleta) => { %>
+          <li><span><strong><%= atleta.nome %></strong> — <%= atleta.modalidade %></span><strong><%= atleta.status %></strong></li>
+        <% }) %>
+      </ul>
+    <% } else { %>
+      <p class="panel-subtitle">Nenhum atleta cadastrado ainda.</p>
+    <% } %>
+  </article>
+</section>

@@ -1,0 +1,193 @@
+<section class="panel-card">
+  <div class="profile-header">
+    <div>
+      <h1>Painel de Chaveamento — JIFC 2026</h1>
+      <p class="panel-subtitle">Gerencie o sorteio, configure divisões de chaves e publique os cronogramas oficiais.</p>
+    </div>
+    <div>
+      <% if (inscricoesAbertas) { %>
+        <span class="status-tag" style="background: rgba(255,75,75,0.15); color: #ff6b6b;">Inscrições Abertas</span>
+      <% } else { %>
+        <span class="status-tag">Inscrições Finalizadas</span>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="menu-modalidades" style="margin-top: 0; background: rgba(0,0,0,0.2); border-radius: 12px;">
+    <div class="modalidades-container">
+      <ul class="modalidades-list">
+        <% listaModalidadesCompleta.forEach((mod) => { %>
+          <li class="modalidade-item">
+            <a href="/admin/chaveamento?modalidade=<%= mod.id %>" class="<%= modalidadeAtiva.id === mod.id ? 'active-sport' : '' %>">
+              <span class="modalidade-icon"><%= mod.icone %></span>
+              <span><%= mod.nome %></span>
+            </a>
+          </li>
+        <% }) %>
+      </ul>
+    </div>
+  </div>
+
+  <% if (modalidadeAtiva.categoria === 'tenis-de-mesa') { %>
+    <div class="sub-tabs-container" style="margin-top: 1.5rem;">
+      <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=individual" class="btn-sub-tab <%= subCategoriaAtiva === 'individual' ? 'active' : '' %>">Individual</a>
+      <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=dupla" class="btn-sub-tab <%= subCategoriaAtiva === 'dupla' ? 'active' : '' %>">Em Dupla</a>
+    </div>
+  <% } %>
+
+  <div class="admin-actions-zone" style="margin-top: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h2 style="margin-bottom: 0.2rem;">Status do Chaveamento: <strong style="color: #fff;"><%= modalidadeAtiva.nome %> (<%= subCategoriaAtiva ? subCategoriaAtiva.toUpperCase() : 'GERAL' %>)</strong></h2>
+        <p class="item-subtext">Total de inscritos mapeados para esta categoria: <strong><%= inscritosPendentes.length %> itens</strong></p>
+      </div>
+      <div>
+        <% if (inscricoesAbertas) { %>
+          <button class="btn btn-secondary" disabled title="Aguarde o encerramento das inscrições">Aguardando Fim das Inscrições</button>
+        <% } else if (chavesGeradas && chavesGeradas.length > 0) { %>
+          <form action="/admin/chaveamento/limpar" method="POST" style="display: inline-block;">
+            <input type="hidden" name="modalidadeId" value="<%= modalidadeAtiva.id %>">
+            <input type="hidden" name="subCategoria" value="<%= subCategoriaAtiva %>">
+            <button type="submit" class="btn btn-danger">Refazer Sorteio</button>
+          </form>
+        <% } else { %>
+          <form action="/admin/chaveamento/gerar" method="POST" style="display: inline-block;">
+            <input type="hidden" name="modalidadeId" value="<%= modalidadeAtiva.id %>">
+            <input type="hidden" name="subCategoria" value="<%= subCategoriaAtiva %>">
+            <button type="submit" class="btn btn-primary" style="color: #1c1d3b;">🎲 Realizar Sorteio Dinâmico</button>
+          </form>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <div class="chaveamento-layout">
+    
+    <aside class="chaveamento-sidebar">
+      <h3 class="sidebar-title">
+        <%= modalidadeAtiva.categoria === 'atletismo' || subCategoriaAtiva === 'individual' || modalidadeAtiva.categoria === 'xadrez' ? 'Atletas Inscritos' : 'Campi Confirmados' %>
+      </h3>
+      <ul class="sidebar-list">
+        <% if (inscritosPendentes && inscritosPendentes.length > 0) { %>
+          <% inscritosPendentes.forEach((inscrito) => { %>
+            <li class="sidebar-item">
+              <% if (modalidadeAtiva.categoria === 'atletismo' || modalidadeAtiva.categoria === 'xadrez' || subCategoriaAtiva === 'individual') { %>
+                <strong><%= inscrito.nomeAtleta %></strong> <br>
+                <span class="item-subtext"><%= inscrito.nomeCampus %></span>
+              <% } else { %>
+                <strong><%= inscrito.nomeCampus %></strong>
+              <% } %>
+            </li>
+          <% }) %>
+        <% } else { %>
+          <li class="feedback-empty" style="padding: 1rem 0;">Nenhum registro encontrado.</li>
+        <% } %>
+      </ul>
+    </aside>
+
+    <main class="chaveamento-content">
+      
+      <% if (modalidadeAtiva.categoria === 'atletismo') { %>
+        <h2>Provas e Atletas Confirmados</h2>
+        <p class="panel-subtitle" style="margin-bottom: 1.5rem;">O atletismo lista os competidores por tipo de prova de campo ou pista.</p>
+        
+        <div class="chaves-container">
+          <% provasAtletismo.forEach((prova) => { %>
+            <div class="chave-card">
+              <div class="chave-title">🏃 <%= prova.nomeProva %></div>
+              <ul class="chave-equipes-list">
+                <% prova.atletas.forEach((atleta, index) => { %>
+                  <li class="chave-equipe-item">
+                    <span><span class="chave-equipe-pos">#<%= index + 1 %></span> <%= atleta.nome %></span>
+                    <span class="item-subtext"><%= atleta.campus %></span>
+                  </li>
+                <% }) %>
+                <% if(prova.atletas.length === 0) { %>
+                  <li class="feedback-empty">Sem atletas nesta prova.</li>
+                <% } %>
+              </ul>
+            </div>
+          <% }) %>
+        </div>
+
+      <% } else if (modalidadeAtiva.categoria === 'xadrez') { %>
+        <h2>Chaveamento Inicial — Sistema Suíço</h2>
+        <p class="panel-subtitle" style="margin-bottom: 1.5rem;">Lista Geral de Enxadristas aptos para o pareamento das rodadas.</p>
+        
+        <div class="chave-card" style="max-width: 100%;">
+          <div class="chave-title">♟️ Tabela de Mestres Inscritos</div>
+          <ul class="chave-equipes-list">
+            <% inscritosPendentes.forEach((enxadrista, index) => { %>
+              <li class="chave-equipe-item">
+                <span><span class="chave-equipe-pos"><%= index + 1 %>º</span> <strong><%= enxadrista.nomeAtleta %></strong> (<%= enxadrista.nomeCampus %>)</span>
+                <span class="chave-equipe-pontos"><%= enxadrista.pontuacaoAtual || '0.0' %> pts</span>
+              </li>
+            <% }) %>
+          </ul>
+        </div>
+
+      <% } else { %>
+        <h2>Distribuição de Grupos Oficiais</h2>
+        <p class="panel-subtitle" style="margin-bottom: 1.5rem;">Sorteio realizado seguindo as regras de prioridade em chaves iniciais (resto alocado no topo).</p>
+
+        <% if (chavesGeradas && chavesGeradas.length > 0) { %>
+          <div class="chaves-container">
+            <% chavesGeradas.forEach((chave) => { %>
+              <div class="chave-card">
+                <div class="chave-title">Grupo <%= chave.letra %></div>
+                <ul class="chave-equipes-list">
+                  <% chave.integrantes.forEach((equipe, idx) => { %>
+                    <li class="chave-equipe-item">
+                      <div>
+                        <span class="chave-equipe-pos"><%= idx + 1 %></span>
+                        <% if (subCategoriaAtiva === 'individual') { %>
+                          <span><%= equipe.nomeAtleta %> <small style="color:rgba(255,255,255,0.5);">(<%= equipe.nomeCampus %> - <%= equipe.numeroInscrito %>)</small></span>
+                        <% } else { %>
+                          <span><%= equipe.nomeCampus %></span>
+                        <% } %>
+                      </div>
+                      <span class="chave-equipe-pontos"><%= equipe.pontosFaseDeGrupos || 0 %> Pts</span>
+                    </li>
+                  <% }) %>
+                </ul>
+              </div>
+            <% }) %>
+          </div>
+        <% } else { %>
+          <div class="welcome-card" style="padding: 2rem;">
+            <p>O chaveamento desta categoria ainda não foi gerado pelo sistema.</p>
+            <p style="font-size: 0.85rem; color: rgba(255,255,255,0.4); margin-top: 0.5rem;">Clique no botão superior "Realizar Sorteio Dinâmico" para rodar a distribuição automática.</p>
+          </div>
+        <% } %>
+
+      <% } %>
+
+      <% if (jogosProgramados && jogosProgramados.length > 0) { %>
+        <div style="margin-top: 3rem;">
+          <h2 style="margin-bottom: 1rem;">Confrontos Gerados automaticamente</h2>
+          <div class="game-grid">
+            <% jogosProgramados.forEach((jogo) => { %>
+              <article class="game-card">
+                <p class="game-time"><%= jogo.data %> · <%= jogo.horario %></p>
+                <h3>
+                  <%= jogo.tipoIndividual ? jogo.atletaCasa : jogo.casa %> 
+                  x 
+                  <%= jogo.tipoIndividual ? jogo.atletaFora : jogo.fora %>
+                </h3>
+                <p class="game-result" style="font-size: 0.85rem;">Fase: <%= jogo.fase %></p>
+                <p class="game-result">Placar: <strong style="color: #ece42d;"><%= jogo.placar || 'vs' %></strong></p>
+                <span class="status-pill"><%= jogo.status %></span>
+                
+                <div class="profile-actions" style="margin-top: 1rem;">
+                  <a class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.5rem;" href="/admin/jogos/placar/<%= jogo.id %>">Atualizar Resultado</a>
+                </div>
+              </article>
+            <% }) %>
+          </div>
+        </div>
+      <% } %>
+
+    </main>
+
+  </div>
+</section>

@@ -1,0 +1,30 @@
+<section class="login-shell">
+    <article class="login-card">
+        <div class="login-card__icon">🔐</div>
+        <h1>Acesso do sistema</h1>
+        <p class="login-card__subtitle">Entre com o e-mail e a senha recebidos para acessar o painel da instituição ou do administrador principal.</p>
+
+        <% if (typeof erro !== 'undefined' && erro) { %>
+            <p class="login-error"><%= erro %></p>
+        <% } %>
+
+        <form action="/auth/login" method="POST" class="login-form">
+            <label for="email">E-mail</label>
+            <input id="email" name="email" type="email" placeholder="admin@ifc.edu.br" required>
+
+            <label for="senha">Senha</label>
+            <input id="senha" name="senha" type="password" placeholder="Digite a senha" required>
+
+            <button type="submit" class="btn btn-primary">Entrar</button>
+        </form>
+
+        <div class="login-hint">
+            <p><strong>Usuários disponíveis:</strong></p>
+            <ul>
+                <li>Administrador principal — admin@ifc.edu.br / admin123</li>
+                <li>Instituição — instituicao@ifc.edu.br / instituicao123</li>
+                <li>Juiz — juiz@ifc.edu.br / juiz123</li>
+            </ul>
+        </div>
+    </article>
+</section>

@@ -1,0 +1,108 @@
+<section class="panel-card">
+  <div class="profile-header">
+    <div>
+      <h1>Chaveamento e Resultados</h1>
+      <p class="panel-subtitle">Acompanhe as chaves oficiais, pontuações atualizadas e o andamento do mata-mata em tempo real.</p>
+    </div>
+  </div>
+
+  <div class="menu-modalidades" style="margin-top: 0; background: rgba(255,255,255,0.02); border-radius: 12px;">
+    <div class="modalidades-container">
+      <ul class="modalidades-list">
+        <% listaModalidadesCompleta.forEach((mod) => { %>
+          <li class="modalidade-item">
+            <a href="/chaveamento?modalidade=<%= mod.id %>" class="<%= modalidadeAtiva.id === mod.id ? 'active-sport' : '' %>">
+              <span class="modalidade-icon"><%= mod.icone %></span>
+              <span><%= mod.nome %></span>
+            </a>
+          </li>
+        <% }) %>
+      </ul>
+    </div>
+  </div>
+
+  <% if (modalidadeAtiva.categoria === 'tenis-de-mesa') { %>
+    <div class="sub-tabs-container" style="margin-top: 1.5rem;">
+      <a href="/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=individual" class="btn-sub-tab <%= subCategoriaAtiva === 'individual' ? 'active' : '' %>">Individual</a>
+      <a href="/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=dupla" class="btn-sub-tab <%= subCategoriaAtiva === 'dupla' ? 'active' : '' %>">Em Dupla</a>
+    </div>
+  <% } %>
+
+  <div style="margin-top: 2rem;">
+
+    <% if (modalidadeAtiva.categoria === 'atletismo') { %>
+      <div class="chaves-container">
+        <% provasAtletismo.forEach((prova) => { %>
+          <div class="chave-card">
+            <div class="chave-title">🏃 <%= prova.nomeProva %></div>
+            <ul class="chave-equipes-list">
+              <% prova.atletas.forEach((atleta, index) => { %>
+                <li class="chave-equipe-item">
+                  <span><span class="chave-equipe-pos">#<%= index + 1 %></span> <%= atleta.nome %></span>
+                  <span class="item-subtext"><%= atleta.campus %></span>
+                </li>
+              <% }) %>
+            </ul>
+          </div>
+        <% }) %>
+      </div>
+
+    <% if (modalidadeAtiva.categoria === 'xadrez') { %>
+      <div class="chave-card" style="max-width: 800px; margin: 0 auto;">
+        <div class="chave-title">♟️ Tabela de Classificação Atualizada — Sistema Suíço</div>
+        <ul class="chave-equipes-list">
+          <% classificadosXadrez.forEach((enxadrista, index) => { %>
+            <li class="chave-equipe-item">
+              <span><span class="chave-equipe-pos"><%= index + 1 %>º</span> <strong><%= enxadrista.nomeAtleta %></strong> (<%= enxadrista.nomeCampus %>)</span>
+              <span class="chave-equipe-pontos"><%= enxadrista.pontuacaoAtual %> pts</span>
+            </li>
+          <% }) %>
+        </ul>
+      </div>
+
+    <% } else { %>
+      <% if (chavesGeradas && chavesGeradas.length > 0) { %>
+        <div class="chaves-container">
+          <% chavesGeradas.forEach((chave) => { %>
+            <div class="chave-card">
+              <div class="chave-title">Grupo <%= chave.letra %></div>
+              <ul class="chave-equipes-list">
+                <% chave.integrantes.forEach((equipe, idx) => { %>
+                  <li class="chave-equipe-item">
+                    <div>
+                      <span class="chave-equipe-pos"><%= idx + 1 %>º</span>
+                      <% if (subCategoriaAtiva === 'individual') { %>
+                        <span><%= equipe.nomeAtleta %> <small style="color:rgba(255,255,255,0.5);">(<%= equipe.nomeCampus %>)</small></span>
+                      <% } else { %>
+                        <span><%= equipe.nomeCampus %></span>
+                      <% } %>
+                    </div>
+                    <span class="chave-equipe-pontos"><%= equipe.pontosFaseDeGrupos %> Pts</span>
+                  </li>
+                <% }) %>
+              </ul>
+            </div>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <div class="feedback-empty">
+          <p>🏁 O chaveamento inicial desta modalidade está aguardando a liberação da comissão organizadora.</p>
+        </div>
+      <% } %>
+    <% } %>
+
+  </div>
+
+  <% if (jogosProgramados && jogosProgramados.length > 0) { %>
+    <div style="margin-top: 3.5rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 2rem;">
+      <h2 style="margin-bottom: 0.5rem;">Agenda de Confrontos & Resultados</h2>
+      <p class="panel-subtitle" style="margin-bottom: 1.5rem;">Acompanhe abaixo os horários e placares das partidas.</p>
+      
+      <div class="game-grid">
+        <% jogosProgramados.forEach((jogo) => { %>
+          <%- include('partials/cardJogo', { jogo: jogo }) %>
+        <% }) %>
+      </div>
+    </div>
+  <% } %>
+</section>

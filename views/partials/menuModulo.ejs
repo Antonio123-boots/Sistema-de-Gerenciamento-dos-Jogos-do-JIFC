@@ -1,0 +1,36 @@
+<div class="menu-modalidades-container">
+  
+  <div class="modalidades-grupo">
+    <span class="grupo-label">Masculino</span>
+    <ul class="modalidades-list">
+      <% listaModalidadesCompleta.forEach((mod) => { %>
+        <% if (mod.genero === 'Masculino') { %>
+          <li class="modalidade-item">
+            <a href="<%= isAdmin ? '/admin' : '' %>/chaveamento?modalidade=<%= mod.id %>" 
+               class="<%= modalidadeAtiva.id === mod.id ? 'active-sport' : '' %>">
+              <span class="modalidade-icon"><%= mod.icone || '🏆' %></span>
+              <span><%= mod.nome.replace('Masculino', '').trim() %></span>
+            </a>
+          </li>
+        <% } %>
+      <% }) %>
+    </ul>
+  </div>
+
+  <div class="modalidades-grupo">
+    <span class="grupo-label">Feminino</span>
+    <ul class="modalidades-list">
+      <% listaModalidadesCompleta.forEach((mod) => { %>
+        <% if (mod.genero === 'Feminino') { %>
+          <li class="modalidade-item">
+            <a href="<%= isAdmin ? '/admin' : '' %>/chaveamento?modalidade=<%= mod.id %>" 
+               class="<%= modalidadeAtiva.id === mod.id ? 'active-sport' : '' %>">
+              <span class="modalidade-icon"><%= mod.icone || '🏆' %></span>
+              <span><%= mod.nome.replace('Feminino', '').trim() %></span>
+            </a>
+          </li>
+        <% } %>
+      <% }) %>
+    </ul>
+  </div>
+</div>

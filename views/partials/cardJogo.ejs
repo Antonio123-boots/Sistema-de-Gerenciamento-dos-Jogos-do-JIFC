@@ -1,0 +1,46 @@
+<article class="game-card">
+  <div class="game-card-header">
+    <p class="game-time">📅 <%= jogo.data %> · ⏰ <%= jogo.horario %></p>
+    <span class="fase-badge"><%= jogo.fase %></span>
+  </div>
+
+  <div class="game-matchup">
+    <div class="match-team text-right">
+      <% if (jogo.tipoIndividual || jogo.atletaCasa) { %>
+        <span class="player-name"><strong><%= jogo.atletaCasa %></strong></span>
+        <span class="player-sub"><%= jogo.casa %></span>
+      <% } else { %>
+        <span class="team-name"><strong><%= jogo.casa || 'A Definir' %></strong></span>
+      <% } %>
+    </div>
+
+    <div class="match-score-block">
+      <span class="score-pill">
+        <%= (jogo.placar && jogo.status !== 'Agendado') ? jogo.placar : 'VS' %>
+      </span>
+    </div>
+
+    <div class="match-team text-left">
+      <% if (jogo.tipoIndividual || jogo.atletaFora) { %>
+        <span class="player-name"><strong><%= jogo.atletaFora %></strong></span>
+        <span class="player-sub"><%= jogo.fora %></span>
+      <% } else { %>
+        <span class="team-name"><strong><%= jogo.fora || 'A Definir' %></strong></span>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="game-card-footer">
+    <span class="status-pill status-<%= (jogo.status || 'Agendado').toLowerCase() %>">
+      <%= jogo.status %>
+    </span>
+
+    <% if (typeof isAdmin !== 'undefined' && isAdmin) { %>
+      <div class="profile-actions" style="margin-top: 0.5rem; width: 100%;">
+        <a class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.4rem; justify-content: center;" href="/admin/jogos/placar/<%= jogo.id %>">
+          📝 Lançar Resultado
+        </a>
+      </div>
+    <% } %>
+  </div>
+</article>

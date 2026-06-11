@@ -1,0 +1,87 @@
+/* ==========================================================================
+   9. RESPONSIVIDADE PARA TELAS MENORES
+   - Ajusta o layout para tablets e celulares
+   - Reduz espaçamentos, empilha menus e adapta a largura dos campos
+   - Garante que o sistema continue legível em telas menores
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    .institution-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 1.2rem;
+    }
+
+    .badge-row {
+        justify-content: center;
+    }
+
+    .dashboard-tabs {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+
+    .utility-actions {
+        flex-direction: column;
+    }
+
+    .menu-container {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .menu-left {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .nav-buttons {
+        gap: 1rem;
+    }
+
+    .menu-right {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .search-box input {
+        width: 150px;
+    }
+
+    .modalidades-list {
+        gap: 0.3rem;
+    }
+
+    .modalidade-item a {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.75rem;
+    }
+
+    .dias-list {
+        gap: 0.5rem;
+    }
+
+    .dia-item a {
+        padding: 0.4rem 1rem;
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .nav-buttons {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .search-box input {
+        width: 120px;
+    }
+
+    .welcome-card {
+        padding: 1.5rem;
+    }
+
+    .welcome-card h1 {
+        font-size: 1.3rem;
+    }
+}
