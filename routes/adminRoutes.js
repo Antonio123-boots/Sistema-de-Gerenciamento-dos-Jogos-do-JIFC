@@ -8,6 +8,7 @@ router.post('/configurar/salvar', adminController.salvarConfiguracoes);
 
 router.get('/laudos', adminController.renderAnalise);
 router.post('/laudos/validar/:atletaId', adminController.validarAtleta);
+router.post('/laudos/reprovar/:atletaId', adminController.marcarIrregular);
 
 // Rotas de Chaveamento Dinâmico integradas ao Banco de Dados
 router.get('/chaveamento', adminController.renderChaveamento);

@@ -1,40 +1,134 @@
-<section class="panel-card">
-  <h1>Cadastro e substituição de atletas</h1>
-  <p class="panel-subtitle">O campus registra atletas em fase regular ou faz substituição quando houver necessidade de laudo.</p>
+<section class="profile-shell">
 
-  <article class="mini-card">
-    <h2>Inscrição regular</h2>
-    <form class="form-grid" action="/campus/atletas/cadastrar" method="POST">
-      <label>Nome<input type="text" name="nome" required></label>
-      <label>Matrícula<input type="text" name="matricula" required></label>
-      <label>Modalidade<input type="text" name="modalidade" value="Futsal Masculino" required></label>
-      <label>Gênero<select name="genero"><option value="Masculino">Masculino</option><option value="Feminino">Feminino</option></select></label>
-      <label>Data de nascimento<input type="date" name="dataNascimento" required></label>
-      <button class="btn btn-primary" type="submit">Cadastrar atleta</button>
-    </form>
-  </article>
+  <article class="profile-card profile-card--wide">
+    <% 
+      const atletasLista = Array.isArray(atletas) ? atletas : [];
+      const extrairGenero = (atleta) => {
+        const generoDireto = String(atleta?.genero || atleta?.sexo || '').trim().toLowerCase();
+        if (generoDireto === 'masculino' || generoDireto === 'm') return 'Masculino';
+        if (generoDireto === 'feminino' || generoDireto === 'f') return 'Feminino';
 
-  <article class="mini-card">
-    <h2>Substituição com laudo</h2>
-    <form class="form-grid" action="/campus/atletas/substituir" method="POST">
-      <label>Nome<input type="text" name="nome" required></label>
-      <label>Matrícula<input type="text" name="matricula" required></label>
-      <label>Modalidade<input type="text" name="modalidade" value="Futsal Masculino" required></label>
-      <label>Motivo<input type="text" name="motivo" value="Substituição por laudo" required></label>
-      <button class="btn btn-secondary" type="submit">Enviar substituição</button>
-    </form>
-  </article>
+        const modalidadesAtleta = Array.isArray(atleta?.modalidades)
+          ? atleta.modalidades
+          : String(atleta?.modalidade || '').split(',').map((item) => item.trim()).filter(Boolean);
 
-  <article class="mini-card">
-    <h2>Atletas registrados</h2>
-    <% if (atletas.length) { %>
-      <ul class="profile-list">
-        <% atletas.forEach((atleta) => { %>
-          <li><span><strong><%= atleta.nome %></strong> — <%= atleta.modalidade %></span><strong><%= atleta.status %></strong></li>
-        <% }) %>
-      </ul>
-    <% } else { %>
-      <p class="panel-subtitle">Nenhum atleta cadastrado ainda.</p>
+        if (modalidadesAtleta.some((modalidade) => /feminino/i.test(modalidade))) return 'Feminino';
+        if (modalidadesAtleta.some((modalidade) => /masculino/i.test(modalidade))) return 'Masculino';
+        return 'Masculino';
+      };
+
+      const atletasMasculinos = atletasLista.filter((atleta) => extrairGenero(atleta) === 'Masculino');
+      const atletasFemininos = atletasLista.filter((atleta) => extrairGenero(atleta) === 'Feminino');
+      const totalAtletasCampus = typeof quantidadeTotal !== 'undefined' ? quantidadeTotal : atletasLista.length;
+      const limiteCampus = typeof limiteAtletasTotalCampus !== 'undefined' ? limiteAtletasTotalCampus : 0;
+      const disponiveisRegulares = typeof limiteDisponivelRegulares !== 'undefined' ? limiteDisponivelRegulares : 0;
+      const totalAnalise = typeof quantidadeAnalise !== 'undefined' ? quantidadeAnalise : 0;
+      const totalReprovados = typeof quantidadeReprovados !== 'undefined' ? quantidadeReprovados : 0;
+    %>
+    
+    <header class="institution-header" style="border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 1.5rem; margin-bottom: 2rem;">
+      <div class="institution-details">
+        <div class="badge-row">
+          <span class="badge badge--status">Total: <%= totalAtletasCampus %></span>
+          <span class="badge badge--status">Regulares: <%= quantidadeRegulares || 0 %></span>
+          <span class="badge badge--status">Em análise: <%= totalAnalise %></span>
+          <span class="badge badge--status">Reprovados: <%= totalReprovados %></span>
+        </div>
+        <h1 class="institution-title" style="color: #ece42d;">Atletas do Campus</h1>
+        <p class="institution-meta">Listagem dos atletas inscritos do <%= nomeCampus %>, separada por masculino e feminino.</p>
+        <p class="institution-meta">Limite total do campus: <strong><%= limiteCampus > 0 ? limiteCampus : 'sem limite configurado' %></strong> · Restantes: <strong><%= limiteCampus > 0 ? disponiveisRegulares : 'livre' %></strong></p>
+      </div>
+    </header>
+
+    <% if (typeof mensagemErro !== 'undefined' && mensagemErro) { %>
+      <div style="background: rgba(255, 77, 77, 0.1); border: 1px solid #ff4d4d; color: #ff4d4d; padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; font-weight: 600;">
+        <%= mensagemErro %>
+      </div>
     <% } %>
+
+    <% if (typeof mensagemSucesso !== 'undefined' && mensagemSucesso) { %>
+      <div style="background: rgba(0, 255, 136, 0.1); border: 1px solid #00ff88; color: #00ff88; padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; font-weight: 600;">
+        <%= mensagemSucesso %>
+      </div>
+    <% } %>
+
+    <% if (totalReprovados > 0) { %>
+      <div style="background: rgba(255, 77, 77, 0.1); border: 1px solid #ff4d4d; color: #ff4d4d; padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; font-weight: 700;">
+        <%= totalReprovados %> atleta(s) foram reprovados e não podem participar do JIFC.
+      </div>
+    <% } %>
+
+    <div style="background: rgba(255, 255, 255, 0.01); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.05); margin-bottom: 1.25rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+        <h3 style="color: #ffffff; margin: 0; font-size: 1.1rem;">Masculino</h3>
+        <span style="color: rgba(255,255,255,0.65); font-size: 0.92rem;"><%= atletasMasculinos.length %> atleta(s)</span>
+      </div>
+
+      <% if (atletasMasculinos.length) { %>
+        <ul class="data-list">
+          <% atletasMasculinos.forEach(function(atleta) { %>
+            <li class="data-item">
+              <div class="item-info">
+                <strong class="item-name"><%= atleta.nome %></strong>
+                <span class="item-subtext">Matrícula: <%= atleta.matricula %></span>
+                <span class="item-subtext">Nascimento: <%= atleta.dataNascimento || '-' %></span>
+                <span class="item-subtext">Modalidades: <%= Array.isArray(atleta.modalidades) ? atleta.modalidades.join(', ') : String(atleta.modalidade || '-') %></span>
+              </div>
+              <% if (atleta.status === 'Regular') { %>
+                <span class="status-tag" style="background: rgba(0, 255, 136, 0.12); color: #00ff88;">✓ Validado</span>
+              <% } else if (atleta.status === 'Analise') { %>
+                <span class="status-tag" style="background: rgba(255, 183, 0, 0.12); color: #ffb700;">⏳ Em análise</span>
+              <% } else if (atleta.status === 'Reprovado') { %>
+                <span class="status-tag" style="background: rgba(255, 77, 77, 0.12); color: #ff4d4d;">✗ Reprovado</span>
+              <% } else { %>
+                <span class="status-tag" style="background: rgba(255, 183, 0, 0.12); color: #ffb700;">⏳ Em análise</span>
+              <% } %>
+            </li>
+          <% }) %>
+        </ul>
+      <% } else { %>
+        <div class="feedback-empty"><p>Nenhum atleta masculino inscrito até o momento.</p></div>
+      <% } %>
+    </div>
+
+    <div style="background: rgba(255, 255, 255, 0.01); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.05);">
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+        <h3 style="color: #ffffff; margin: 0; font-size: 1.1rem;">Feminino</h3>
+        <span style="color: rgba(255,255,255,0.65); font-size: 0.92rem;"><%= atletasFemininos.length %> atleta(s)</span>
+      </div>
+
+      <% if (atletasFemininos.length) { %>
+        <ul class="data-list">
+          <% atletasFemininos.forEach(function(atleta) { %>
+            <li class="data-item">
+              <div class="item-info">
+                <strong class="item-name"><%= atleta.nome %></strong>
+                <span class="item-subtext">Matrícula: <%= atleta.matricula %></span>
+                <span class="item-subtext">Nascimento: <%= atleta.dataNascimento || '-' %></span>
+                <span class="item-subtext">Modalidades: <%= Array.isArray(atleta.modalidades) ? atleta.modalidades.join(', ') : String(atleta.modalidade || '-') %></span>
+              </div>
+              <% if (atleta.status === 'Regular') { %>
+                <span class="status-tag" style="background: rgba(0, 255, 136, 0.12); color: #00ff88;">✓ Validado</span>
+              <% } else if (atleta.status === 'Analise') { %>
+                <span class="status-tag" style="background: rgba(255, 183, 0, 0.12); color: #ffb700;">⏳ Em análise</span>
+              <% } else if (atleta.status === 'Reprovado') { %>
+                <span class="status-tag" style="background: rgba(255, 77, 77, 0.12); color: #ff4d4d;">✗ Reprovado</span>
+              <% } else { %>
+                <span class="status-tag" style="background: rgba(255, 183, 0, 0.12); color: #ffb700;">⏳ Em análise</span>
+              <% } %>
+            </li>
+          <% }) %>
+        </ul>
+      <% } else { %>
+        <div class="feedback-empty"><p>Nenhum atleta feminino inscrito até o momento.</p></div>
+      <% } %>
+    </div>
+
+    <footer class="dashboard-footer" style="margin-top: 2.5rem;">
+      <div class="utility-actions">
+        <a class="btn btn-secondary" href="/perfil">Voltar ao Perfil</a>
+      </div>
+    </footer>
+
   </article>
 </section>

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const adminModel = require('../models/adminModel');
 const campusModel = require('../models/campusModel');
+const { listarCampi, obterCampusPorSlug, listarCredenciaisCampus, senhaPadraoCampus } = require('../models/campiCatalog');
 
 const IFCS = [
     'IFC Araquari', 'IFC Blumenau', 'IFC Brusque', 'IFC Camboriú', 'IFC Concórdia',
@@ -17,6 +18,45 @@ const modalidades = [
     { slug: 'basquete-masculino', nome: 'Basquete Masculino', genero: 'Masculino', icone: '🏀', dia: '26/06', chaves: ['A', 'B'] },
     { slug: 'basquete-feminino', nome: 'Basquete Feminino', genero: 'Feminino', icone: '🏀', dia: '26/06', chaves: ['A'] }
 ];
+
+function agruparJogosPorDia(jogos) {
+    return jogos.reduce((acumulador, jogo) => {
+        const dia = jogo.data;
+        if (!acumulador[dia]) {
+            acumulador[dia] = [];
+        }
+        acumulador[dia].push(jogo);
+        return acumulador;
+    }, {});
+}
+
+function gerarDiasDoEvento(configuracoes) {
+    const inicioEvento = configuracoes.inicio_evento;
+    const fimEvento = configuracoes.fim_evento;
+
+    if (!inicioEvento || !fimEvento) {
+        return [];
+    }
+
+    const inicio = new Date(`${inicioEvento}T00:00:00`);
+    const fim = new Date(`${fimEvento}T00:00:00`);
+
+    if (Number.isNaN(inicio.getTime()) || Number.isNaN(fim.getTime()) || inicio > fim) {
+        return [];
+    }
+
+    const dias = [];
+    const cursor = new Date(inicio);
+
+    while (cursor <= fim) {
+        const dia = String(cursor.getDate()).padStart(2, '0');
+        const mes = String(cursor.getMonth() + 1).padStart(2, '0');
+        dias.push(`${dia}/${mes}`);
+        cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return dias;
+}
 
 function gerarJogos() {
     return modalidades.map((modalidade, index) => ({
@@ -83,7 +123,9 @@ router.get('/login', function(req, res, next) {
         title: 'JIFC - Login',
         usuarioLogado: null,
         mostrarFiltros: false,
-        erro: null
+        erro: null,
+        credenciaisCampus: listarCredenciaisCampus(),
+        senhaPadraoCampus
     });
 });
 
@@ -111,13 +153,23 @@ router.get('/perfil', async function(req, res, next) {
     const textoModalidades = prazoModalidadesAberto ? 'Inscrever modalidades' : 'Ver modalidades';
     const textoAtletas = prazoAtletasAberto ? 'Inscrever atletas' : 'Substituir atletas';
     const mostrarAcoesInscricao = prazoModalidadesAberto || prazoAtletasAberto;
+    const anoBaseEvento = Number(configuracoes.ano_evento || new Date().getFullYear());
 
     const campusNome = req.session.usuario.nome || 'IFC Blumenau';
     const atletasCampus = campusModel.getAtletas(campusNome);
+    const modalidadesCampus = campusModel.getInscricoes(campusNome);
     const jogos = await adminModel.getJogos();
     const jogosCampus = jogos.filter((jogo) =>
         jogo.casa === campusNome || jogo.fora === campusNome
     );
+    const jogosCampusPorDia = agruparJogosPorDia(jogosCampus);
+    const diasEvento = gerarDiasDoEvento(configuracoes);
+    const diasJogosCampus = diasEvento.length ? diasEvento : Object.keys(jogosCampusPorDia).sort((a, b) => {
+        const [diaA, mesA] = a.split('/').map(Number);
+        const [diaB, mesB] = b.split('/').map(Number);
+        return new Date(anoBaseEvento, (mesA || 1) - 1, diaA || 1) - new Date(anoBaseEvento, (mesB || 1) - 1, diaB || 1);
+    });
+    const diaJogosSelecionado = diasJogosCampus.includes(req.query.dia) ? req.query.dia : (diasJogosCampus[0] || '');
 
     res.render('perfil', {
         title: 'JIFC - Perfil',
@@ -131,7 +183,13 @@ router.get('/perfil', async function(req, res, next) {
         textoAtletas,
         mostrarAcoesInscricao,
         atletasCampus,
-        jogosCampus
+        modalidadesCampus,
+        jogosCampus,
+        jogosCampusPorDia,
+        diasEvento,
+        diasJogosCampus,
+        diaJogosSelecionado,
+        anoJifc: adminModel.getAnoJifc()
     });
 });
 
@@ -155,11 +213,56 @@ router.get('/chaveamento', function(req, res, next) {
 
 /* GET equipes page */
 router.get('/equipes', function(req, res, next) {
-    // No futuro: carregar a lista de campus cadastrados
     res.render('equipes', { 
         title: 'Equipes',
         usuarioLogado: req.session?.usuario || null,
-        mostrarFiltros: false // Isso vai esconder os menus de esporte e dias
+        mostrarFiltros: false,
+        campi: listarCampi()
+    });
+});
+
+router.get('/equipes/:slug', async function(req, res, next) {
+    const campus = obterCampusPorSlug(req.params.slug);
+
+    if (!campus) {
+        return res.redirect('/equipes');
+    }
+
+    const configuracoes = adminModel.getConfiguracoes();
+    const jogos = await adminModel.getJogos();
+    const atletasCampus = campusModel.getAtletas(campus.nome);
+    const modalidadesCampus = campusModel.getInscricoes(campus.nome);
+    const jogosCampus = jogos.filter((jogo) => jogo.casa === campus.nome || jogo.fora === campus.nome);
+    const jogosCampusPorDia = agruparJogosPorDia(jogosCampus);
+    const diasEvento = gerarDiasDoEvento(configuracoes);
+    const diasJogosCampus = diasEvento.length ? diasEvento : Object.keys(jogosCampusPorDia).sort((a, b) => {
+        const [diaA, mesA] = a.split('/').map(Number);
+        const [diaB, mesB] = b.split('/').map(Number);
+        return new Date(Number(configuracoes.ano_evento || new Date().getFullYear()), (mesA || 1) - 1, diaA || 1) - new Date(Number(configuracoes.ano_evento || new Date().getFullYear()), (mesB || 1) - 1, diaB || 1);
+    });
+    const diaJogosSelecionado = diasJogosCampus.includes(req.query.dia) ? req.query.dia : (diasJogosCampus[0] || '');
+
+    res.render('perfil', {
+        title: `Perfil - ${campus.nomeExibicao}`,
+        usuarioLogado: req.session?.usuario || null,
+        mostrarFiltros: false,
+        configuracoes,
+        statusInscricao: 'Perfil público do campus',
+        prazoModalidadesAberto: false,
+        prazoAtletasAberto: false,
+        textoModalidades: 'Ver modalidades',
+        textoAtletas: 'Ver atletas',
+        mostrarAcoesInscricao: false,
+        atletasCampus,
+        modalidadesCampus,
+        jogosCampus,
+        jogosCampusPorDia,
+        diasEvento,
+        diasJogosCampus,
+        diaJogosSelecionado,
+        anoJifc: adminModel.getAnoJifc(),
+        modoPublico: true,
+        campusSelecionado: campus
     });
 });
 

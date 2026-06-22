@@ -1,22 +1,58 @@
 <section class="panel-card">
   <h1>Verificação de atletas</h1>
-  <p class="panel-subtitle">Acompanhe os atletas pendentes e valide as inscrições para liberar o acesso ao campeonato.</p>
+  <p class="panel-subtitle">Escolha um campus para ver os atletas. Em análise fica amarelo, validado fica verde e reprovado fica vermelho.</p>
 
-  <article class="mini-card">
-    <h2>Atletas pendentes</h2>
-    <% if (atletas.length) { %>
-      <ul class="profile-list">
-        <% atletas.forEach((atleta) => { %>
-          <li>
-            <span><strong><%= atleta.nome %></strong> — <%= atleta.campus %><br><small><%= atleta.modalidade %> · Status: <%= atleta.status %></small></span>
-            <form action="/admin/laudos/validar/<%= atleta.id %>" method="POST">
-              <button class="btn btn-primary" type="submit">Validar</button>
-            </form>
-          </li>
-        <% }) %>
-      </ul>
-    <% } else { %>
-      <p class="panel-subtitle">Nenhum atleta pendente no momento.</p>
-    <% } %>
-  </article>
+  <% if (typeof campusSelecionado === 'string' && campusSelecionado) { %>
+    <div style="margin: 0 0 1rem; display:flex; justify-content:space-between; gap:1rem; align-items:center; flex-wrap:wrap;">
+      <div>
+        <strong style="color:#ece42d;">Campus selecionado:</strong>
+        <span style="color:#fff;"><%= campusSelecionado %></span>
+      </div>
+      <a class="btn btn-ghost" href="/admin/laudos">Voltar aos campi</a>
+    </div>
+
+    <div id="lista-atletas" class="mini-card">
+      <% if (atletas.length) { %>
+        <ul class="profile-list" style="display:grid; gap:0.75rem;">
+          <% atletas.forEach((atleta) => { %>
+            <% const modalidadesAtleta = Array.isArray(atleta.modalidades) ? atleta.modalidades : String(atleta.modalidade || '').split(',').map((item) => item.trim()).filter(Boolean); %>
+            <li style="display:flex; justify-content:space-between; gap:1rem; align-items:center; flex-wrap:wrap; padding:0.85rem 0.95rem; border-radius:14px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);">
+              <span style="display:block; min-width: 220px;">
+                <strong><%= atleta.nome %></strong><br>
+                <small><%= modalidadesAtleta.join(', ') %> · <%= atleta.dataNascimento || '-' %></small><br>
+                <% if (atleta.status === 'Regular') { %>
+                  <small style="color:#00ff88; font-weight:700;">● Validado</small>
+                <% } else if (atleta.status === 'Analise') { %>
+                  <small style="color:#ffb700; font-weight:700;">● Em análise</small>
+                <% } else if (atleta.status === 'Reprovado') { %>
+                  <small style="color:#ff4d4d; font-weight:700;">● Reprovado</small>
+                <% } else { %>
+                  <small style="color:#ff4d4d; font-weight:700;">● Reprovado</small>
+                <% } %>
+              </span>
+              <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                <form action="/admin/laudos/validar/<%= atleta.id %>" method="POST">
+                  <button class="btn btn-success" type="submit">Validar</button>
+                </form>
+                <form action="/admin/laudos/reprovar/<%= atleta.id %>" method="POST">
+                  <button class="btn btn-danger" type="submit">Reprovar</button>
+                </form>
+              </div>
+            </li>
+          <% }) %>
+        </ul>
+      <% } else { %>
+        <p class="panel-subtitle">Nenhum atleta cadastrado neste campus.</p>
+      <% } %>
+    </div>
+  <% } else { %>
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:0.85rem; margin-top:1rem;">
+      <% (campi || []).forEach((campus) => { %>
+        <a href="/admin/laudos?campus=<%= encodeURIComponent(campus.nome) %>" style="text-decoration:none; padding:1rem; border-radius:16px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); color:#fff; transition:0.2s ease;">
+          <div style="color:#ece42d; font-size:0.78rem; font-weight:800; letter-spacing:0.12em; text-transform:uppercase; margin-bottom:0.25rem;">Campus</div>
+          <div style="font-size:1.05rem; font-weight:700;"><%= campus.nomeExibicao %></div>
+        </a>
+      <% }) %>
+    </div>
+  <% } %>
 </section>

@@ -1,4 +1,6 @@
 const adminModel = require('../models/adminModel');
+const campusModel = require('../models/campusModel');
+const { listarCampi } = require('../models/campiCatalog');
 
 function renderConfigurar(req, res) {
   res.render('adm/configEvento', {
@@ -11,12 +13,15 @@ function renderConfigurar(req, res) {
 
 function salvarConfiguracoes(req, res) {
   adminModel.salvarConfiguracoes({
+    inicio_evento: req.body.inicio_evento,
+    fim_evento: req.body.fim_evento,
     inicio_inscricao_modalidades: req.body.inicioInscricoesModalidades,
     fim_inscricao_modalidades: req.body.fimInscricoesModalidades,
     inicio_inscricao_atletas: req.body.inicioInscricoesAtletas,
     fim_inscricao_atletas: req.body.fimInscricoesAtletas,
     inicio_sorteio_chaves: req.body.inicioSorteio,
-    fim_sorteio_chaves: req.body.fimSorteio
+    fim_sorteio_chaves: req.body.fimSorteio,
+    limite_atletas_total_campus: req.body.limite_atletas_total_campus
   });
   res.redirect('/admin/configurar');
 }
@@ -115,17 +120,35 @@ async function limparChaveamento(req, res) {
 }
 
 function renderAnalise(req, res) {
+  const campusSelecionado = req.query.campus || '';
+  const atletas = campusModel.getAtletasParaAnalise(campusSelecionado || null);
+
   res.render('adm/analiseAtletas', {
     title: 'Análise de Atletas',
     usuarioLogado: req.session?.usuario || null,
     mostrarFiltros: false,
-    atletas: adminModel.getAtletasPendentes()
+    campi: listarCampi(),
+    campusSelecionado,
+    atletas
   });
 }
 
 function validarAtleta(req, res) {
-  adminModel.validarAtleta(req.params.atletaId);
-  res.redirect('/admin/laudos');
+  const atleta = campusModel.atualizarStatusAtleta(req.params.atletaId, 'Regular');
+  if (!atleta) {
+    return res.redirect('/admin/laudos?erro=' + encodeURIComponent('Atleta não encontrado para validação.'));
+  }
+
+  res.redirect('/admin/laudos?campus=' + encodeURIComponent(atleta.campus) + '&sucesso=' + encodeURIComponent('Atleta validado com sucesso.') + '#lista-atletas');
+}
+
+function marcarIrregular(req, res) {
+  const atleta = campusModel.atualizarStatusAtleta(req.params.atletaId, 'Reprovado');
+  if (!atleta) {
+    return res.redirect('/admin/laudos?erro=' + encodeURIComponent('Atleta não encontrado para reprovação.'));
+  }
+
+  res.redirect('/admin/laudos?campus=' + encodeURIComponent(atleta.campus) + '&sucesso=' + encodeURIComponent('Atleta reprovado com sucesso.') + '#lista-atletas');
 }
 
 async function renderPlacar(req, res) {
@@ -164,6 +187,7 @@ module.exports = {
   limparChaveamento,
   renderAnalise,
   validarAtleta,
+  marcarIrregular,
   renderPlacar,
   salvarPlacar
 };

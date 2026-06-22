@@ -11,6 +11,8 @@ const authRoutes    = require('./routes/authRoutes');   // Processamento de logi
 const campusRoutes  = require('./routes/campusRoutes'); // Painel do Campus
 const adminRoutes   = require('./routes/adminRoutes');  // Painel do Admin
 const juizRoutes    = require('./routes/juizRoutes');   // Painel do Juiz / Mesário
+const adminModel = require('./models/adminModel');
+const { construirSessaoUsuario } = require('./models/authUsers');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -42,11 +44,24 @@ app.use(methodOverride('_method'));
 // Middleware que carrega a sessão do usuário a partir do cookie 'sid'.
 app.use((req, res, next) => {
     const sessionId = getCookie(req, 'sid');
+    const authEmail = getCookie(req, 'authEmail');
     req.sessionId = sessionId || null;
     req.session = global.sessions.get(sessionId) || {};
 
+    if ((!req.session || !req.session.usuario) && authEmail) {
+        const usuarioReconstituido = construirSessaoUsuario(authEmail);
+        if (usuarioReconstituido) {
+            req.session = { usuario: usuarioReconstituido };
+            if (sessionId) {
+                global.sessions.set(sessionId, req.session);
+            }
+        }
+    }
+
     res.locals.usuarioLogado = req.session?.usuario || null;
     res.locals.mostrarFiltros = false;
+    res.locals.configuracoes = adminModel.getConfiguracoes();
+    res.locals.anoJifc = adminModel.getAnoJifc();
     next();
 });
 
@@ -71,6 +86,21 @@ app.use('/campus', campusRoutes);  // Caminhos do Campus (ex: /campus/atletas)
 app.use('/admin', adminRoutes);    // Caminhos do Admin (ex: /admin/laudos)
 app.use('/juiz', juizRoutes);      // Caminhos do Juiz / Mesário (placar e tabelas)
 
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+function startServer(port) {
+    const server = app.listen(port, () => {
+        console.log(`Server is running on port ${port}`);
+    });
+
+    server.on('error', (error) => {
+        if (error.code === 'EADDRINUSE') {
+            const nextPort = Number(port) + 1;
+            console.log(`Porta ${port} em uso. Tentando a porta ${nextPort}...`);
+            startServer(nextPort);
+            return;
+        }
+
+        throw error;
+    });
+}
+
+startServer(PORT);

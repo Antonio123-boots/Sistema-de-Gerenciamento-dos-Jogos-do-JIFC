@@ -112,6 +112,8 @@
 .btn-primary {
     background: #ece42d;
     color: #181a35;
+    border: 1px solid #ece42d;
+    box-shadow: 0 8px 18px rgba(236, 228, 45, 0.16);
 }
 
 .btn-primary:hover {
@@ -126,6 +128,83 @@
 
 .btn-secondary:hover {
     background: rgba(255, 255, 255, 0.16);
+}
+
+.btn-danger {
+    background: rgba(255, 75, 75, 0.1);
+    color: #ff6b6b;
+    border: 1px solid rgba(255, 75, 75, 0.2);
+}
+
+.btn-danger:hover {
+    background: #ff4b4b;
+    color: #ffffff;
+    border-color: #ff4b4b;
+}
+
+.btn-success {
+    background: rgba(0, 255, 136, 0.12);
+    color: #00ff88;
+    border: 1px solid rgba(0, 255, 136, 0.2);
+}
+
+.btn-success:hover {
+    background: #00ff88;
+    color: #07130d;
+    border-color: #00ff88;
+}
+
+.btn-ghost {
+    background: rgba(255, 255, 255, 0.04);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.row--regular {
+    background: rgba(0, 255, 136, 0.05);
+}
+
+.row--irregular {
+    background: rgba(255, 75, 75, 0.05);
+}
+
+.row--pending {
+    background: rgba(255, 183, 0, 0.06);
+}
+
+.modalidades-checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.75rem;
+}
+
+.modalidade-checkbox-card {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.8rem 0.95rem;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: #ffffff;
+    cursor: pointer;
+    transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.modalidade-checkbox-card:hover {
+    transform: translateY(-1px);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(236, 228, 45, 0.3);
+}
+
+.modalidade-checkbox-card input {
+    width: 18px;
+    height: 18px;
+    accent-color: #ece42d;
 }
 
 .login-error {

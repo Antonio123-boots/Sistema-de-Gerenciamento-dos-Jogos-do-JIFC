@@ -2,7 +2,7 @@
     <article class="login-card">
         <div class="login-card__icon">🔐</div>
         <h1>Acesso do sistema</h1>
-        <p class="login-card__subtitle">Entre com o e-mail e a senha recebidos para acessar o painel da instituição ou do administrador principal.</p>
+        <p class="login-card__subtitle">Entre com o e-mail e a senha recebidos para acessar o painel da instituição, do campus ou do administrador principal.</p>
 
         <% if (typeof erro !== 'undefined' && erro) { %>
             <p class="login-error"><%= erro %></p>
@@ -22,9 +22,17 @@
             <p><strong>Usuários disponíveis:</strong></p>
             <ul>
                 <li>Administrador principal — admin@ifc.edu.br / admin123</li>
-                <li>Instituição — instituicao@ifc.edu.br / instituicao123</li>
                 <li>Juiz — juiz@ifc.edu.br / juiz123</li>
+                <li>Instituição — instituicao@ifc.edu.br / instituicao123</li>
+                <li>Campi — senha padrão: <%= typeof senhaPadraoCampus !== 'undefined' ? senhaPadraoCampus : 'jifc2026' %></li>
             </ul>
+            <% if (typeof credenciaisCampus !== 'undefined' && credenciaisCampus && credenciaisCampus.length) { %>
+                <div class="login-campus-list">
+                    <% credenciaisCampus.forEach((campus) => { %>
+                        <p><strong><%= campus.nomeExibicao %>:</strong> <%= campus.email %> / <%= campus.senha %></p>
+                    <% }) %>
+                </div>
+            <% } %>
         </div>
     </article>
 </section>

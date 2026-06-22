@@ -20,7 +20,7 @@
                     <a href="/equipes" class="nav-btn">EQUIPES</a>
                     <% if (typeof usuarioLogado !== 'undefined' && usuarioLogado) { %>
                         <% if (usuarioLogado.tipo === 'admin') { %>
-                            <a href="/admin/configurar" class="nav-btn">JIFC 2026</a>
+                            <a href="/admin/configurar" class="nav-btn">JIFC <%= typeof anoJifc !== 'undefined' ? anoJifc : '2026' %></a>
                             <a href="/admin/chaveamento" class="nav-btn">CHAVEAMENTO</a>
                         <% } %>
                         <% if (usuarioLogado.tipo === 'juiz') { %>
@@ -28,7 +28,7 @@
                             <a href="/juiz/tabelas" class="nav-btn">TABELAS</a>
                         <% } %>
                         <% if (usuarioLogado.tipo === 'campus') { %>
-                            <a href="/perfil#meus-atletas" class="nav-btn">ATLETAS</a>
+                            <a href="/campus/atletas" class="nav-btn">ATLETAS</a>
                             <a href="/campus/jogos" class="nav-btn">MEUS JOGOS</a>
                         <% } %>
                     <% } %>
@@ -58,14 +58,14 @@
         <div class="menu-modalidades">
             <div class="modalidades-container">
                 <ul class="modalidades-list">
-                    <li class="modalidade-item"><a><span class="modalidade-icon">🏃</span><span>ATLETISMO</span></a></li>
-                    <li class="modalidade-item"><a><span class="modalidade-icon">🏀</span><span>BASQUETE</span></a></li>
-                    <li class="modalidade-item"><a><span class="modalidade-icon">⚽</span><span>FUTSAL</span></a></li>
-                    <li class="modalidade-item"><a><span class="modalidade-icon">🤾</span><span>HANDEBOL</span></a></li>
-                    <li class="modalidade-item"><a><span class="modalidade-icon">🏓</span><span>TÊNIS DE MESA</span></a></li>
-                    <li class="modalidade-item"><a><span class="modalidade-icon">🏐</span><span>VOLEIBOL</span></a></li>
-                    <li class="modalidade-item"><a><span class="modalidade-icon">🏖️</span><span>VOLEI DE PRAIA</span></a></li>
-                    <li class="modalidade-item"><a><span class="modalidade-icon">♟️</span><span>XADREZ</span></a></li>
+                    <li class="modalidade-item"><a><img src="/imagens/Atletismo icone.png" style="height: 35px;"><span>ATLETISMO</span></a></li>
+                    <li class="modalidade-item"><a><img src="/imagens/basquete.jpg" style="height: 35px;"><span>BASQUETE</span></a></li>
+                    <li class="modalidade-item"><a><img src="/imagens/futsal.png" style="height: 35px;"><span>FUTSAL</span></a></li>
+                    <li class="modalidade-item"><a><img src="/imagens/handebol.png" style="height: 35px;"><span>HANDEBOL</span></a></li>
+                    <li class="modalidade-item"><a><img src="/imagens/tenisdemesa.jpg" style="height: 35px;"><span>TÊNIS DE MESA</span></a></li>
+                    <li class="modalidade-item"><a><img src="/imagens/volei.png" style="height: 35px;"><span>VOLEIBOL</span></a></li>
+                    <li class="modalidade-item"><a><img src="/imagens/voleidepraia.jpg" style="height: 35px;"><span>VOLEI DE PRAIA</span></a></li>
+                    <li class="modalidade-item"><a><img src="/imagens/xadrez.png" style="height: 35px;"><span>XADREZ</span></a></li>
                 </ul>
             </div>
         </div>

@@ -164,7 +164,7 @@ body {
 }
 
 /* ==========================================================================
-   3. MENU DE MODALIDADES (BARRA HORIZONTAL DE ESPORTES)
+   3. MENU DE S (BARRA HORIZONTAL DE ESPORTES)
    - Exibe os esportes como botões curtos e alinhados em linha
    - Permite rolagem horizontal quando há muitos itens
    - Destaque visual para a modalidade ativa com fundo amarelo/escuro
@@ -224,10 +224,6 @@ body {
     letter-spacing: 0.5px;
     transition: all 0.3s ease;
     cursor: pointer;
-}
-
-.modalidade-icon {
-    font-size: 1.3rem;
 }
 
 .modalidade-item a:hover {

@@ -1,1 +1,372 @@
+<section class="profile-shell">
+  <article class="profile-card profile-card--wide">
+    <% 
+      const catalogoEsportes = [
+        'Atletismo',
+        'Basquete',
+        'Futsal',
+        'Handebol',
+        'Tênis de Mesa',
+        'Voleibol',
+        'Vôlei de Praia',
+        'Xadrez'
+      ];
+      const modalidadesSalvas = Array.isArray(modalidadesInscritas) ? modalidadesInscritas : [];
+      const atletasSalvos = Array.isArray(atletas) ? atletas : [];
+      const mostrarModalidades = typeof prazoModalidadesAberto !== 'undefined' && prazoModalidadesAberto;
+      const mostrarAtletas = typeof prazoAtletasAberto !== 'undefined' && prazoAtletasAberto;
+      const totalAbas = (mostrarModalidades ? 1 : 0) + (mostrarAtletas ? 1 : 0);
+      const limiteCampus = typeof limiteAtletasTotalCampus !== 'undefined' ? limiteAtletasTotalCampus : 0;
+      const abaAtivaAtual = typeof abaAtiva !== 'undefined' && abaAtiva === 'atletas' ? 'atletas' : 'modalidades';
+      const atletaEmEdicaoLocal = typeof atletaEmEdicao !== 'undefined' ? atletaEmEdicao : null;
+      const isEditandoAtleta = !!(atletaEmEdicaoLocal && atletaEmEdicaoLocal.id);
+      const rotaFormularioAtleta = isEditandoAtleta ? `/campus/atletas/atualizar/${atletaEmEdicaoLocal.id}` : '/campus/atletas/cadastrar';
+      const textoFormularioAtleta = isEditandoAtleta ? 'Salvar alterações' : 'Adicionar Atleta';
+      const generoFormulario = isEditandoAtleta
+        ? (String(atletaEmEdicaoLocal.genero || '').toLowerCase() === 'feminino' ? 'Feminino' : 'Masculino')
+        : (typeof atletaFormDraft !== 'undefined' && atletaFormDraft && atletaFormDraft.genero === 'Feminino' ? 'Feminino' : 'Masculino');
+      const nomeFormulario = isEditandoAtleta
+        ? (atletaEmEdicaoLocal.nome || '')
+        : (typeof atletaFormDraft !== 'undefined' && atletaFormDraft && atletaFormDraft.nome ? atletaFormDraft.nome : '');
+      const matriculaFormulario = isEditandoAtleta
+        ? (atletaEmEdicaoLocal.matricula || '')
+        : (typeof atletaFormDraft !== 'undefined' && atletaFormDraft && atletaFormDraft.matricula ? atletaFormDraft.matricula : '');
+      const dataNascimentoFormulario = isEditandoAtleta
+        ? (atletaEmEdicaoLocal.dataNascimento || '')
+        : (typeof atletaFormDraft !== 'undefined' && atletaFormDraft && atletaFormDraft.dataNascimento ? atletaFormDraft.dataNascimento : '');
+      const statusFormulario = isEditandoAtleta
+        ? (atletaEmEdicaoLocal.status || 'Regular')
+        : (typeof atletaFormDraft !== 'undefined' && atletaFormDraft && atletaFormDraft.status ? atletaFormDraft.status : 'Regular');
+      const modalidadesFormulario = isEditandoAtleta
+        ? (Array.isArray(atletaEmEdicaoLocal.modalidades) ? atletaEmEdicaoLocal.modalidades : String(atletaEmEdicaoLocal.modalidade || '').split(',').map((item) => item.trim()).filter(Boolean))
+        : (typeof atletaFormDraft !== 'undefined' && atletaFormDraft && Array.isArray(atletaFormDraft.modalidades) ? atletaFormDraft.modalidades : []);
+      const modalidadesPorGenero = {
+        Masculino: modalidadesSalvas.filter((modalidade) => /masculino/i.test(modalidade)),
+        Feminino: modalidadesSalvas.filter((modalidade) => /feminino/i.test(modalidade))
+      };
+      const generoSelecionadoPadrao = modalidadesPorGenero.Masculino.length ? 'Masculino' : 'Feminino';
+    %>
 
+    <% if (!mostrarModalidades && !mostrarAtletas) { %>
+    <div style="background: rgba(255, 77, 77, 0.1); border: 1px solid #ff4d4d; color: #ff4d4d; padding: 1rem; border-radius: 12px; margin-bottom: 2rem; font-weight: bold; text-align: center; width: 100%;">
+        ⚠ Fora do período de cadastro.
+        <br>
+        <small style="font-weight: normal; color: rgba(255,255,255,0.6);">
+        Nenhuma etapa está disponível no período cadastrado globalmente.
+        </small>
+    </div>
+    <% } %>
+
+    <% if (typeof mensagemErro !== 'undefined' && mensagemErro) { %>
+      <div style="background: rgba(255, 77, 77, 0.1); border: 1px solid #ff4d4d; color: #ff4d4d; padding: 1rem; border-radius: 12px; margin-bottom: 1.25rem; font-weight: 600;">
+        <%= mensagemErro %>
+      </div>
+    <% } %>
+
+    <% if (typeof mensagemSucesso !== 'undefined' && mensagemSucesso) { %>
+      <div style="background: rgba(0, 255, 136, 0.1); border: 1px solid #00ff88; color: #00ff88; padding: 1rem; border-radius: 12px; margin-bottom: 1.25rem; font-weight: 600;">
+        <%= mensagemSucesso %>
+      </div>
+    <% } %>
+
+    <header class="institution-header" style="border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 1.5rem; margin-bottom: 2rem;">
+      <div class="institution-details">
+        <div class="badge-row">
+          <span class="badge badge--role">Campus</span>
+          <span class="badge badge--status">Painel de Inscrições</span>
+        </div>
+        <h1 class="institution-title" style="color: #ece42d;"><%= nomeCampus %></h1>
+        <p class="institution-meta">Selecione as modalidades e cadastre os atletas do campus no mesmo painel.</p>
+        <p class="institution-meta">Regulares: <strong><%= typeof quantidadeRegulares !== 'undefined' ? quantidadeRegulares : 0 %></strong> · Pendentes: <strong><%= typeof quantidadePendentes !== 'undefined' ? quantidadePendentes : 0 %></strong> · Limite regular: <strong><%= limiteCampus > 0 ? limiteCampus : 'sem limite' %></strong></p>
+      </div>
+    </header>
+
+    <% if (mostrarModalidades || mostrarAtletas) { %>
+      <% if (totalAbas === 1) { %>
+      <div class="dashboard-tabs" role="tablist" style="grid-template-columns: repeat(1, minmax(0, 1fr));">
+        <% if (mostrarModalidades) { %>
+          <button type="button" class="tab-trigger <%= abaAtivaAtual === 'modalidades' ? 'is-active' : '' %>" data-target="modalidades">Modalidades</button>
+        <% } %>
+        <% if (mostrarAtletas) { %>
+          <button type="button" class="tab-trigger <%= abaAtivaAtual === 'atletas' ? 'is-active' : '' %>" data-target="atletas">Atletas</button>
+        <% } %>
+      </div>
+      <% } else { %>
+      <div class="dashboard-tabs" role="tablist" style="grid-template-columns: repeat(2, minmax(0, 1fr));">
+        <% if (mostrarModalidades) { %>
+          <button type="button" class="tab-trigger <%= abaAtivaAtual === 'modalidades' ? 'is-active' : '' %>" data-target="modalidades">Modalidades</button>
+        <% } %>
+        <% if (mostrarAtletas) { %>
+          <button type="button" class="tab-trigger <%= abaAtivaAtual === 'atletas' ? 'is-active' : '' %>" data-target="atletas">Atletas</button>
+        <% } %>
+      </div>
+      <% } %>
+
+      <% if (mostrarModalidades) { %>
+      <div class="dashboard-view <%= abaAtivaAtual === 'modalidades' ? 'is-active' : '' %>" id="modalidades">
+        <section style="background: rgba(255, 255, 255, 0.02); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(236, 228, 45, 0.12); margin-bottom: 2rem;">
+          <h3 style="color: #ffffff; margin-bottom: 1rem; font-size: 1.1rem;">Inscrição por Modalidade</h3>
+          <p style="margin: 0 0 1.25rem; color: rgba(255,255,255,0.68);">Marque masculino, feminino ou ambos para cada esporte disponível.</p>
+
+          <form action="/campus/inscricoes/salvar" method="POST">
+            <div class="game-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+              <% catalogoEsportes.forEach(function(esporte) { 
+                  const masculino = `${esporte} Masculino`;
+                  const feminino = `${esporte} Feminino`;
+                  const selecionadoMasculino = modalidadesSalvas.includes(masculino);
+                  const selecionadoFeminino = modalidadesSalvas.includes(feminino);
+              %>
+                <div class="mini-card" style="display: flex; flex-direction: column; gap: 0.9rem; padding: 1rem 1.1rem;">
+                  <strong style="color: #ffffff; font-size: 1rem;"><%= esporte %></strong>
+                  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem;">
+                    <label style="display: flex; align-items: center; gap: 0.65rem; cursor: pointer; color: rgba(255,255,255,0.85); font-weight: 600;">
+                      <input type="checkbox" name="modalidades" value="<%= masculino %>" <%= selecionadoMasculino ? 'checked' : '' %> style="width: 18px; height: 18px; accent-color: #ece42d;">
+                      Masculino
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.65rem; cursor: pointer; color: rgba(255,255,255,0.85); font-weight: 600;">
+                      <input type="checkbox" name="modalidades" value="<%= feminino %>" <%= selecionadoFeminino ? 'checked' : '' %> style="width: 18px; height: 18px; accent-color: #ece42d;">
+                      Feminino
+                    </label>
+                  </div>
+                </div>
+              <% }); %>
+            </div>
+
+            <footer class="dashboard-footer" style="margin-top: 2.5rem; display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+              <a class="btn btn-secondary" href="/perfil">Voltar ao Perfil</a>
+              <button type="submit" class="btn btn-success primary-save-btn" style="border: none;">
+                Salvar Inscrições
+              </button>
+            </footer>
+          </form>
+        </section>
+      </div>
+      <% } %>
+
+      <% if (mostrarAtletas) { %>
+      <div class="dashboard-view <%= abaAtivaAtual === 'atletas' ? 'is-active' : '' %>" id="atletas">
+        <section style="background: rgba(255, 255, 255, 0.02); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(236, 228, 45, 0.12); margin-bottom: 2rem;">
+          <h3 style="color: #ffffff; margin-bottom: 0.75rem; font-size: 1.1rem;">Cadastro de Atletas do Campus</h3>
+          <p style="margin: 0 0 0.75rem; color: rgba(255,255,255,0.68);">Escolha o gênero do atleta e veja somente os esportes compatíveis para inscrição.</p>
+
+          <form action="<%= rotaFormularioAtleta %>" method="POST" class="form-grid" style="align-items: flex-end; margin-bottom: 1.5rem;">
+            <label>
+              Nome do Atleta
+              <input type="text" name="nome" placeholder="Ex: Gabriel Silva" value="<%= nomeFormulario %>" required class="premium-text-input">
+            </label>
+
+            <label>
+              Gênero
+              <select name="genero" id="genero-atleta" required class="premium-text-input" style="height: 43px; background: #1c1d3b; color: white;">
+                <option value="Masculino" <%= generoFormulario === 'Masculino' ? 'selected' : '' %>>Masculino</option>
+                <option value="Feminino" <%= generoFormulario === 'Feminino' ? 'selected' : '' %>>Feminino</option>
+              </select>
+            </label>
+
+            <label>
+              Data de Nascimento
+              <input type="date" name="dataNascimento" value="<%= dataNascimentoFormulario %>" required class="premium-text-input">
+            </label>
+
+            <label>
+              Matrícula
+              <input type="text" name="matricula" placeholder="Ex: 20261102" value="<%= matriculaFormulario %>" required class="premium-text-input">
+            </label>
+
+            <label>
+              Situação
+              <select name="status" required class="premium-text-input" style="height: 43px; background: #1c1d3b; color: white;">
+                <option value="Regular" <%= statusFormulario === 'Regular' ? 'selected' : '' %>>Regular</option>
+                <option value="Pendente" <%= statusFormulario === 'Pendente' ? 'selected' : '' %>>Pendente</option>
+              </select>
+            </label>
+
+            <div style="grid-column: 1 / -1;">
+              <span style="display:block; margin-bottom: 0.5rem;">Modalidades</span>
+              <% if (modalidadesSalvas.length > 0) { %>
+                <div class="modalidades-checkbox-grid" data-gender-grid="Masculino">
+                  <% modalidadesPorGenero.Masculino.forEach(function(modalidade) { %>
+                    <label class="modalidade-checkbox-card">
+                      <input type="checkbox" name="modalidades" value="<%= modalidade %>" <%= modalidadesFormulario.includes(modalidade) ? 'checked' : '' %>>
+                      <span><%= modalidade %></span>
+                    </label>
+                  <% }); %>
+                </div>
+                <div class="modalidades-checkbox-grid" data-gender-grid="Feminino" style="display:none;">
+                  <% modalidadesPorGenero.Feminino.forEach(function(modalidade) { %>
+                    <label class="modalidade-checkbox-card">
+                      <input type="checkbox" name="modalidades" value="<%= modalidade %>" <%= modalidadesFormulario.includes(modalidade) ? 'checked' : '' %>>
+                      <span><%= modalidade %></span>
+                    </label>
+                  <% }); %>
+                </div>
+              <% } else { %>
+                <div style="padding: 1rem; border-radius: 14px; border: 1px dashed rgba(255,255,255,0.18); color: rgba(255,255,255,0.7);">
+                  Salve as inscrições de modalidades para liberar esta seleção.
+                </div>
+              <% } %>
+              <small style="display:block; margin-top: 0.55rem; color: rgba(255,255,255,0.6);">Preencha todos os campos e marque no máximo 3 opções.</small>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; grid-column: 1 / -1;">
+              <button type="submit" class="btn btn-success primary-save-btn" style="border: none; height: 43px; align-self: end;">
+                <%= textoFormularioAtleta %>
+              </button>
+              <% if (isEditandoAtleta) { %>
+                <a class="btn btn-secondary" href="/campus/inscricoes?aba=atletas#atletas" style="height: 43px; display: inline-flex; align-items: center; text-decoration: none;">Cancelar</a>
+              <% } %>
+            </div>
+          </form>
+
+          <div style="overflow-x: auto;">
+            <table class="score-table">
+              <thead>
+                <tr style="color: #ece42d; border-bottom: 2px solid rgba(255,255,255,0.1);">
+                  <th style="padding: 0.75rem 0.5rem;">Nome</th>
+                  <th>Matrícula</th>
+                  <th>Modalidade</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if (atletasSalvos.length > 0) { %>
+                  <% atletasSalvos.forEach(function(atleta) { %>
+                    <tr class="<%= atleta.status === 'Regular' ? 'row--regular' : (atleta.status === 'Pendente' || atleta.status === 'Pendente_Laudo') ? 'row--pending' : 'row--irregular' %>">
+                      <td style="padding: 0.75rem 0.5rem; font-weight: 600;"><%= atleta.nome %></td>
+                      <td style="color: rgba(255,255,255,0.7);"><%= atleta.matricula %></td>
+                      <td>
+                        <% const modalidadesAtleta = Array.isArray(atleta.modalidades) ? atleta.modalidades : String(atleta.modalidade || '').split(',').map((item) => item.trim()).filter(Boolean); %>
+                        <span class="status-tag" style="background: rgba(255,255,255,0.05); color: #fff;"><%= modalidadesAtleta.join(', ') %></span>
+                      </td>
+                      <td>
+                        <% if (atleta.status === 'Regular') { %>
+                          <span style="color: #00ff88; font-weight: bold;">✓ Regular</span>
+                        <% } else if (atleta.status === 'Pendente' || atleta.status === 'Pendente_Laudo') { %>
+                          <span style="color: #ffb700; font-weight: bold;">⏳ Pendente / Reserva</span>
+                        <% } else { %>
+                          <span style="color: #ff4d4d; font-weight: bold;">⚠ Irregular</span>
+                        <% } %>
+                      </td>
+                      <td>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                          <a class="btn btn-secondary" href="/campus/inscricoes?aba=atletas&editar=<%= atleta.id %>#atletas">Editar</a>
+                          <form action="/campus/atletas/excluir/<%= atleta.id %>" method="POST" onsubmit="return confirm('Deseja excluir este atleta?');">
+                            <button type="submit" class="btn btn-danger">Excluir</button>
+                          </form>
+                        </div>
+                      </td>
+                    </tr>
+                  <% }); %>
+                <% } else { %>
+                  <tr>
+                    <td colspan="5" class="feedback-empty">
+                      Nenhum atleta inscrito até o momento.
+                    </td>
+                  </tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+      <% } %>
+
+      <% if (mostrarAtletas && modalidadesSalvas.length > 0) { %>
+      <script>
+        (function () {
+          const formAtletas = document.querySelector('#atletas form[action="/campus/atletas/cadastrar"]');
+          const generoSelect = formAtletas ? formAtletas.querySelector('#genero-atleta') : null;
+          const checkboxGrids = formAtletas ? Array.from(formAtletas.querySelectorAll('[data-gender-grid]')) : [];
+          const checkboxes = formAtletas ? Array.from(formAtletas.querySelectorAll('input[name="modalidades"]')) : [];
+          if (!checkboxes.length) {
+            return;
+          }
+
+          const maxSelecionadas = 3;
+
+          function getGeneroAtual() {
+            return generoSelect && generoSelect.value === 'Feminino' ? 'Feminino' : 'Masculino';
+          }
+
+          function atualizarGradeGenero() {
+            const generoAtual = getGeneroAtual();
+
+            checkboxGrids.forEach((grid) => {
+              grid.style.display = grid.dataset.genderGrid === generoAtual ? '' : 'none';
+            });
+
+            checkboxes.forEach((item) => {
+              if (item.closest('[data-gender-grid]')?.dataset.genderGrid !== generoAtual) {
+                item.checked = false;
+              }
+            });
+
+            atualizarEstado();
+          }
+
+          function atualizarEstado() {
+            const generoAtual = getGeneroAtual();
+            const visiveis = checkboxes.filter((item) => item.closest('[data-gender-grid]')?.dataset.genderGrid === generoAtual);
+            const marcadas = visiveis.filter((item) => item.checked);
+            const bloqueadas = marcadas.length >= maxSelecionadas;
+
+            visiveis.forEach((item) => {
+              if (!item.checked) {
+                item.disabled = bloqueadas;
+              } else {
+                item.disabled = false;
+              }
+            });
+
+            checkboxes.forEach((item) => {
+              if (item.closest('[data-gender-grid]')?.dataset.genderGrid !== generoAtual) {
+                item.disabled = true;
+              }
+            });
+          }
+
+          checkboxes.forEach((item) => {
+            item.addEventListener('change', () => {
+              const generoAtual = getGeneroAtual();
+              const marcadas = checkboxes.filter((checkbox) => checkbox.closest('[data-gender-grid]')?.dataset.genderGrid === generoAtual && checkbox.checked);
+              if (marcadas.length > maxSelecionadas) {
+                item.checked = false;
+                alert('Selecione no máximo 3 modalidades.');
+              }
+              atualizarEstado();
+            });
+          });
+
+          if (generoSelect) {
+            generoSelect.addEventListener('change', atualizarGradeGenero);
+          }
+
+          atualizarGradeGenero();
+        })();
+      </script>
+      <% } %>
+
+      <% if (totalAbas > 1) { %>
+      <script>
+        document.querySelectorAll('.tab-trigger').forEach((button) => {
+          button.addEventListener('click', () => {
+            const targetId = button.dataset.target;
+
+            document.querySelectorAll('.tab-trigger').forEach((item) => item.classList.toggle('is-active', item === button));
+            document.querySelectorAll('.dashboard-view').forEach((view) => view.classList.toggle('is-active', view.id === targetId));
+          });
+        });
+      </script>
+      <% } %>
+    <% } else { %>
+      <section style="min-height: 40vh; display: flex; align-items: center; justify-content: center; text-align: center; background: rgba(255, 255, 255, 0.02); padding: 2rem; border-radius: 16px; border: 1px solid rgba(236, 228, 45, 0.12); color: rgba(255,255,255,0.8);">
+        <div>
+          <h3 style="color: #ffffff; margin-bottom: 0.75rem; font-size: 1.2rem;">Fora do período de cadastro</h3>
+          <p style="margin: 0;">Nenhuma aba está disponível no período cadastrado globalmente.</p>
+        </div>
+      </section>
+    <% } %>
+
+  </article>
+</section>

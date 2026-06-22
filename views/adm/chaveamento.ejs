@@ -1,7 +1,7 @@
 <section class="panel-card">
   <div class="profile-header">
     <div>
-      <h1>Painel de Chaveamento — JIFC 2026</h1>
+      <h1>Painel de Chaveamento — JIFC <%= typeof anoJifc !== 'undefined' ? anoJifc : '2026' %></h1>
       <p class="panel-subtitle">Gerencie o sorteio, configure divisões de chaves e publique os cronogramas oficiais.</p>
     </div>
     <div>
@@ -43,7 +43,7 @@
       </div>
       <div>
         <% if (inscricoesAbertas) { %>
-          <button class="btn btn-secondary" disabled title="Aguarde o encerramento das inscrições">Aguardando Fim das Inscrições</button>
+          <button class="btn btn-ghost" disabled title="Aguarde o encerramento das inscrições">Aguardando Fim das Inscrições</button>
         <% } else if (chavesGeradas && chavesGeradas.length > 0) { %>
           <form action="/admin/chaveamento/limpar" method="POST" style="display: inline-block;">
             <input type="hidden" name="modalidadeId" value="<%= modalidadeAtiva.id %>">
@@ -54,7 +54,7 @@
           <form action="/admin/chaveamento/gerar" method="POST" style="display: inline-block;">
             <input type="hidden" name="modalidadeId" value="<%= modalidadeAtiva.id %>">
             <input type="hidden" name="subCategoria" value="<%= subCategoriaAtiva %>">
-            <button type="submit" class="btn btn-primary" style="color: #1c1d3b;">🎲 Realizar Sorteio Dinâmico</button>
+            <button type="submit" class="btn btn-success">🎲 Realizar Sorteio Dinâmico</button>
           </form>
         <% } %>
       </div>

@@ -1,16 +1,25 @@
 // Importação da conexão ativa com o banco de dados MySQL/MariaDB
 const db = require('../config/db');
+const { readState, writeState, cloneState } = require('./stateStore');
 
-// Configurações e estados locais para fins de retrocompatibilidade ou contingência na aplicação
-const configuracoesEvento = {
+// Configurações padrão usadas quando ainda não existe estado persistido em disco.
+const configuracoesPadrao = {
   ano_evento: 2026,
+  inicio_evento: '',
+  fim_evento: '',
   inicio_inscricao_modalidades: '',
   fim_inscricao_modalidades: '',
   inicio_inscricao_atletas: '',
   fim_inscricao_atletas: '',
   inicio_sorteio_chaves: '',
-  fim_sorteio_chaves: ''
+  fim_sorteio_chaves: '',
+  limite_atletas_total_campus: 0
 };
+
+function carregarConfiguracoes() {
+  const estado = readState();
+  return { ...configuracoesPadrao, ...(estado.configuracoes || {}) };
+}
 
 const atletasPendentes = [];
 
@@ -18,15 +27,49 @@ const atletasPendentes = [];
  * Retorna as configurações locais guardadas em memória.
  */
 function getConfiguracoes() {
-  return { ...configuracoesEvento };
+  return cloneState(carregarConfiguracoes());
 }
 
 /**
  * Atualiza e mescla as novas datas configuradas pelo administrador em memória.
  */
 function salvarConfiguracoes(novosDados) {
-  Object.assign(configuracoesEvento, novosDados);
+  const estadoAtual = readState();
+  const configuracoesAtuais = { ...configuracoesPadrao, ...(estadoAtual.configuracoes || {}) };
+  const inicioEvento = novosDados.inicio_evento || configuracoesAtuais.inicio_evento || '';
+  const anoDerivado = Number(
+    novosDados.ano_evento ||
+    novosDados.anoEvento ||
+    (inicioEvento ? new Date(`${inicioEvento}T00:00:00`).getFullYear() : configuracoesAtuais.ano_evento)
+  );
+
+  estadoAtual.configuracoes = {
+    ...configuracoesAtuais,
+    ...novosDados,
+    ano_evento: Number.isFinite(anoDerivado) ? anoDerivado : configuracoesAtuais.ano_evento,
+    limite_atletas_total_campus: Number(
+      novosDados.limite_atletas_total_campus ?? configuracoesAtuais.limite_atletas_total_campus ?? 0
+    )
+  };
+
+  writeState(estadoAtual);
   return getConfiguracoes();
+}
+
+function getAnoJifc() {
+  const configuracoes = getConfiguracoes();
+  const anoBase = Number(configuracoes.ano_evento) || new Date().getFullYear();
+
+  if (!configuracoes.fim_evento) {
+    return anoBase;
+  }
+
+  const limiteEvento = new Date(`${configuracoes.fim_evento}T23:59:59`);
+  if (Number.isNaN(limiteEvento.getTime())) {
+    return anoBase;
+  }
+
+  return new Date() > limiteEvento ? anoBase + 1 : anoBase;
 }
 
 /**
@@ -51,7 +94,7 @@ function validarAtleta(atletaId) {
 async function getJogos() {
   try {
     const query = `
-      SELECT j.id, j.fase, j.status, j.placar,
+      SELECT j.id, j.fase, j.status, j.placar_casa, j.placar_fora,
              DATE_FORMAT(j.data_hora, '%d/%m') AS data,
              DATE_FORMAT(j.data_hora, '%H:%i') AS horario,
              c1.nome AS casa, c2.nome AS fora,
@@ -117,6 +160,10 @@ async function getModalidadesBanco() {
  * Busca todos os participantes (Campi ou Atletas Nominais) inscritos e confirmados na modalidade.
  * Filtra por subcategoria (individual/dupla) caso a modalidade seja o Tênis de Mesa.
  */
+/**
+ * Busca todos os participantes (Campi ou Atletas Nominais) inscritos e confirmados na modalidade.
+ * Filtra por subcategoria (individual/dupla) caso a modalidade seja o Tênis de Mesa.
+ */
 async function getInscritosModalidade(modalidadeId, subCategoria = 'geral') {
   try {
     const [mod] = await db.query('SELECT tipo_confronto, categoria, slug FROM modalidades WHERE id = ?', [modalidadeId]);
@@ -137,7 +184,7 @@ async function getInscritosModalidade(modalidadeId, subCategoria = 'geral') {
       return atletas;
     } else {
       const query = `
-        SELECT cm.id, c.nome AS nomeCampus, c.id AS campus_id
+        SELECT c.nome AS nomeCampus, c.id AS campus_id
         FROM campus_modalidade cm
         JOIN campus c ON cm.campus_id = c.id
         WHERE cm.modalidade_id = ?
@@ -150,7 +197,6 @@ async function getInscritosModalidade(modalidadeId, subCategoria = 'geral') {
     throw error;
   }
 }
-
 /**
  * Busca a divisão atual de grupos/chaves salvos no banco para exibição na área central.
  */
@@ -182,7 +228,8 @@ async function getChavesModalidade(modalidadeId, subCategoria = 'geral') {
 async function getJogosModalidade(modalidadeId, subCategoria = 'geral') {
   try {
     const query = `
-      SELECT j.id, j.fase, j.status, j.placar, DATE_FORMAT(j.data_hora, '%d/%m') AS data, DATE_FORMAT(j.data_hora, '%H:%i') AS horario, 
+      SELECT j.id, j.fase, j.status, j.placar_casa, j.placar_fora, 
+             DATE_FORMAT(j.data_hora, '%d/%m') AS data, DATE_FORMAT(j.data_hora, '%H:%i') AS horario, 
              c1.nome AS casa, c2.nome AS fora, a1.nome AS atletaCasa, a2.nome AS atletaFora, m.tipo_confronto 
       FROM jogos j 
       JOIN modalidades m ON j.modalidade_id = m.id 
@@ -275,11 +322,11 @@ async function resetarChaveamentoModalidade(modalidadeId, subCategoria = 'geral'
 }
 
 /**
- * Atualiza o placar final e estado de uma partida.
+ * Atualiza o placar final e estado de uma partida usando as novas colunas separadas.
  */
-async function atualizarPlacarJogo(jogoId, placar, status) {
+async function atualizarPlacarJogo(jogoId, placarCasa, placarFora, status) {
   try {
-    await db.query('UPDATE jogos SET placar = ?, status = ? WHERE id = ?', [placar, status, jogoId]);
+    await db.query('UPDATE jogos SET placar_casa = ?, placar_fora = ?, status = ? WHERE id = ?', [placarCasa, placarFora, status, jogoId]);
   } catch (error) {
     console.error("Erro ao salvar resultado de jogo:", error);
     throw error;
@@ -288,20 +335,54 @@ async function atualizarPlacarJogo(jogoId, placar, status) {
 
 async function salvarPlacar(jogoId, dados) {
   try {
-    const placar = `${dados.placar1 ?? 0} x ${dados.placar2 ?? 0}`;
+    const placarCasa = dados.placar1 ?? 0;
+    const placarFora = dados.placar2 ?? 0;
     const status = dados.status || 'Encerrado';
-    await atualizarPlacarJogo(Number(jogoId), placar, status);
-    return { jogoId: Number(jogoId), placar, status };
+    
+    await atualizarPlacarJogo(Number(jogoId), placarCasa, placarFora, status);
+    return { jogoId: Number(jogoId), placarCasa, placarFora, status };
   } catch (error) {
     console.error('Erro ao salvar placar via model:', error);
     throw error;
   }
 }
 
+/**
+ * Realiza a divisão dos inscritos em chaves matemáticas de forma automatizada (Sorteio)
+ * e aciona a gravação da estrutura de jogos.
+ */
+async function efetuarChaveamentoMatematico(modalidadeId, subCategoria = 'geral') {
+  try {
+    const inscritos = await getInscritosModalidade(modalidadeId, subCategoria);
+    
+    if (!inscritos || inscritos.length === 0) {
+      throw new Error("Não há inscritos suficientes para gerar o chaveamento desta modalidade.");
+    }
+
+    const inscritosSorteados = [...inscritos].sort(() => Math.random() - 0.5);
+    const tamanhoMaximoGrupo = 4;
+    const chavesMapeadas = {};
+    const letrasGrupo = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+    let indiceLetra = 0;
+
+    for (let i = 0; i < inscritosSorteados.length; i += tamanhoMaximoGrupo) {
+      const letraAtual = letrasGrupo[indiceLetra] || `X${indiceLetra}`;
+      chavesMapeadas[letraAtual] = inscritosSorteados.slice(i, i + tamanhoMaximoGrupo);
+      indiceLetra++;
+    }
+
+    await persistirEstruturaChaveamento(modalidadeId, subCategoria, chavesMapeadas);
+    return true;
+  } catch (error) {
+    console.error("Erro interno no algoritmo de chaveamento matemático:", error);
+    throw error;
+  }
+}
 // Exportação completa de métodos
 module.exports = {
   getConfiguracoes,
   salvarConfiguracoes,
+  getAnoJifc,
   getAtletasPendentes,
   validarAtleta,
   getJogos,

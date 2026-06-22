@@ -1,104 +1,110 @@
 <div class="profile-shell">
-  
-  <div class="profile-card--wide">
+  <div class="profile-card--wide configuration-dashboard">
     
-    <div class="institution-header">
-      <div>
-        <h1 style="color: #ece42d; margin-bottom: 0.5rem;">Configurações Gerais do Evento</h1>
-        <p style="color: rgba(255, 255, 255, 0.7); font-size: 0.95rem;">
-          Gerencie prazos, limites de delegações por campus e cadastro de modalidades oficiais do JIFC.
-        </p>
-      </div>
+    <div class="config-dashboard-header">
+      <h1 class="config-main-title">Configurações Gerais do Evento</h1>
+      <p class="config-main-subtitle">
+        Controle prazos críticos, limites operacionais por delegação e o catálogo de modalidades oficiais do JIFC.
+      </p>
     </div>
 
-    <form action="/admin/configurar/salvar" method="POST" style="margin-top: 2rem;">
+    <form action="/admin/configurar/salvar" method="POST" class="modern-config-form">
       
-      <div style="margin-bottom: 2.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
-        <h2 style="color: #ece42d; font-size: 1.2rem; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.5px;">
-          📅 Período do JIFC
-        </h2>
-        <div class="form-grid">
-          <label>
-            <span>Data de Início do Evento</span>
-            <input type="date" name="inicio_evento" value="<%= configuracoes.inicio_evento || '' %>" required>
+      <div class="inner-management-card">
+        <div class="card-context-header">
+          <div>
+            <h2 class="context-title">Duração Oficial</h2>
+            <p class="context-subtitle">Defina o intervalo de realização dos jogos no calendário.</p>
+          </div>
+        </div>
+        
+        <div class="management-fields-row split-2">
+          <label class="premium-input-wrapper">
+            <span class="field-label-text">Data de Início do Evento</span>
+            <input type="date" class="premium-date-input" name="inicio_evento" value="<%= (typeof configuracoes !== 'undefined' && configuracoes.inicio_evento) ? configuracoes.inicio_evento : '' %>" required>
           </label>
-          <label>
-            <span>Data de Término do Evento</span>
-            <input type="date" name="fim_evento" value="<%= configuracoes.fim_evento || '' %>" required>
+          <label class="premium-input-wrapper">
+            <span class="field-label-text">Data de Término do Evento</span>
+            <input type="date" class="premium-date-input" name="fim_evento" value="<%= (typeof configuracoes !== 'undefined' && configuracoes.fim_evento) ? configuracoes.fim_evento : '' %>" required>
           </label>
         </div>
       </div>
 
-      <div style="margin-bottom: 2.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
-        <h2 style="color: #ece42d; font-size: 1.2rem; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.5px;">
-          ⏳ Prazos de Inscrições e Processos
-        </h2>
-        <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem;">
-          
-          <label>
-            <span>Abertura (Inscrição de Modalidades)</span>
-            <input type="date" name="inicioInscricoesModalidades" value="<%= configuracoes.inicio_inscricao_modalidades || '' %>" required>
+      <div class="inner-management-card">
+        <div class="card-context-header">
+          <div>
+            <h2 class="context-title">Prazos de Inscrições e Processos</h2>
+            <p class="context-subtitle">Gerencie as janelas de tempo permitidas para cada etapa do sistema.</p>
+          </div>
+        </div>
+        
+        <div class="management-fields-row split-2">
+          <label class="premium-input-wrapper">
+            <span class="field-label-text">Abertura (Inscrição de Modalidades)</span>
+            <input type="date" class="premium-date-input" name="inicioInscricoesModalidades" value="<%= (typeof configuracoes !== 'undefined' && configuracoes.inicio_inscricao_modalidades) ? configuracoes.inicio_inscricao_modalidades : '' %>" required>
           </label>
-          <label>
-            <span>Fechamento (Inscrição de Modalidades)</span>
-            <input type="date" name="fimInscricoesModalidades" value="<%= configuracoes.fim_inscricao_modalidades || '' %>" required>
+          <label class="premium-input-wrapper">
+            <span class="field-label-text">Fechamento (Inscrição de Modalidades)</span>
+            <input type="date" class="premium-date-input" name="fimInscricoesModalidades" value="<%= (typeof configuracoes !== 'undefined' && configuracoes.fim_inscricao_modalidades) ? configuracoes.fim_inscricao_modalidades : '' %>" required>
           </label>
+        </div>
 
-          <label>
-            <span>Abertura (Inscrição de Atletas / Laudos)</span>
-            <input type="date" name="inicioInscricoesAtletas" value="<%= configuracoes.inicio_inscricao_atletas || '' %>" required>
+        <div class="management-fields-row split-2" style="margin-top: 1.25rem;">
+          <label class="premium-input-wrapper">
+            <span class="field-label-text">Abertura (Inscrição de Atletas)</span>
+            <input type="date" class="premium-date-input" name="inicioInscricoesAtletas" value="<%= (typeof configuracoes !== 'undefined' && configuracoes.inicio_inscricao_atletas) ? configuracoes.inicio_inscricao_atletas : '' %>" required>
           </label>
-          <label>
-            <span>Fechamento (Inscrição de Atletas / Laudos)</span>
-            <input type="date" name="fimInscricoesAtletas" value="<%= configuracoes.fim_inscricao_atletas || '' %>" required>
+          <label class="premium-input-wrapper">
+            <span class="field-label-text">Fechamento (Inscrição de Atletas)</span>
+            <input type="date" class="premium-date-input" name="fimInscricoesAtletas" value="<%= (typeof configuracoes !== 'undefined' && configuracoes.fim_inscricao_atletas) ? configuracoes.fim_inscricao_atletas : '' %>" required>
           </label>
-          
-          <label>
-            <span>Início do Sorteio de Chaves</span>
-            <input type="date" name="inicioSorteio" value="<%= configuracoes.inicio_sorteio_chaves || '' %>" required>
-          </label>
-          <label>
-            <span>Fim do Sorteio de Chaves</span>
-            <input type="date" name="fimSorteio" value="<%= configuracoes.fim_sorteio_chaves || '' %>" required>
+        </div>
+
+        <div class="management-fields-row split-2" style="margin-top: 1.25rem;">
+          <label class="premium-input-wrapper">
+            <span class="field-label-text">Início do Sorteio de Chaves</span>
+            <input type="date" class="premium-date-input" name="inicioSorteio" value="<%= (typeof configuracoes !== 'undefined' && configuracoes.inicio_sorteio_chaves) ? configuracoes.inicio_sorteio_chaves : '' %>" required>
           </label>
         </div>
       </div>
 
-      <div style="margin-bottom: 2.5rem; padding-bottom: 1.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
-        <h2 style="color: #ece42d; font-size: 1.2rem; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.5px;">
-          🛑 Limites de Inscrição por Campus
-        </h2>
-        <div class="form-grid">
-          <label>
-            <span>Máximo de Atletas por Modalidade</span>
-            <input type="number" name="limite_atletas_por_modalidade" min="1" value="<%= configuracoes.limite_atletas_por_modalidade || 0 %>" placeholder="Ex: 12 para Futsal" required>
-          </label>
-          <label>
-            <span>Quantidade Total Máxima da Delegação</span>
-            <input type="number" name="limite_atletas_total_campus" min="1" value="<%= configuracoes.limite_atletas_total_campus || 0 %>" placeholder="Ex: 50 atletas no total" required>
+      <div class="inner-management-card">
+        <div class="card-context-header">
+          <div>
+            <h2 class="context-title">Restrições Gerais do Campus</h2>
+            <p class="context-subtitle">Definição do limite máximo de participantes que um campus pode enviar no total.</p>
+          </div>
+        </div>
+        
+        <div class="management-fields-row">
+          <label class="premium-input-wrapper" style="width: 100%;">
+            <span class="field-label-text">Quantidade Total Máxima da Delegação (Todos os esportes somados)</span>
+            <input type="number" class="premium-number-input" name="limite_atletas_total_campus" min="1" value="<%= (typeof configuracoes !== 'undefined' && configuracoes.limite_atletas_total_campus) ? configuracoes.limite_atletas_total_campus : 0 %>" placeholder="Ex: 50 atletas no total" required>
           </label>
         </div>
       </div>
 
-      <div style="margin-top: 1.5rem;">
-        <button type="submit" class="btn-cta-jifc">Salvar Configurações Gerais</button>
+      <div class="config-submit-bar">
+        <button type="submit" class="premium-action-btn primary-save-btn">
+          <span>Gravar Parâmetros Globais</span>
+        </button>
       </div>
     </form>
 
-    <div style="margin-top: 3.5rem;">
-      <h2 style="color: #ece42d; font-size: 1.2rem; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 0.5px;">
-        🏆 Cadastrar Nova Modalidade Esportiva
-      </h2>
-      <p style="color: rgba(255, 255, 255, 0.6); font-size: 0.9rem; margin-bottom: 1.5rem;">
-        Selecione uma das modalidades oficiais do JIFC ou escolha a opção "Outro..." para digitar manualmente.
-      </p>
+    <div class="inner-management-card isolated-module">
+      <div class="card-context-header">
+        <div>
+          <h2 class="context-title">Cadastrar Nova Modalidade Esportiva</h2>
+          <p class="context-subtitle">Insira novas categorias oficiais configurando o limite específico de atletas exigido por este esporte.</p>
+        </div>
+      </div>
 
-      <form action="/admin/modalidades/cadastrar" method="POST">
-        <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: flex-end;">
+      <form action="/admin/modalidades/cadastrar" method="POST" class="clean-register-form">
+        <div class="dynamic-registration-flow">
           
-          <label>
-            <span>Selecione a Modalidade</span>
-            <select name="modalidade_base" id="seletorModalidade" required style="width: 100%; padding: 0.75rem; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; color: #fff; font-size: 0.95rem; outline: none;">
+          <div class="flow-element select-container">
+            <span class="field-label-text">Selecione a Modalidade Base</span>
+            <select name="modalidade_base" id="seletorModalidade" class="premium-select-field" required>
               <option value="" disabled selected>Escolha um esporte...</option>
               <option value="Atletismo">Atletismo</option>
               <option value="Basquetebol">Basquetebol</option>
@@ -110,35 +116,24 @@
               <option value="Xadrez">Xadrez</option>
               <option value="OUTRO">Outro...</option>
             </select>
-          </label>
-
-          <div id="containerModalidadeCustomizada" style="display: none;">
-            <label style="display: flex; flex-direction: column; gap: 0.35rem;">
-              <span style="color: #ece42d; font-weight: 600;">Nome da Nova Modalidade</span>
-              <input type="text" name="modalidade_customizada" id="inputModalidadeCustomizada" placeholder="Digite o esporte customizado" style="width: 100%; padding: 0.75rem; background: rgba(0, 0, 0, 0.3); border: 1px solid #ece42d; border-radius: 8px; color: #fff; font-size: 0.95rem;">
-            </label>
           </div>
 
-          <label>
-            <span>Gênero</span>
-            <select name="genero" required style="width: 100%; padding: 0.75rem; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; color: #fff; font-size: 0.95rem;">
-              <option value="Masculino">Masculino</option>
-              <option value="Feminino">Feminino</option>
-              <option value="Misto">Misto</option>
-            </select>
-          </label>
-
-          <label>
-            <span>Tipo de Confronto</span>
-            <select name="tipo_confronto" required style="width: 100%; padding: 0.75rem; background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; color: #fff; font-size: 0.95rem;">
-              <option value="Coletivo">Coletivo</option>
-              <option value="Individual">Individual</option>
-            </select>
-          </label>
-
-          <div>
-            <button type="submit" class="btn-cta-jifc" style="padding: 0.75rem; font-size: 0.95rem;">+ Adicionar</button>
+          <div class="flow-element input-container hidden-input-state" id="containerModalidadeCustomizada">
+            <span class="field-label-text custom-alert-text">Nome do Esporte Customizado</span>
+            <input type="text" name="modalidade_customizada" id="inputModalidadeCustomizada" class="premium-text-input" placeholder="Ex: Badminton">
           </div>
+
+          <div class="flow-element limit-container">
+            <span class="field-label-text">Máximo de Atletas</span>
+            <input type="number" name="limite_atletas_por_modalidade" class="premium-number-input" min="1" placeholder="Ex: 12" required>
+          </div>
+
+          <div class="flow-element button-container">
+            <button type="submit" class="premium-action-btn addition-btn">
+              <span>+ Adicionar</span>
+            </button>
+          </div>
+
         </div>
       </form>
     </div>
@@ -147,26 +142,20 @@
 </div>
 
 <script>
-  // Monitora o carregamento do documento para garantir estabilidade na árvore DOM
   document.addEventListener('DOMContentLoaded', function() {
-    
-    // Captura os elementos do seletor, do contêiner customizado e da caixa de texto livre
     const seletorModalidade = document.getElementById('seletorModalidade');
     const containerCustomizado = document.getElementById('containerModalidadeCustomizada');
     const inputCustomizado = document.getElementById('inputModalidadeCustomizada');
 
-    // Escuta qualquer mudança de estado/clique no dropdown de esportes
     seletorModalidade.addEventListener('change', function() {
-      
-      // Se a opção selecionada for estritamente igual a "OUTRO"
       if (seletorModalidade.value === 'OUTRO') {
-        containerCustomizado.style.display = 'block'; // Torna visível o campo de texto na tela
-        inputCustomizado.setAttribute('required', 'true'); // Torna o preenchimento da caixa obrigatório
-        inputCustomizado.focus(); // Joga o foco do cursor diretamente na caixa para digitação
+        containerCustomizado.classList.remove('hidden-input-state');
+        inputCustomizado.setAttribute('required', 'true');
+        inputCustomizado.focus();
       } else {
-        containerCustomizado.style.display = 'none'; // Oculta o campo de texto caso mude para um padrão
-        inputCustomizado.removeAttribute('required'); // Remove a obrigatoriedade de preenchimento
-        inputCustomizado.value = ''; // Limpa qualquer resíduo digitado para evitar envio incorreto
+        containerCustomizado.classList.add('hidden-input-state');
+        inputCustomizado.removeAttribute('required');
+        inputCustomizado.value = '';
       }
     });
   });

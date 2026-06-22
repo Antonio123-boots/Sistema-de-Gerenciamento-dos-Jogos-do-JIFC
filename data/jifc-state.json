@@ -1,0 +1,415 @@
+{
+  "configuracoes": {
+    "ano_evento": 2026,
+    "inicio_evento": "2026-06-24",
+    "fim_evento": "2026-06-26",
+    "inicio_inscricao_modalidades": "2026-06-20",
+    "fim_inscricao_modalidades": "2026-06-22",
+    "inicio_inscricao_atletas": "2026-06-20",
+    "fim_inscricao_atletas": "2026-06-22",
+    "inicio_sorteio_chaves": "2026-06-23",
+    "limite_atletas_total_campus": 15
+  },
+  "campus": {
+    "inscricoesCampus": {
+      "IFC Abelardo Luz": [
+        "Futsal Masculino",
+        "Voleibol Masculino"
+      ],
+      "IFC Araquari": [
+        "Futsal Feminino",
+        "Voleibol Feminino"
+      ],
+      "IFC Blumenau": [
+        "Atletismo Masculino",
+        "Atletismo Feminino",
+        "Basquete Masculino",
+        "Basquete Feminino",
+        "Futsal Masculino",
+        "Futsal Feminino",
+        "Handebol Masculino",
+        "Handebol Feminino",
+        "Tênis de Mesa Masculino",
+        "Tênis de Mesa Feminino",
+        "Voleibol Masculino",
+        "Voleibol Feminino",
+        "Vôlei de Praia Masculino",
+        "Vôlei de Praia Feminino",
+        "Xadrez Masculino",
+        "Xadrez Feminino"
+      ],
+      "IFC Brusque": [
+        "Voleibol Feminino",
+        "Basquete Feminino"
+      ],
+      "IFC Camboriú": [
+        "Basquete Masculino",
+        "Futsal Masculino"
+      ],
+      "IFC Concórdia": [
+        "Basquete Feminino",
+        "Futsal Feminino"
+      ],
+      "IFC Fraiburgo": [
+        "Basquete Masculino",
+        "Futsal Masculino",
+        "Futsal Feminino",
+        "Handebol Masculino",
+        "Tênis de Mesa Masculino",
+        "Tênis de Mesa Feminino",
+        "Voleibol Masculino",
+        "Voleibol Feminino",
+        "Vôlei de Praia Feminino",
+        "Xadrez Feminino"
+      ],
+      "IFC Ibirama": [
+        "Futsal Feminino",
+        "Voleibol Feminino"
+      ],
+      "IFC Luzerna": [
+        "Voleibol Masculino",
+        "Basquete Masculino"
+      ],
+      "IFC Rio do Sul": [
+        "Voleibol Feminino",
+        "Basquete Feminino"
+      ],
+      "IFC Santa Rosa do Sul": [
+        "Basquete Masculino",
+        "Futsal Masculino"
+      ],
+      "IFC São Bento do Sul": [
+        "Basquete Feminino",
+        "Futsal Feminino"
+      ],
+      "IFC São Francisco do Sul": [
+        "Futsal Masculino",
+        "Voleibol Masculino"
+      ],
+      "IFC Sombrio": [
+        "Atletismo Masculino",
+        "Atletismo Feminino",
+        "Basquete Masculino",
+        "Basquete Feminino",
+        "Futsal Masculino",
+        "Futsal Feminino",
+        "Handebol Masculino",
+        "Handebol Feminino",
+        "Tênis de Mesa Masculino",
+        "Tênis de Mesa Feminino",
+        "Voleibol Masculino",
+        "Voleibol Feminino",
+        "Vôlei de Praia Masculino",
+        "Vôlei de Praia Feminino",
+        "Xadrez Masculino",
+        "Xadrez Feminino"
+      ],
+      "IFC Videira": [
+        "Voleibol Masculino",
+        "Basquete Masculino"
+      ]
+    },
+    "atletasCampus": [
+      {
+        "id": 1,
+        "nome": "Lucas Mendes",
+        "campus": "IFC Abelardo Luz",
+        "matricula": "20260001",
+        "modalidade": "Futsal Masculino",
+        "dataNascimento": "2006-01-01",
+        "status": "Regular"
+      },
+      {
+        "id": 2,
+        "nome": "Camila Nunes",
+        "campus": "IFC Araquari",
+        "matricula": "20260002",
+        "modalidade": "Futsal Feminino",
+        "dataNascimento": "2007-02-02",
+        "status": "Regular"
+      },
+      {
+        "id": 4,
+        "nome": "Ana Souza",
+        "campus": "IFC Brusque",
+        "matricula": "20260004",
+        "modalidade": "Voleibol Feminino",
+        "dataNascimento": "2006-04-04",
+        "status": "Regular"
+      },
+      {
+        "id": 5,
+        "nome": "Pedro Henrique",
+        "campus": "IFC Camboriú",
+        "matricula": "20260005",
+        "modalidade": "Basquete Masculino",
+        "dataNascimento": "2007-05-05",
+        "status": "Regular"
+      },
+      {
+        "id": 6,
+        "nome": "Mariana Silva",
+        "campus": "IFC Concórdia",
+        "matricula": "20260006",
+        "modalidade": "Basquete Feminino",
+        "dataNascimento": "2007-06-06",
+        "status": "Regular"
+      },
+      {
+        "id": 8,
+        "nome": "Luiza Costa",
+        "campus": "IFC Ibirama",
+        "matricula": "20260008",
+        "modalidade": "Futsal Feminino",
+        "dataNascimento": "2007-08-08",
+        "status": "Regular"
+      },
+      {
+        "id": 9,
+        "nome": "Gabriel Martins",
+        "campus": "IFC Luzerna",
+        "matricula": "20260009",
+        "modalidade": "Voleibol Masculino",
+        "dataNascimento": "2007-09-09",
+        "status": "Regular"
+      },
+      {
+        "id": 10,
+        "nome": "Bianca Rocha",
+        "campus": "IFC Rio do Sul",
+        "matricula": "20260010",
+        "modalidade": "Voleibol Feminino",
+        "dataNascimento": "2006-01-10",
+        "status": "Regular"
+      },
+      {
+        "id": 11,
+        "nome": "Rafael Oliveira",
+        "campus": "IFC Santa Rosa do Sul",
+        "matricula": "20260011",
+        "modalidade": "Basquete Masculino",
+        "dataNascimento": "2007-02-11",
+        "status": "Regular"
+      },
+      {
+        "id": 12,
+        "nome": "Nina Pereira",
+        "campus": "IFC São Bento do Sul",
+        "matricula": "20260012",
+        "modalidade": "Basquete Feminino",
+        "dataNascimento": "2007-03-12",
+        "status": "Regular"
+      },
+      {
+        "id": 13,
+        "nome": "Caio Santos",
+        "campus": "IFC São Francisco do Sul",
+        "matricula": "20260013",
+        "modalidade": "Futsal Masculino",
+        "dataNascimento": "2006-04-13",
+        "status": "Regular"
+      },
+      {
+        "id": 15,
+        "nome": "Thiago Cardoso",
+        "campus": "IFC Videira",
+        "matricula": "20260015",
+        "modalidade": "Voleibol Masculino",
+        "dataNascimento": "2007-06-15",
+        "status": "Regular"
+      },
+      {
+        "id": 1782006048990,
+        "nome": "Antonio Gonçalves Stuart",
+        "matricula": "20203987",
+        "modalidade": "Tênis de Mesa Masculino, Voleibol Masculino, Vôlei de Praia Masculino",
+        "modalidades": [
+          "Tênis de Mesa Masculino",
+          "Voleibol Masculino",
+          "Vôlei de Praia Masculino"
+        ],
+        "dataNascimento": "2008-10-23",
+        "campus": "IFC Blumenau",
+        "status": "Regular"
+      },
+      {
+        "id": 1782006201755,
+        "nome": "Antonio Gonçalves Stuart",
+        "matricula": "20292820",
+        "modalidade": "Tênis de Mesa Masculino, Voleibol Masculino, Vôlei de Praia Masculino",
+        "modalidades": [
+          "Tênis de Mesa Masculino",
+          "Voleibol Masculino",
+          "Vôlei de Praia Masculino"
+        ],
+        "dataNascimento": "2008-10-23",
+        "campus": "IFC Sombrio",
+        "status": "Regular",
+        "genero": "Masculino"
+      },
+      {
+        "id": 1782006522707,
+        "nome": "Ronald de Vargas Cardoso",
+        "matricula": "13202098",
+        "modalidade": "Atletismo Masculino, Handebol Masculino",
+        "modalidades": [
+          "Atletismo Masculino",
+          "Handebol Masculino"
+        ],
+        "dataNascimento": "2008-10-16",
+        "campus": "IFC Blumenau",
+        "status": "Regular"
+      },
+      {
+        "id": 1782047154663,
+        "nome": "Gabriel de freitas",
+        "matricula": "20292827",
+        "modalidade": "Voleibol Masculino",
+        "modalidades": [
+          "Voleibol Masculino"
+        ],
+        "dataNascimento": "2008-02-12",
+        "campus": "IFC Blumenau",
+        "status": "Regular"
+      },
+      {
+        "id": 1782086798684,
+        "nome": "Guilherme Pereira Mondardo",
+        "matricula": "767676667",
+        "modalidade": "Basquete Masculino, Tênis de Mesa Masculino, Voleibol Masculino",
+        "modalidades": [
+          "Basquete Masculino",
+          "Tênis de Mesa Masculino",
+          "Voleibol Masculino"
+        ],
+        "dataNascimento": "2008-04-24",
+        "campus": "IFC Fraiburgo",
+        "status": "Regular"
+      },
+      {
+        "id": 1782087493964,
+        "nome": "Guilherme Scandolara Selau",
+        "matricula": "23100987",
+        "modalidade": "Tênis de Mesa Masculino, Voleibol Masculino",
+        "modalidades": [
+          "Tênis de Mesa Masculino",
+          "Voleibol Masculino"
+        ],
+        "dataNascimento": "2009-04-20",
+        "campus": "IFC Fraiburgo",
+        "status": "Regular"
+      },
+      {
+        "id": 1782087536721,
+        "nome": "Erick Inácio Trajano",
+        "matricula": "23400987",
+        "modalidade": "Basquete Masculino, Futsal Masculino, Tênis de Mesa Masculino",
+        "modalidades": [
+          "Basquete Masculino",
+          "Futsal Masculino",
+          "Tênis de Mesa Masculino"
+        ],
+        "dataNascimento": "2008-09-23",
+        "campus": "IFC Fraiburgo",
+        "status": "Regular"
+      },
+      {
+        "id": 1782087609754,
+        "nome": "Antonio Gonçalves Stuart",
+        "matricula": "43534356",
+        "modalidade": "Futsal Masculino, Tênis de Mesa Masculino, Voleibol Masculino",
+        "modalidades": [
+          "Futsal Masculino",
+          "Tênis de Mesa Masculino",
+          "Voleibol Masculino"
+        ],
+        "dataNascimento": "2008-10-23",
+        "campus": "IFC Fraiburgo",
+        "status": "Regular"
+      },
+      {
+        "id": 1782087643853,
+        "nome": "Gabriel Oliveira",
+        "matricula": "76767676",
+        "modalidade": "Basquete Masculino, Handebol Masculino, Tênis de Mesa Masculino",
+        "modalidades": [
+          "Basquete Masculino",
+          "Handebol Masculino",
+          "Tênis de Mesa Masculino"
+        ],
+        "dataNascimento": "2009-06-05",
+        "campus": "IFC Fraiburgo",
+        "status": "Regular"
+      },
+      {
+        "id": 1782090034832,
+        "nome": "Armando Mendes Neto",
+        "matricula": "19192323",
+        "modalidade": "Futsal Masculino, Tênis de Mesa Masculino, Voleibol Masculino",
+        "modalidades": [
+          "Futsal Masculino",
+          "Tênis de Mesa Masculino",
+          "Voleibol Masculino"
+        ],
+        "dataNascimento": "2009-04-04",
+        "campus": "IFC Sombrio",
+        "status": "Regular"
+      },
+      {
+        "id": 1782092443817,
+        "nome": "Valentina Roxo",
+        "matricula": "2109987",
+        "modalidade": "Basquete Feminino, Futsal Feminino",
+        "modalidades": [
+          "Basquete Feminino",
+          "Futsal Feminino"
+        ],
+        "dataNascimento": "2009-05-04",
+        "campus": "IFC Sombrio",
+        "genero": "Feminino",
+        "status": "Regular"
+      },
+      {
+        "id": 1782093468923,
+        "nome": "Gabriela da Silva",
+        "matricula": "12121310",
+        "modalidade": "Basquete Feminino",
+        "modalidades": [
+          "Basquete Feminino"
+        ],
+        "dataNascimento": "2008-05-04",
+        "campus": "IFC Sombrio",
+        "genero": "Feminino",
+        "status": "Regular"
+      },
+      {
+        "id": 1782096699589,
+        "nome": "Felipe Duarte",
+        "matricula": "34343434",
+        "modalidade": "Atletismo Masculino, Tênis de Mesa Masculino",
+        "modalidades": [
+          "Atletismo Masculino",
+          "Tênis de Mesa Masculino"
+        ],
+        "dataNascimento": "2008-03-03",
+        "campus": "IFC Sombrio",
+        "genero": "Masculino",
+        "status": "Regular"
+      },
+      {
+        "id": 1782096727872,
+        "nome": "Suzane Souza",
+        "matricula": "54657687",
+        "modalidade": "Basquete Feminino, Vôlei de Praia Feminino",
+        "modalidades": [
+          "Basquete Feminino",
+          "Vôlei de Praia Feminino"
+        ],
+        "dataNascimento": "2008-10-10",
+        "campus": "IFC Sombrio",
+        "genero": "Feminino",
+        "status": "Regular"
+      }
+    ]
+  }
+}
