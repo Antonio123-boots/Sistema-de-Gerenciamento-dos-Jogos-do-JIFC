@@ -1,0 +1,103 @@
+/* ==========================================================================
+   PUNIÇÕES: FORMULÁRIOS, CARTÕES E SEÇÕES DINÂMICAS
+   - Estilos específicos da tela de punições de campus
+   - Reúso de classes principais do módulo admin.css
+   ========================================================================== */
+
+.punishment-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.punishment-form textarea {
+  min-height: 120px;
+}
+
+#campusSlug {
+  color: #0f172a !important;
+  background: #ffffff !important;
+}
+
+#campusSlug option {
+  color: #0f172a !important;
+  background: #ffffff !important;
+}
+
+.punishment-option-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.85rem;
+  align-items: flex-start;
+  padding: 1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.punishment-option-card:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
+}
+
+.punishment-option-card input[type="radio"] {
+  margin-top: 0.4rem;
+  accent-color: #f2c94c;
+}
+
+.punishment-option-card input[type="radio"]:checked + .punishment-option-card__content {
+  border-color: #f2c94c;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.punishment-option-card__content {
+  width: 100%;
+  border-radius: 12px;
+  padding: 0.2rem 0.25rem;
+}
+
+.hidden-section {
+  display: none !important;
+}
+
+.shown-section {
+  display: block !important;
+}
+
+.punishment-subsection {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.atleta-infos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+  align-items: start;
+}
+
+.atleta-infos .management-field {
+  min-width: 0;
+}
+
+.atleta-infos .management-field span {
+  display: block;
+  min-height: 2rem;
+  white-space: normal;
+}
+
+.campus-legend {
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #f5f7ff;
+}
+
+@media (max-width: 900px) {
+  .atleta-infos {
+    grid-template-columns: 1fr;
+  }
+}

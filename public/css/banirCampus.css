@@ -1,0 +1,139 @@
+/* Estilos específicos da view de punições */
+@import url('./components.css');
+@import url('./punishments.css');
+
+.admin-shell .management-grid {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.admin-shell .management-grid--two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.management-panel {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 1.2rem;
+}
+
+.management-form-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.management-field,
+.management-fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.management-field select,
+.management-field input,
+.management-field textarea,
+.management-fieldset select {
+  padding: 0.8rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.management-field textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+.campus-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.panel-info {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.92rem;
+}
+
+.punishment-option-card {
+  display: flex;
+  gap: 0.7rem;
+  padding: 0.85rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.punishment-option-card__content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.hidden-section {
+  display: none;
+}
+
+.shown-section {
+  display: block;
+}
+
+.punishment-subsection {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 0.8rem;
+}
+
+.atleta-infos {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.management-card-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.management-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.95rem 1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.management-list-item__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.management-card--compact {
+  padding: 0.8rem 0.95rem;
+}
+
+.management-actions {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.status-pill {
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.status-pill--active {
+  background: rgba(0, 255, 136, 0.1);
+  color: #9fffc8;
+}
+
+.status-pill--banned {
+  background: rgba(255, 75, 75, 0.12);
+  color: #ffb4b4;
+}

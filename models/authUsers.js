@@ -24,9 +24,9 @@ const usuariosBase = {
   }
 };
 
-listarCampi().forEach((campus) => {
-  usuariosBase[campus.email] = {
-    senha: senhaPadraoCampus,
+function prepararUsuarioCampus(campus) {
+  return {
+    senha: campus.senha || senhaPadraoCampus,
     tipo: 'campus',
     nome: campus.nome,
     email: campus.email,
@@ -34,16 +34,25 @@ listarCampi().forEach((campus) => {
     campusSlug: campus.slug,
     nomeExibicao: campus.nomeExibicao,
     logoTexto: campus.logoTexto,
-    cor: campus.cor
+    cor: campus.cor,
+    banned: Boolean(campus.banned),
+    banMotivo: String(campus.banMotivo || '').trim()
   };
-});
-
-function obterUsuarioPorEmail(email) {
-  return usuariosBase[String(email || '').trim().toLowerCase()] || null;
 }
 
-function construirSessaoUsuario(email) {
-  const usuario = obterUsuarioPorEmail(email);
+async function obterUsuarioPorEmail(email) {
+  const emailNormalizado = String(email || '').trim().toLowerCase();
+  if (usuariosBase[emailNormalizado]) {
+    return usuariosBase[emailNormalizado];
+  }
+
+  const campi = await listarCampi();
+  const campus = campi.find((campusItem) => campusItem.email === emailNormalizado);
+  return campus ? prepararUsuarioCampus(campus) : null;
+}
+
+async function construirSessaoUsuario(email) {
+  const usuario = await obterUsuarioPorEmail(email);
 
   if (!usuario) {
     return null;

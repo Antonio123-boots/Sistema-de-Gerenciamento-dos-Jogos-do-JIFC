@@ -1,0 +1,43 @@
+/* Estilos específicos da view de cadastro de campus */
+@import url('./components.css');
+@import url('./extra.css');
+@import url('./admin.css');
+
+.modern-config-form .management-fields-row {
+  margin-top: 1.25rem;
+}
+
+.modern-config-form .config-submit-bar {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 1rem;
+  margin-top: 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.modern-config-form .premium-action-btn {
+  text-decoration: none;
+}
+
+.campus-list-card {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.campus-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.campus-list-item__actions {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}

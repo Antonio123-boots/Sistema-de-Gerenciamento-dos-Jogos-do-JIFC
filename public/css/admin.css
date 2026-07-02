@@ -1,0 +1,213 @@
+/* ==========================================================================
+   ADMIN / GESTÃO: PAINÉIS, CARDS E FORMULÁRIOS
+   - Estilos reutilizáveis para telas administrativas
+   - Cards, listas, badges, botões e layout de gerenciamento
+   ========================================================================== */
+
+.admin-shell {
+  display: grid;
+  gap: 1rem;
+}
+
+.admin-panel,
+.admin-card,
+.management-panel,
+.management-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 1.4rem;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.18);
+}
+
+.admin-panel--glass,
+.management-panel--glass {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+}
+
+.management-grid {
+  display: grid;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.management-grid--two {
+  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+}
+
+.management-stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.management-section-title {
+  margin: 0 0 0.35rem;
+  color: #f5f7ff;
+}
+
+.management-section-subtitle {
+  margin: 0 0 1rem;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.management-card-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.management-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.management-list-item__meta {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.management-list-item__meta strong {
+  color: #f5f7ff;
+}
+
+.management-list-item__meta p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.management-actions {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.management-actions .btn {
+  min-width: 92px;
+}
+
+.management-actions form {
+  margin: 0;
+}
+
+.status-pill {
+  padding: 0.55rem 0.9rem;
+  border-radius: 999px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.status-pill--active {
+  color: #58d68d;
+  background: rgba(88, 214, 141, 0.16);
+}
+
+.status-pill--banned {
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.16);
+}
+
+.btn-outline-danger {
+  background: rgba(255, 75, 75, 0.08);
+  color: #ff8d8d;
+  border: 1px solid rgba(255, 75, 75, 0.2);
+}
+
+.btn-outline-danger:hover {
+  background: rgba(255, 75, 75, 0.16);
+  color: #fff;
+  border-color: #ff8d8d;
+}
+
+fieldset.management-fieldset {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  padding: 1rem;
+  color: #f5f7ff;
+}
+
+legend.management-legend {
+  padding: 0 0.5rem;
+  font-weight: 700;
+}
+
+.panel-info {
+  font-size: 0.95rem;
+  color: #cbd5e1;
+  margin-top: 0.25rem;
+}
+
+.management-form-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.management-form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.management-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  color: #f5f7ff;
+  font-weight: 700;
+}
+
+.management-field input,
+.management-field select,
+.management-field textarea {
+  width: 100%;
+  padding: 1rem 1.05rem;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #eef2ff;
+  font-weight: 500;
+}
+
+.management-field input::placeholder,
+.management-field textarea::placeholder {
+  color: rgba(255, 255, 255, 0.56);
+}
+
+.management-field input:focus,
+.management-field select:focus,
+.management-field textarea:focus {
+  outline: 2px solid rgba(236, 228, 45, 0.35);
+  border-color: rgba(236, 228, 45, 0.45);
+}
+
+.management-submit-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.management-card--compact {
+  padding: 1rem;
+}
+
+@media (max-width: 900px) {
+  .management-grid--two,
+  .management-form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .management-submit-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

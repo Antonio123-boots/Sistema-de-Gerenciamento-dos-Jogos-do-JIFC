@@ -115,7 +115,7 @@ router.get('/', function(req, res, next) {
 });
 
 /* GET login page */
-router.get('/login', function(req, res, next) {
+router.get('/login', async function(req, res, next) {
     if (req.session && req.session.usuario) {
         return res.redirect('/perfil');
     }
@@ -124,7 +124,7 @@ router.get('/login', function(req, res, next) {
         usuarioLogado: null,
         mostrarFiltros: false,
         erro: null,
-        credenciaisCampus: listarCredenciaisCampus(),
+        credenciaisCampus: await listarCredenciaisCampus(),
         senhaPadraoCampus
     });
 });
@@ -212,17 +212,18 @@ router.get('/chaveamento', function(req, res, next) {
 });
 
 /* GET equipes page */
-router.get('/equipes', function(req, res, next) {
+router.get('/equipes', async function(req, res, next) {
+    const campi = (await listarCampi()).slice().sort((a, b) => a.nomeExibicao.localeCompare(b.nomeExibicao));
     res.render('equipes', { 
         title: 'Equipes',
         usuarioLogado: req.session?.usuario || null,
         mostrarFiltros: false,
-        campi: listarCampi()
+        campi
     });
 });
 
 router.get('/equipes/:slug', async function(req, res, next) {
-    const campus = obterCampusPorSlug(req.params.slug);
+    const campus = await obterCampusPorSlug(req.params.slug);
 
     if (!campus) {
         return res.redirect('/equipes');
@@ -247,7 +248,7 @@ router.get('/equipes/:slug', async function(req, res, next) {
         usuarioLogado: req.session?.usuario || null,
         mostrarFiltros: false,
         configuracoes,
-        statusInscricao: 'Perfil público do campus',
+        statusInscricao: '',
         prazoModalidadesAberto: false,
         prazoAtletasAberto: false,
         textoModalidades: 'Ver modalidades',

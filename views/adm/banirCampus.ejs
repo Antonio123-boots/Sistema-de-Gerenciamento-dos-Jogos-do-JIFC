@@ -1,0 +1,233 @@
+<div class="profile-shell">
+  <div class="profile-card--wide configuration-dashboard">
+    <div class="config-dashboard-header">
+      <h1 class="config-main-title">Punições de Campus</h1>
+      <p class="config-main-subtitle">Primeiro escolha o campus, depois selecione a punição geral ou um atleta específico.</p>
+    </div>
+
+
+    <% if (mensagemErro) { %>
+      <div class="alert alert-error"><%= mensagemErro %></div>
+    <% } %>
+    <% if (mensagemSucesso) { %>
+      <div class="alert alert-success"><%= mensagemSucesso %></div>
+    <% } %>
+
+    <div class="inner-management-card admin-shell">
+      <% const campusAtivos = (campi || []).filter((campus) => !campus.banned); %>
+      <div class="management-grid management-grid--two">
+        <section class="management-panel">
+          <h2 class="context-title" style="margin-top:0;">Aplicar punição</h2>
+          <p class="context-subtitle" style="margin-bottom:1rem;">Selecione o campus e o tipo de punição que deseja aplicar.</p>
+
+          <form action="/admin/banirCampus/salvar" method="POST" class="management-form-grid punishment-form">
+            <div class="campus-legend">
+              <strong>Selecione o campus</strong>
+              <p class="panel-info">Escolha o campus que terá a punição aplicada. Os atletas serão carregados automaticamente.</p>
+            </div>
+
+            <label class="management-field">
+              Campus
+              <select name="slug" id="campusSlug" required>
+                <option value="" disabled selected>Selecione um campus</option>
+                <% campusAtivos.forEach((campus) => { %>
+                  <option value="<%= campus.slug %>"><%= campus.nomeExibicao %> — <%= campus.email %></option>
+                <% }) %>
+              </select>
+            </label>
+
+            <fieldset class="management-fieldset">
+              <legend class="management-legend">Tipo de punição</legend>
+              <div class="management-form-grid">
+                <% const punishments = [
+                  { value: 'banimento', title: 'Banimento permanente', description: 'Retira o campus do JIFC.' },
+                  { value: 'suspensao', title: 'Suspensão temporária', description: 'Bloqueia o campus por edições do JIFC.' },
+                  { value: 'advertencia', title: 'Advertência formal', description: 'Registra uma advertência no sistema.' },
+                  { value: 'atleta', title: 'Atleta específico', description: 'Aplica a punição a um atleta em particular.' }
+                ]; %>
+                <% punishments.forEach((pun) => { %>
+                  <label class="punishment-option-card">
+                    <input type="radio" name="tipoPunicao" value="<%= pun.value %>">
+                    <div class="punishment-option-card__content">
+                      <strong><%= pun.title %></strong>
+                      <small class="panel-info"><%= pun.description %></small>
+                    </div>
+                  </label>
+                <% }) %>
+              </div>
+            </fieldset>
+
+            <div id="painel-extra" class="hidden-section">
+              <label class="management-field">
+                Motivo (opcional)
+                <textarea name="motivoLivre" placeholder="Digite o motivo da punição"></textarea>
+              </label>
+
+              <div id="suspensao-group" class="hidden-section punishment-subsection">
+                <strong style="font-size:0.98rem;">Duração da suspensão</strong>
+                <label class="management-field">
+                  Edições do JIFC
+                  <input type="number" name="duracaoSuspensao" min="1" max="10" placeholder="Ex: 1" disabled>
+                </label>
+                <span class="panel-info">Informe por quantas edições o campus ficará fora dos jogos.</span>
+              </div>
+
+              <div id="atleta-group" class="hidden-section punishment-subsection">
+                <strong style="font-size:0.98rem;">Atleta específico</strong>
+                <label class="management-field">
+                  Selecionar atleta
+                  <select name="atletaId" id="atletaId" disabled>
+                    <option value="" selected>Escolha um atleta</option>
+                  </select>
+                </label>
+
+                <div class="atleta-infos">
+                  <label class="management-field">
+                    <span>Matrícula</span>
+                    <input type="text" name="atletaMatricula" id="atletaMatricula" readonly>
+                  </label>
+                  <label class="management-field">
+                    <span>Data de nascimento</span>
+                    <input type="date" name="atletaNascimento" id="atletaNascimento" readonly>
+                  </label>
+                  <label class="management-field">
+                    <span>Nome do atleta</span>
+                    <input type="text" name="atletaNome" id="atletaNome" readonly>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-danger" style="padding:1rem; border-radius:16px; font-size:1rem;">Aplicar punição</button>
+          </form>
+        </section>
+
+        <section class="management-panel">
+          <h2 class="context-title" style="margin-top:0;">Campi banidos</h2>
+          <% if ((bannedCampi || []).length === 0) { %>
+            <p style="margin:0; color:rgba(255,255,255,0.72);">Nenhum campus banido no momento.</p>
+          <% } else { %>
+            <div class="management-card-list" style="margin-top:1rem;">
+              <% bannedCampi.forEach((campus) => { %>
+                <div class="management-list-item management-card--compact">
+                  <div class="management-list-item__meta">
+                    <strong><%= campus.nomeExibicao %></strong>
+                    <p>E-mail: <%= campus.email %></p>
+                    <p style="color:#ff9f43;"><strong>Motivo:</strong> <%= campus.banMotivo || 'Não informado' %></p>
+                  </div>
+                  <div class="management-actions">
+                    <form action="/admin/banirCampus/desbanir/<%= campus.slug %>" method="POST">
+                      <button type="submit" class="btn btn-primary">Desbanir</button>
+                    </form>
+                  </div>
+                </div>
+              <% }) %>
+            </div>
+          <% } %>
+        </section>
+      </div>
+
+      <section class="management-panel">
+        <h2 class="context-title" style="margin-top:0;">Todos os campi</h2>
+        <div class="management-card-list" style="margin-top:1rem;">
+          <% (campi || []).forEach((campus) => { %>
+            <div class="management-list-item">
+              <div class="management-list-item__meta">
+                <strong><%= campus.nomeExibicao %></strong>
+                <p>E-mail: <%= campus.email %></p>
+              </div>
+              <span class="status-pill <%= campus.banned ? 'status-pill--banned' : 'status-pill--active' %>">
+                <%= campus.banned ? 'Banido' : 'Ativo' %>
+              </span>
+            </div>
+          <% }) %>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+  const tipoPunicaoRadios = Array.from(document.querySelectorAll('input[name="tipoPunicao"]'));
+  const painelExtra = document.getElementById('painel-extra');
+  const suspensaoGroup = document.getElementById('suspensao-group');
+  const atletaGroup = document.getElementById('atleta-group');
+  const duracaoInput = document.querySelector('input[name="duracaoSuspensao"]');
+  const atletaIdSelect = document.getElementById('atletaId');
+  const atletaMatricula = document.getElementById('atletaMatricula');
+  const atletaNascimento = document.getElementById('atletaNascimento');
+  const atletaNome = document.getElementById('atletaNome');
+  const campusSelect = document.getElementById('campusSlug');
+
+  const atletasPorCampus = JSON.parse('<%- JSON.stringify(atletasPorCampus || {}) %>');
+
+  function atualizarCampos() {
+    const tipoSelecionado = tipoPunicaoRadios.find((radio) => radio.checked)?.value;
+    const mostrarExtras = Boolean(tipoSelecionado);
+    painelExtra.className = mostrarExtras ? 'shown-section' : 'hidden-section';
+
+    const mostraSuspensao = tipoSelecionado === 'suspensao';
+    suspensaoGroup.className = mostraSuspensao ? 'shown-section' : 'hidden-section';
+    duracaoInput.disabled = !mostraSuspensao;
+
+    const mostraAtleta = tipoSelecionado === 'atleta';
+    atletaGroup.className = mostraAtleta ? 'shown-section' : 'hidden-section';
+    atletaIdSelect.disabled = !mostraAtleta;
+    atletaMatricula.readOnly = !mostraAtleta;
+    atletaNascimento.readOnly = !mostraAtleta;
+    atletaNome.readOnly = !mostraAtleta;
+
+    if (!mostraAtleta) {
+      atletaIdSelect.selectedIndex = 0;
+      atletaMatricula.value = '';
+      atletaNascimento.value = '';
+      atletaNome.value = '';
+    }
+  }
+
+  function preencherAtletasPorCampus() {
+    const slug = campusSelect.value;
+    const atletas = atletasPorCampus[slug] || [];
+
+    atletaIdSelect.innerHTML = '<option value="" selected>Escolha um atleta</option>';
+    atletas.forEach((atleta) => {
+      const option = document.createElement('option');
+      option.value = atleta.id || `${atleta.matricula}-${atleta.nome}`;
+      option.textContent = `${atleta.nome} — ${atleta.matricula}`;
+      option.dataset.matricula = atleta.matricula || '';
+      option.dataset.nascimento = atleta.dataNascimento || '';
+      option.dataset.nome = atleta.nome || '';
+      atletaIdSelect.appendChild(option);
+    });
+
+    const statusMensagem = document.querySelector('.campus-legend .painel-info');
+    if (statusMensagem) {
+      statusMensagem.textContent = atletas.length
+        ? 'Atletas carregados. Escolha um atleta quando a punição for específica.'
+        : 'Este campus não tem atletas inscritos ou todos estão pendentes de cadastro.';
+    }
+  }
+
+  function atualizarAtletaSelecionado() {
+    const selecionada = atletaIdSelect.options[atletaIdSelect.selectedIndex];
+    if (selecionada && selecionada.value) {
+      atletaMatricula.value = selecionada.dataset.matricula || '';
+      atletaNascimento.value = selecionada.dataset.nascimento || '';
+      atletaNome.value = selecionada.dataset.nome || '';
+    } else {
+      atletaMatricula.value = '';
+      atletaNascimento.value = '';
+      atletaNome.value = '';
+    }
+  }
+
+  tipoPunicaoRadios.forEach((radio) => radio.addEventListener('change', atualizarCampos));
+  campusSelect.addEventListener('change', () => {
+    preencherAtletasPorCampus();
+    atualizarCampos();
+  });
+  atletaIdSelect.addEventListener('change', atualizarAtletaSelecionado);
+
+  preencherAtletasPorCampus();
+  atualizarCampos();
+</script>

@@ -2,9 +2,17 @@ const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
 
-// Rotas administrativas: configuração, análise e placar
+// Rotas administrativas: configuração, registro de campus, análise e placar
 router.get('/configurar', adminController.renderConfigurar);
 router.post('/configurar/salvar', adminController.salvarConfiguracoes);
+
+router.get('/cadastroCampus', adminController.renderCadastroCampus);
+router.post('/cadastroCampus/salvar', adminController.salvarCadastroCampus);
+router.post('/cadastroCampus/excluir/:slug', adminController.excluirCampusCadastro);
+router.get('/banirCampus', adminController.renderBanirCampus);
+router.post('/banirCampus/salvar', adminController.salvarBanirCampus);
+router.post('/banirCampus/desbanir/:slug', adminController.handleDesbanirCampus);
+router.post('/banirCampus/excluir/:slug', adminController.excluirCampus);
 
 router.get('/laudos', adminController.renderAnalise);
 router.post('/laudos/validar/:atletaId', adminController.validarAtleta);

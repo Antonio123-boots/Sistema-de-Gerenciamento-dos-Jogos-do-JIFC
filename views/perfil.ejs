@@ -2,13 +2,15 @@
   <article class="profile-card profile-card--wide">
     <% 
       const campusVisual = typeof campusSelecionado !== 'undefined' && campusSelecionado ? campusSelecionado : usuarioLogado;
+      const publicMode = typeof modoPublico !== 'undefined' && modoPublico;
       const viewer = typeof usuarioLogado !== 'undefined' && usuarioLogado ? usuarioLogado : { tipo: 'visitante', perfil: 'Visitante', nome: 'Visitante', email: '' };
       const isLoggedIn = viewer.tipo !== 'visitante';
       const logoCampus = campusVisual && campusVisual.logoTexto ? campusVisual.logoTexto : (viewer && viewer.nome ? viewer.nome.slice(0, 2).toUpperCase() : 'IF');
-      const tituloCampus = campusVisual && campusVisual.nomeExibicao ? campusVisual.nomeExibicao : viewer.nome;
+      const tituloCampus = campusVisual && campusVisual.nomeExibicao ? campusVisual.nomeExibicao : (viewer.nome || 'Campus');
+      const perfilLabel = publicMode ? 'Campus' : viewer.perfil;
+      const emailExibicao = campusVisual && campusVisual.email ? campusVisual.email : viewer.email;
       const listaModalidades = Array.isArray(modalidadesCampus) ? modalidadesCampus : [];
       const listaAtletas = Array.isArray(atletasCampus) ? atletasCampus : [];
-      const publicMode = typeof modoPublico !== 'undefined' && modoPublico;
     %>
     
     <header class="institution-header">
@@ -18,27 +20,24 @@
       
       <div class="institution-details">
         <div class="badge-row">
-          <span class="badge badge--role"><%= publicMode ? 'Público' : viewer.perfil %></span>
-          <span class="badge badge--status">Status da Inscrição: <%= statusInscricao %></span>
+          <span class="badge badge--role"><%= perfilLabel %></span>
+          <% if (!publicMode && statusInscricao) { %>
+            <span class="badge badge--status">Status da Inscrição: <%= statusInscricao %></span>
+          <% } %>
         </div>
         <h1 class="institution-title"><%= tituloCampus %></h1>
-        <p class="institution-meta"><%= campusVisual && campusVisual.email ? campusVisual.email : viewer.email %></p>
-        <p class="institution-meta"> Nível de Acesso: <strong><%= publicMode ? 'Perfil público do campus' : 'Campus Institucional' %></strong></p>
+        <p class="institution-meta"><%= emailExibicao %></p>
       </div>
     </header>
 
-    <% if (publicMode) { %>
-      <div style="margin-bottom: 1.25rem; padding: 0.95rem 1rem; border-radius: 14px; background: rgba(236, 228, 45, 0.08); border: 1px solid rgba(236, 228, 45, 0.18); color: rgba(255,255,255,0.88);">
-        <strong style="color: #ece42d;">Visualização pública:</strong>
-        este perfil mostra apenas o campus selecionado e não altera a conta que está logada.
-      </div>
-    <% } %>
 
     <% if (!publicMode && viewer.tipo === 'admin') { %>
       <nav class="admin-actions-zone" aria-label="Ferramentas do Administrador">
-        <h2>Gestão Geral do JIFC</h2>
+        <h2>Painel Administrativo</h2>
         <div class="profile-actions">
           <a class="btn btn-primary" href="/admin/configurar">Configurar prazos</a>
+          <a class="btn btn-secondary" href="/admin/cadastroCampus">Cadastrar campus</a>
+          <a class="btn btn-secondary" href="/admin/banirCampus">Gerenciar punições</a>
           <a class="btn btn-secondary" href="/admin/chaveamento">Chaveamento</a>
           <a class="btn btn-secondary" href="/admin/laudos">Validar atletas</a>
         </div>

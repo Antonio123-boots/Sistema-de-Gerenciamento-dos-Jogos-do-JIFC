@@ -1,8 +1,8 @@
 // Base de dados local em memória para modalidades e atletas dos campus.
-const { listarCampi } = require('./campiCatalog');
+const { listarCampiSync } = require('./campiCatalog');
 const { readState, writeState } = require('./stateStore');
 
-const campusBase = listarCampi();
+const campusBase = listarCampiSync();
 const modalidadesBase = [
   'Futsal Masculino',
   'Futsal Feminino',

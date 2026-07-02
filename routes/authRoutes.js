@@ -5,10 +5,10 @@ const { obterUsuarioPorEmail, construirSessaoUsuario, senhaPadraoCampus } = requ
 const { listarCredenciaisCampus } = require('../models/campiCatalog');
 
 // POST /auth/login: valida e cria a sessão do usuário.
-router.post('/login', function(req, res, next) {
+router.post('/login', async function(req, res, next) {
     const email = String(req.body.email || '').trim().toLowerCase();
     const senha = String(req.body.senha || '').trim();
-    const usuario = obterUsuarioPorEmail(email);
+    const usuario = await obterUsuarioPorEmail(email);
 
     if (!usuario || String(usuario.senha || '').trim() !== senha) {
         return res.render('login', {
@@ -16,15 +16,27 @@ router.post('/login', function(req, res, next) {
             usuarioLogado: null,
             mostrarFiltros: false,
             erro: 'E-mail ou senha inválidos.',
-            credenciaisCampus: listarCredenciaisCampus(),
+            credenciaisCampus: await listarCredenciaisCampus(),
+            senhaPadraoCampus
+        });
+    }
+
+    if (usuario.banned) {
+        return res.render('login', {
+            title: 'JIFC - Login',
+            usuarioLogado: null,
+            mostrarFiltros: false,
+            erro: 'Acesso negado: este campus foi banido do JIFC.',
+            credenciaisCampus: await listarCredenciaisCampus(),
             senhaPadraoCampus
         });
     }
 
     const sessionId = req.sessionId || crypto.randomUUID();
     req.sessionId = sessionId;
+    const sessaoUsuario = await construirSessaoUsuario(usuario.email);
     req.session = {
-        usuario: construirSessaoUsuario(usuario.email)
+        usuario: sessaoUsuario
     };
 
     global.sessions.set(sessionId, req.session);

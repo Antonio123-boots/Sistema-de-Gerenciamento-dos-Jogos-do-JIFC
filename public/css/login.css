@@ -1,0 +1,82 @@
+/* Estilos específicos da view de login */
+@import url('./components.css');
+
+.login-shell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 70vh;
+  padding: 1rem 0 2rem;
+}
+
+.login-card {
+  width: min(100%, 480px);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(236, 228, 45, 0.25);
+  border-radius: 24px;
+  padding: 2rem;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.25);
+}
+
+.login-card__icon {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: rgba(236, 228, 45, 0.14);
+  font-size: 1.4rem;
+  margin-bottom: 0.8rem;
+}
+
+.login-card h1 {
+  font-size: 1.7rem;
+  margin-bottom: 0.4rem;
+}
+
+.login-card__subtitle {
+  color: rgba(255, 255, 255, 0.78);
+  margin-bottom: 1rem;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.login-form label {
+  font-weight: 600;
+}
+
+.login-form input {
+  padding: 0.8rem 0.9rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.login-form input:focus {
+  outline: 2px solid rgba(236, 228, 45, 0.45);
+}
+
+.login-error {
+  color: #ffb4b4;
+  background: rgba(255, 0, 0, 0.08);
+  border: 1px solid rgba(255, 0, 0, 0.18);
+  border-radius: 10px;
+  padding: 0.7rem;
+  margin-bottom: 0.8rem;
+}
+
+.login-hint {
+  margin-top: 1rem;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.95rem;
+}
+
+.login-hint ul {
+  margin-top: 0.4rem;
+  padding-left: 1.1rem;
+}

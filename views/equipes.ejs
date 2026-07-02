@@ -3,21 +3,22 @@
         <div class="teams-hero__copy">
             <span class="teams-kicker">JIFC <%= typeof anoJifc !== 'undefined' ? anoJifc : '2026' %></span>
             <h1>Catálogo oficial dos campi.</h1>
-            <p>Selecione um campus para abrir o perfil público.</p>
+            <p>Selecione um campus para abrir sua página de equipe.</p>
         </div>
         <a href="/" class="btn btn-secondary">Voltar ao início</a>
     </header>
 
     <div class="teams-grid">
-        <% (campi || []).forEach((campus, index) => { %>
+        <% (campi || []).forEach((campus) => { %>
             <a class="team-card" href="/equipes/<%= campus.slug %>">
                 <div class="team-card__logo" style="--campus-color: <%= campus.cor %>"><%= campus.logoTexto %></div>
                 <div class="team-card__content">
-                    <span class="team-card__eyebrow">Campus <%= String(index + 1).padStart(2, '0') %></span>
                     <h2><%= campus.nomeExibicao %></h2>
-                    <p>Perfil público oficial do campus.</p>
+                    <% if (campus.banned) { %>
+                        <p style="margin: 0.45rem 0 0; font-size: 0.92rem; color: #ff7675;">Banido: <%= campus.banMotivo || 'sem motivo informado' %></p>
+                    <% } %>
                 </div>
-                <span class="team-card__cta">Abrir perfil</span>
+                <span class="team-card__cta"><%= campus.banned ? 'Perfil suspenso' : 'Abrir perfil' %></span>
             </a>
         <% }) %>
     </div>

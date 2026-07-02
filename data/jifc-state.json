@@ -284,7 +284,7 @@
         ],
         "dataNascimento": "2008-04-24",
         "campus": "IFC Fraiburgo",
-        "status": "Regular"
+        "status": "Reprovado"
       },
       {
         "id": 1782087493964,
@@ -328,20 +328,6 @@
         "status": "Regular"
       },
       {
-        "id": 1782087643853,
-        "nome": "Gabriel Oliveira",
-        "matricula": "76767676",
-        "modalidade": "Basquete Masculino, Handebol Masculino, Tênis de Mesa Masculino",
-        "modalidades": [
-          "Basquete Masculino",
-          "Handebol Masculino",
-          "Tênis de Mesa Masculino"
-        ],
-        "dataNascimento": "2009-06-05",
-        "campus": "IFC Fraiburgo",
-        "status": "Regular"
-      },
-      {
         "id": 1782090034832,
         "nome": "Armando Mendes Neto",
         "matricula": "19192323",
@@ -353,7 +339,7 @@
         ],
         "dataNascimento": "2009-04-04",
         "campus": "IFC Sombrio",
-        "status": "Regular"
+        "status": "Reprovado"
       },
       {
         "id": 1782092443817,
@@ -394,7 +380,7 @@
         "dataNascimento": "2008-03-03",
         "campus": "IFC Sombrio",
         "genero": "Masculino",
-        "status": "Regular"
+        "status": "Reprovado"
       },
       {
         "id": 1782096727872,
@@ -409,6 +395,49 @@
         "campus": "IFC Sombrio",
         "genero": "Feminino",
         "status": "Regular"
+      },
+      {
+        "id": 1782133900918,
+        "nome": "MC Lovin Daminelli",
+        "matricula": "43434343",
+        "modalidade": "Basquete Masculino, Voleibol Masculino",
+        "modalidades": [
+          "Basquete Masculino",
+          "Voleibol Masculino"
+        ],
+        "dataNascimento": "2008-09-08",
+        "campus": "IFC Fraiburgo",
+        "genero": "Masculino",
+        "status": "Regular"
+      },
+      {
+        "id": 1782134299065,
+        "nome": "Fabrícia Rodrigues Porto",
+        "matricula": "87986543",
+        "modalidade": "Voleibol Feminino, Vôlei de Praia Feminino, Xadrez Feminino",
+        "modalidades": [
+          "Voleibol Feminino",
+          "Vôlei de Praia Feminino",
+          "Xadrez Feminino"
+        ],
+        "dataNascimento": "2009-10-09",
+        "campus": "IFC Fraiburgo",
+        "genero": "Feminino",
+        "status": "Regular"
+      }
+    ]
+  },
+  "campiCatalog": {
+    "campi": [
+      {
+        "slug": "mafra",
+        "nome": "IFC Mafra",
+        "nomeExibicao": "Mafra",
+        "email": "campusmafra@gmail.com",
+        "senha": "mafra123",
+        "cor": "#2980b9",
+        "banned": false,
+        "banMotivo": ""
       }
     ]
   }

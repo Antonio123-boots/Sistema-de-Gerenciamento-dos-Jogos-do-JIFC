@@ -1,0 +1,86 @@
+<div class="profile-shell">
+  <div class="profile-card--wide configuration-dashboard">
+    <div class="config-dashboard-header">
+      <h1 class="config-main-title">Cadastro e Gestão de Campus</h1>
+      <p class="config-main-subtitle">Cadastre, edite ou remova campus com login, e-mail e senha para participar do JIFC.</p>
+    </div>
+
+    <% if (mensagemErro) { %>
+      <div class="alert alert-error"><%= mensagemErro %></div>
+    <% } %>
+    <% if (mensagemSucesso) { %>
+      <div class="alert alert-success"><%= mensagemSucesso %></div>
+    <% } %>
+
+    <form action="/admin/cadastroCampus/salvar" method="POST" class="modern-config-form">
+      <% if (campusEdicao) { %>
+        <input type="hidden" name="campusId" value="<%= campusEdicao.id %>">
+      <% } %>
+      <div class="inner-management-card">
+        <div class="card-context-header">
+          <div>
+            <h2 class="context-title">Dados do campus</h2>
+            <p class="context-subtitle">Informe o nome oficial, nome exibido, e-mail de acesso e senha. Em modo de edição, a senha pode ficar em branco para manter a atual.</p>
+          </div>
+        </div>
+
+        <div class="management-fields-row split-2">
+          <label class="premium-input-wrapper">
+            <span class="field-label-text">Nome completo do campus</span>
+            <input type="text" name="nome" class="premium-text-input" placeholder="IFC Novo Campus" value="<%= campusEdicao ? campusEdicao.nome : '' %>" required>
+          </label>
+          <label class="premium-input-wrapper">
+            <span class="field-label-text">Nome de exibição</span>
+            <input type="text" name="nomeExibicao" class="premium-text-input" placeholder="Novo Campus" value="<%= campusEdicao ? campusEdicao.nomeExibicao : '' %>" required>
+          </label>
+        </div>
+
+        <div class="management-fields-row split-2" style="margin-top: 1.25rem;">
+          <label class="premium-input-wrapper">
+            <span class="field-label-text">E-mail de login</span>
+            <input type="email" name="email" class="premium-text-input" placeholder="novocampus@ifc.edu.br" value="<%= campusEdicao ? campusEdicao.email : '' %>" required>
+          </label>
+          <label class="premium-input-wrapper">
+            <span class="field-label-text">Senha de acesso</span>
+            <input type="password" name="senha" class="premium-text-input" placeholder="<%= campusEdicao ? 'Deixe em branco para manter a senha atual' : 'Senha do campus' %>" <%= campusEdicao ? '' : 'required' %>>
+          </label>
+        </div>
+      </div>
+
+      <div class="config-submit-bar" style="justify-content:space-between; gap:1rem;">
+        <a href="/admin/cadastroCampus" class="premium-action-btn" style="background:rgba(255,255,255,0.12); color:#f8fafc; text-decoration:none;">
+          <span><%= campusEdicao ? 'Cancelar edição' : 'Limpar formulário' %></span>
+        </a>
+        <button type="submit" class="premium-action-btn primary-save-btn">
+          <span><%= campusEdicao ? 'Salvar alterações' : 'Cadastrar Campus' %></span>
+        </button>
+      </div>
+    </form>
+
+    <div class="inner-management-card" style="margin-top: 1.5rem;">
+      <div class="card-context-header">
+        <div>
+          <h2 class="context-title">Campi cadastrados</h2>
+          <p class="context-subtitle">Edite os dados ou remova um campus a partir desta tela.</p>
+        </div>
+      </div>
+
+      <div style="display:grid; gap:0.9rem;">
+        <% (campi || []).forEach((campus) => { %>
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:1rem; border-radius:16px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08);">
+            <div>
+              <strong><%= campus.nomeExibicao %></strong>
+              <p style="margin:0.25rem 0 0; color:rgba(255,255,255,0.72);">E-mail: <%= campus.email %></p>
+            </div>
+            <div style="display:flex; gap:0.65rem; flex-wrap:wrap;">
+              <a href="/admin/cadastroCampus?editar=<%= campus.slug %>" class="btn btn-secondary">Editar</a>
+              <form action="/admin/cadastroCampus/excluir/<%= campus.slug %>" method="POST" style="margin:0;">
+                <button type="submit" class="btn btn-outline-danger">Excluir</button>
+              </form>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+  </div>
+</div>

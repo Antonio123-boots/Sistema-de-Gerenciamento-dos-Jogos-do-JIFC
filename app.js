@@ -42,14 +42,14 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(methodOverride('_method'));
 
 // Middleware que carrega a sessão do usuário a partir do cookie 'sid'.
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
     const sessionId = getCookie(req, 'sid');
     const authEmail = getCookie(req, 'authEmail');
     req.sessionId = sessionId || null;
     req.session = global.sessions.get(sessionId) || {};
 
     if ((!req.session || !req.session.usuario) && authEmail) {
-        const usuarioReconstituido = construirSessaoUsuario(authEmail);
+        const usuarioReconstituido = await construirSessaoUsuario(authEmail);
         if (usuarioReconstituido) {
             req.session = { usuario: usuarioReconstituido };
             if (sessionId) {
