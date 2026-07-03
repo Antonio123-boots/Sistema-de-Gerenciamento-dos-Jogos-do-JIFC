@@ -1,0 +1,60 @@
+<section class="panel-card">
+  <div class="profile-header" style="justify-content:space-between; align-items:center;">
+    <div>
+      <h1>Resumo do Campus — <%= campus.nome %></h1>
+      <p class="panel-subtitle">Modalidades cadastradas e atletas por modalidade (separe por gênero).</p>
+    </div>
+    <div>
+      <a class="btn btn-ghost" href="/admin/chaveamento">← Voltar ao Resumo</a>
+    </div>
+  </div>
+
+  <section style="margin-top:1rem;">
+    <% if (campus && campus.modalidades && campus.modalidades.length) { %>
+      <% campus.modalidades.forEach((modalidade) => { %>
+        <div class="resumo-modalidade-card" style="margin-bottom:1rem;">
+          <div class="resumo-modalidade-header">
+            <div>
+              <h2 style="margin:0;"><%= modalidade.nome %></h2>
+              <span class="badge"><%= modalidade.genero || 'Sem gênero' %></span>
+            </div>
+          </div>
+
+          <div style="display:block;margin-top:0.75rem;">
+            <h4>Atletas</h4>
+            <div class="modalidade-athletes">
+              <% if (modalidade.atletas && modalidade.atletas.length) { %>
+                <table class="resumo-table">
+                  <thead>
+                    <tr>
+                      <th>Nome</th>
+                      <th>Matrícula</th>
+                      <th>Nascimento</th>
+                      <th>Gênero</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% modalidade.atletas.forEach((atleta) => { %>
+                      <tr>
+                        <td><strong><%= atleta.nome %></strong></td>
+                        <td><%= atleta.matricula %></td>
+                        <td><%= atleta.dataNascimento %></td>
+                        <td><%= atleta.genero %></td>
+                        <td><span class="status-pill status-<%= (atleta.status||'Regular').toString().toLowerCase().replace(/\s+/g,'-') %>"><%= atleta.status %></span></td>
+                      </tr>
+                    <% }) %>
+                  </tbody>
+                </table>
+              <% } else { %>
+                <p class="panel-subtitle">Nenhum atleta inscrito nesta modalidade.</p>
+              <% } %>
+            </div>
+          </div>
+        </div>
+      <% }) %>
+    <% } else { %>
+      <p class="panel-subtitle">Nenhuma modalidade registrada para este campus.</p>
+    <% } %>
+  </section>
+</section>

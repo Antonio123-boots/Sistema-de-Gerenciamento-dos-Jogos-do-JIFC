@@ -75,7 +75,7 @@
 .chave-card {
     background: rgba(255, 255, 255, 0.05);
     border-radius: 16px;
-    border-top: 4px solid #ece42d;
+    border-top: 4px solid #ff7a59;
     border-left: 1px solid rgba(255, 255, 255, 0.08);
     border-right: 1px solid rgba(255, 255, 255, 0.08);
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -86,7 +86,7 @@
 .chave-title {
     font-size: 1.2rem;
     font-weight: 700;
-    color: #ece42d;
+    color: #ff7a59;
     margin-bottom: 0.8rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     padding-bottom: 0.4rem;
@@ -141,6 +141,201 @@
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
+}
+
+.resumo-campi-list {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+/* Compact list used on the resumo principal (links para página por campus) */
+.resumo-campi-list.compact {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 0.85rem;
+}
+
+.resumo-campus-item-compact {
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 0.8rem 1rem;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.resumo-campus-item-compact:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(255,122,89,0.08);
+    background: linear-gradient(180deg, rgba(255,122,89,0.04), rgba(255,255,255,0.02));
+}
+
+.resumo-campus-item-compact .item-subtext {
+    color: rgba(255,255,255,0.55);
+    margin-top: 0.25rem;
+    display: block;
+}
+
+.resumo-campus-item-compact .btn-ghost {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.95);
+    padding: 0.45rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+}
+
+/* Per-campus page improvements */
+.resumo-modalidade-card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 1rem;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+}
+
+.modalidade-athletes {
+    max-height: 360px;
+    overflow: auto;
+    padding-right: 0.5rem;
+}
+
+.modalidade-athletes ul { padding: 0; margin: 0; list-style: none; }
+.modalidade-athletes li { padding: 0.6rem 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.modalidade-athletes li strong { display:block; color:#fff; }
+.modalidade-athletes .item-subtext { color: rgba(255,255,255,0.5); }
+
+/* Make the page header buttons consistent */
+.profile-header .btn-ghost {
+    border: 1px solid rgba(255,255,255,0.06);
+    background: transparent;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+}
+
+/* Table styles for per-campus listing */
+.resumo-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+.resumo-table thead th {
+    text-align: left;
+    padding: 0.5rem 0.6rem;
+    background: rgba(0,0,0,0.45);
+    color: rgba(255,255,255,0.95);
+    font-weight: 700;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.resumo-table tbody td {
+    padding: 0.45rem 0.6rem;
+    border-bottom: 1px solid rgba(255,255,255,0.02);
+    color: rgba(255,255,255,0.95);
+    line-height: 1.1;
+}
+.resumo-table tbody tr:hover td {
+    background: linear-gradient(90deg, rgba(255,122,89,0.03), rgba(255,255,255,0.01));
+}
+.resumo-table .status-pill {
+    padding: 0.2rem 0.45rem;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.03);
+    color: rgba(255,255,255,0.9);
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+/* Status color variants */
+.status-regular { background: rgba(40,167,69,0.12); color: #28a745; }
+.status-reprovado { background: rgba(220,53,69,0.10); color: #dc3545; }
+.status-analise { background: rgba(255,193,7,0.10); color: #ffc107; }
+
+/* Global typography and spacing tweaks for compactness */
+.chaveamento-content, .chaveamento-sidebar, .panel-card { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+.panel-card { padding: 1rem 1.25rem; }
+.resumo-campus-item-compact { padding: 0.65rem 0.9rem; }
+.resumo-campus-item-compact strong { font-size: 1rem; }
+.resumo-campus-item-compact .item-subtext { font-size: 0.82rem; }
+.resumo-modalidade-card h2 { font-size: 1.05rem; margin-bottom: 0.25rem; }
+.resumo-modalidade-card .badge { background: rgba(255,255,255,0.03); color: rgba(255,255,255,0.85); padding: 0.15rem 0.4rem; border-radius: 6px; font-size: 0.8rem; }
+
+/* Zebra and sticky header */
+.resumo-table tbody tr:nth-child(odd) td { background: rgba(255,255,255,0.01); }
+.resumo-table thead th { position: sticky; top: 0; backdrop-filter: blur(4px); }
+
+/* Scrollbar subtle styling */
+.modalidade-athletes::-webkit-scrollbar { width: 8px; height:8px; }
+.modalidade-athletes::-webkit-scrollbar-thumb { background: rgba(255,122,89,0.16); border-radius: 6px; }
+.modalidade-athletes::-webkit-scrollbar-track { background: transparent; }
+
+.resumo-campus-item {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.04);
+    padding: 1rem;
+}
+
+.resumo-campus-item summary {
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 700;
+    list-style: none;
+    margin-bottom: 0.75rem;
+    color: #ece42d;
+}
+
+.resumo-campus-body {
+    display: grid;
+    gap: 1rem;
+}
+
+.resumo-modalidade-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 1rem;
+}
+
+.resumo-modalidade-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.resumo-atletas-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+}
+
+.resumo-atletas-group {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 0.9rem;
+}
+
+.resumo-atletas-group h4 {
+    margin-bottom: 0.75rem;
+    font-size: 0.95rem;
+    color: #fff;
+}
+
+.resumo-atletas-group ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 0.45rem;
+}
+
+.resumo-atletas-group li {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.85);
 }
 
 .sidebar-item {

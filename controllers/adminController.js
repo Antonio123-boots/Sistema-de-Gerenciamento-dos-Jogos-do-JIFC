@@ -165,8 +165,15 @@ function salvarConfiguracoes(req, res) {
 async function renderChaveamento(req, res) {
   try {
     const modalidadeIdParam = req.query.modalidade;
-    // Alterado o padrão para bater com o ENUM 'Individual' ou 'Coletivo' do banco de dados
-    const subCategoria = req.query.sub || 'Individual'; 
+    const subCategoria = req.query.sub || 'Individual';
+    const configuracoes = adminModel.getConfiguracoes();
+    const hoje = new Date().toISOString().split('T')[0];
+
+    const prazoModalidadesAberto = configuracoes.inicio_inscricao_modalidades && configuracoes.fim_inscricao_modalidades && (hoje >= configuracoes.inicio_inscricao_modalidades && hoje <= configuracoes.fim_inscricao_modalidades);
+    const prazoAtletasAberto = configuracoes.inicio_inscricao_atletas && configuracoes.fim_inscricao_atletas && (hoje >= configuracoes.inicio_inscricao_atletas && hoje <= configuracoes.fim_inscricao_atletas);
+    const inscricoesAbertas = prazoModalidadesAberto || prazoAtletasAberto;
+    const inscricoesEncerradas = configuracoes.fim_inscricao_modalidades && configuracoes.fim_inscricao_atletas && (hoje > configuracoes.fim_inscricao_modalidades && hoje > configuracoes.fim_inscricao_atletas);
+    const resumoDisponivel = !inscricoesAbertas && inscricoesEncerradas;
 
     const listaModalidades = await adminModel.getModalidadesBanco();
     if (listaModalidades.length === 0) {
@@ -179,15 +186,12 @@ async function renderChaveamento(req, res) {
       if (buscada) modalidadeAtiva = buscada;
     }
 
-    // Criando um slug temporário para a view identificar o esporte sem quebrar as queries do Model
     const nomeNormalizado = modalidadeAtiva.nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     let categoriaSlug = nomeNormalizado;
     if (nomeNormalizado.includes("atletismo")) categoriaSlug = "atletismo";
     if (nomeNormalizado.includes("xadrez")) categoriaSlug = "xadrez";
     if (nomeNormalizado.includes("tenis de mesa")) categoriaSlug = "tenis-de-mesa";
-    
-    // Injeta com segurança para a View ler se necessário
-    modalidadeAtiva.categoriaSlug = categoriaSlug; 
+    modalidadeAtiva.categoriaSlug = categoriaSlug;
 
     const icones = { futsal: '⚽', volei: '🏐', basquete: '🏀', handebol: '🤾', atletismo: '🏃', 'tenis-de-mesa': '🏓', xadrez: '♟️' };
     const modalidadesComIcone = listaModalidades.map(m => {
@@ -198,8 +202,6 @@ async function renderChaveamento(req, res) {
     });
 
     const modAtivaFormatada = modalidadesComIcone.find(m => m.id === modalidadeAtiva.id);
-    
-    // Passa os parâmetros corretos para o seu Model adaptado
     const inscritos = await adminModel.getInscritosModalidade(modalidadeAtiva.id, subCategoria);
     const chaves = await adminModel.getChavesModalidade(modalidadeAtiva.id, subCategoria);
     const jogos = await adminModel.getJogosModalidade(modalidadeAtiva.id, subCategoria);
@@ -211,23 +213,82 @@ async function renderChaveamento(req, res) {
       ];
     }
 
+    let resumoInscricoes = null;
+    try {
+      resumoInscricoes = await adminModel.getResumoInscricoes();
+    } catch (e) {
+      console.error('Erro ao carregar resumoInscricoes:', e);
+      resumoInscricoes = null;
+    }
+
     res.render('adm/chaveamento', {
       title: 'Chaveamento dos Jogos — JIFC',
       usuarioLogado: req.session?.usuario || { tipo: 'admin' },
       mostrarFiltros: false,
-      inscricoesAbertas: false, 
+      inscricoesAbertas,
       listaModalidadesCompleta: modalidadesComIcone,
       modalidadeAtiva: modAtivaFormatada,
       subCategoriaAtiva: subCategoria,
       inscritosPendentes: inscritos,
       chavesGeradas: chaves,
       provasAtletismo: provasAtletismo,
-      jogosProgramados: jogos
+      jogosProgramados: jogos,
+      resumoDisponivel,
+      resumoInscricoes
     });
 
   } catch (error) {
     console.error(error);
     res.status(500).send("Erro ao carregar painel de chaveamento.");
+  }
+}
+
+function escapeCsv(valor) {
+  if (valor === null || valor === undefined) return '';
+  const texto = String(valor);
+  const precisaEscapar = /[",\n\r]/.test(texto);
+  if (precisaEscapar) {
+    return '"' + texto.replace(/"/g, '""') + '"';
+  }
+  return texto;
+}
+
+async function exportResumoInscricoes(req, res) {
+  try {
+    const resumo = await adminModel.getResumoInscricoes();
+    const linhas = [
+      ['Campus', 'Modalidade', 'Gênero', 'Atleta', 'Matrícula', 'Data de Nascimento', 'Status']
+    ];
+
+    resumo.campi.forEach((campus) => {
+      campus.modalidades.forEach((modalidade) => {
+        const appendAtletas = (lista, generoLabel) => {
+          if (!lista || !lista.length) return;
+          lista.forEach((atleta) => {
+            linhas.push([
+              campus.nome,
+              modalidade.nome,
+              generoLabel,
+              atleta.nome,
+              atleta.matricula,
+              atleta.dataNascimento,
+              atleta.status
+            ]);
+          });
+        };
+
+        appendAtletas(modalidade.atletasMasculino, 'Masculino');
+        appendAtletas(modalidade.atletasFeminino, 'Feminino');
+      });
+    });
+
+    const csv = linhas.map((row) => row.map(escapeCsv).join(',')).join('\r\n');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="resumo-inscricoes.csv"');
+    res.send(csv);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Erro ao exportar o resumo de inscrições.');
   }
 }
 
@@ -305,6 +366,29 @@ async function renderPlacar(req, res) {
   }
 }
 
+async function renderResumoCampus(req, res) {
+  try {
+    const campusId = Number(req.params.id);
+    if (Number.isNaN(campusId)) return res.status(400).send('ID de campus inválido.');
+
+    const resumo = await adminModel.getResumoInscricoes();
+    if (!resumo || !resumo.campi) return res.status(404).send('Resumo não disponível.');
+
+    const campus = resumo.campi.find(c => Number(c.id) === campusId || String(c.id) === String(campusId));
+    if (!campus) return res.status(404).send('Campus não encontrado no resumo.');
+
+    res.render('adm/chaveamento_campus', {
+      title: `Resumo - ${campus.nome}`,
+      usuarioLogado: req.session?.usuario || { tipo: 'admin' },
+      mostrarFiltros: false,
+      campus
+    });
+  } catch (error) {
+    console.error('Erro ao renderizar resumo por campus:', error);
+    res.status(500).send('Erro ao carregar resumo do campus.');
+  }
+}
+
 async function salvarPlacar(req, res) {
   try {
     await adminModel.salvarPlacar(req.params.jogoId, req.body);
@@ -328,9 +412,11 @@ module.exports = {
   renderChaveamento,
   gerarChaveamento,
   limparChaveamento,
+  exportResumoInscricoes,
   renderAnalise,
   validarAtleta,
   marcarIrregular,
   renderPlacar,
   salvarPlacar
 };
+module.exports.renderResumoCampus = renderResumoCampus;

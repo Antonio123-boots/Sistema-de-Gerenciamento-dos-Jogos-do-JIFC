@@ -1,13 +1,13 @@
 {
   "configuracoes": {
     "ano_evento": 2026,
-    "inicio_evento": "2026-06-24",
-    "fim_evento": "2026-06-26",
-    "inicio_inscricao_modalidades": "2026-06-20",
-    "fim_inscricao_modalidades": "2026-06-22",
-    "inicio_inscricao_atletas": "2026-06-20",
-    "fim_inscricao_atletas": "2026-06-22",
-    "inicio_sorteio_chaves": "2026-06-23",
+    "inicio_evento": "2026-07-24",
+    "fim_evento": "2026-07-26",
+    "inicio_inscricao_modalidades": "2026-07-02",
+    "fim_inscricao_modalidades": "2026-07-17",
+    "inicio_inscricao_atletas": "2026-07-02",
+    "fim_inscricao_atletas": "2026-07-17",
+    "inicio_sorteio_chaves": "2026-07-04",
     "limite_atletas_total_campus": 15
   },
   "campus": {
@@ -70,6 +70,10 @@
         "Voleibol Masculino",
         "Basquete Masculino"
       ],
+      "IFC Mafra": [
+        "Voleibol Feminino",
+        "Basquete Feminino"
+      ],
       "IFC Rio do Sul": [
         "Voleibol Feminino",
         "Basquete Feminino"
@@ -107,6 +111,15 @@
       "IFC Videira": [
         "Voleibol Masculino",
         "Basquete Masculino"
+      ],
+      "Campus Sombrio": [
+        "Atletismo Masculino",
+        "Basquete Masculino"
+      ],
+      "Campus Blumenau": [
+        "Futsal Masculino",
+        "Basquete Masculino",
+        "Voleibol Masculino"
       ]
     },
     "atletasCampus": [
@@ -424,6 +437,132 @@
         "campus": "IFC Fraiburgo",
         "genero": "Feminino",
         "status": "Regular"
+      },
+      {
+        "id": 1783040104203,
+        "nome": "Antonio Gonçalves Stuart",
+        "matricula": "20202020",
+        "modalidade": "Atletismo Masculino",
+        "modalidades": [
+          "Atletismo Masculino"
+        ],
+        "dataNascimento": "2008-10-23",
+        "campus": "Campus Sombrio",
+        "genero": "Masculino",
+        "status": "Regular"
+      },
+      {
+        "id": 1783040511236,
+        "nome": "João Silva",
+        "campus": "IFC Blumenau",
+        "matricula": "20260101",
+        "modalidade": "Futsal Masculino",
+        "modalidades": [
+          "Futsal Masculino"
+        ],
+        "dataNascimento": "2008-05-12",
+        "status": "Analise"
+      },
+      {
+        "id": 1783040511237,
+        "nome": "Pedro Souza",
+        "campus": "IFC Blumenau",
+        "matricula": "20260102",
+        "modalidade": "Basquete Masculino",
+        "modalidades": [
+          "Basquete Masculino"
+        ],
+        "dataNascimento": "2009-08-21",
+        "status": "Analise"
+      },
+      {
+        "id": 1783040511238,
+        "nome": "Mariana Lima",
+        "campus": "IFC Camboriú",
+        "matricula": "20260103",
+        "modalidade": "Futsal Feminino",
+        "modalidades": [
+          "Futsal Feminino"
+        ],
+        "dataNascimento": "2007-11-03",
+        "status": "Analise"
+      },
+      {
+        "id": 1783040511239,
+        "nome": "Beatriz Alves",
+        "campus": "IFC Camboriú",
+        "matricula": "20260104",
+        "modalidade": "Basquete Feminino",
+        "modalidades": [
+          "Basquete Feminino"
+        ],
+        "dataNascimento": "2008-02-18",
+        "status": "Analise"
+      },
+      {
+        "id": 1783041360869,
+        "nome": "João Silva",
+        "matricula": "20260201",
+        "modalidade": "Futsal Masculino",
+        "modalidades": [
+          "Futsal Masculino"
+        ],
+        "dataNascimento": "2008-05-12",
+        "campus": "Campus Blumenau",
+        "genero": "Masculino",
+        "status": "Analise"
+      },
+      {
+        "id": 1783041360904,
+        "nome": "Pedro Souza",
+        "matricula": "20260202",
+        "modalidade": "Basquete Masculino",
+        "modalidades": [
+          "Basquete Masculino"
+        ],
+        "dataNascimento": "2009-08-21",
+        "campus": "Campus Blumenau",
+        "genero": "Masculino",
+        "status": "Analise"
+      },
+      {
+        "id": 1783041985730,
+        "nome": "Mariana Oliveira",
+        "matricula": "20260301",
+        "modalidade": "Voleibol Masculino",
+        "modalidades": [
+          "Voleibol Masculino"
+        ],
+        "dataNascimento": "2008-11-14",
+        "campus": "Campus Blumenau",
+        "genero": "Feminino",
+        "status": "Analise"
+      },
+      {
+        "id": 1783041985743,
+        "nome": "Ricardo Pereira",
+        "matricula": "20260302",
+        "modalidade": "Futsal Masculino",
+        "modalidades": [
+          "Futsal Masculino"
+        ],
+        "dataNascimento": "2009-03-07",
+        "campus": "Campus Blumenau",
+        "genero": "Masculino",
+        "status": "Analise"
+      },
+      {
+        "id": 1783041985759,
+        "nome": "Ana Carolina Souza",
+        "matricula": "20260303",
+        "modalidade": "Basquete Masculino",
+        "modalidades": [
+          "Basquete Masculino"
+        ],
+        "dataNascimento": "2008-07-22",
+        "campus": "Campus Blumenau",
+        "genero": "Feminino",
+        "status": "Analise"
       }
     ]
   },

@@ -20,7 +20,9 @@ router.post('/laudos/reprovar/:atletaId', adminController.marcarIrregular);
 
 // Rotas de Chaveamento Dinâmico integradas ao Banco de Dados
 router.get('/chaveamento', adminController.renderChaveamento);
+router.get('/chaveamento/campus/:id', adminController.renderResumoCampus);
 router.post('/chaveamento/gerar', adminController.gerarChaveamento);
 router.post('/chaveamento/limpar', adminController.limparChaveamento);
+router.get('/chaveamento/exportar', adminController.exportResumoInscricoes);
 
 module.exports = router;

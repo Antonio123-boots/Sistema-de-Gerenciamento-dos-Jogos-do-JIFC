@@ -156,6 +156,113 @@ async function getModalidadesBanco() {
   }
 }
 
+async function getResumoInscricoes() {
+  try {
+    const [atletas] = await db.query(`
+      SELECT
+        am.modalidade_id,
+        m.nome AS modalidade_nome,
+        m.genero AS modalidade_genero,
+        m.tipo_confronto,
+        c.id AS campus_id,
+        c.nome AS campus_nome,
+        a.id AS atleta_id,
+        a.nome AS atleta_nome,
+        a.matricula,
+        a.genero AS atleta_genero,
+        DATE_FORMAT(a.data_nascimento, '%Y-%m-%d') AS data_nascimento
+      FROM atleta_modalidade am
+      JOIN atletas a ON am.atleta_id = a.id
+      JOIN campus c ON a.campus_id = c.id
+      JOIN modalidades m ON am.modalidade_id = m.id
+      ORDER BY c.nome ASC, m.genero DESC, m.nome ASC, a.genero ASC, a.nome ASC
+    `);
+
+    const [campi] = await db.query(`
+      SELECT
+        cm.modalidade_id,
+        m.nome AS modalidade_nome,
+        m.genero AS modalidade_genero,
+        m.tipo_confronto,
+        c.id AS campus_id,
+        c.nome AS campus_nome
+      FROM campus_modalidade cm
+      JOIN campus c ON cm.campus_id = c.id
+      JOIN modalidades m ON cm.modalidade_id = m.id
+      ORDER BY c.nome ASC, m.genero DESC, m.nome ASC
+    `);
+
+    const campusMap = new Map();
+
+    function ensureCampus(campusId, campusNome) {
+      const key = String(campusId);
+      if (!campusMap.has(key)) {
+        campusMap.set(key, {
+          id: campusId,
+          nome: campusNome,
+          modalidades: []
+        });
+      }
+      return campusMap.get(key);
+    }
+
+    function ensureModalidade(campus, modalidadeId, nome, genero, tipoConfronto) {
+      let modalidade = campus.modalidades.find((item) => Number(item.id) === Number(modalidadeId));
+      if (!modalidade) {
+        modalidade = {
+          id: modalidadeId,
+          nome,
+          genero,
+          tipoConfronto,
+          atletas: [],
+          hasCampusInscricao: false
+        };
+        campus.modalidades.push(modalidade);
+      }
+      return modalidade;
+    }
+
+    for (const row of campi) {
+      const campus = ensureCampus(row.campus_id, row.campus_nome);
+      const modalidade = ensureModalidade(campus, row.modalidade_id, row.modalidade_nome, row.modalidade_genero, row.tipo_confronto);
+      modalidade.hasCampusInscricao = true;
+    }
+
+    for (const row of atletas) {
+      const campus = ensureCampus(row.campus_id, row.campus_nome);
+      const modalidade = ensureModalidade(campus, row.modalidade_id, row.modalidade_nome, row.modalidade_genero, row.tipo_confronto);
+      modalidade.atletas.push({
+        id: row.atleta_id,
+        nome: row.atleta_nome,
+        matricula: row.matricula,
+        genero: row.atleta_genero || 'Masculino',
+        dataNascimento: row.data_nascimento,
+        status: 'Regular'
+      });
+    }
+
+    const campiResumo = Array.from(campusMap.values()).sort((a, b) => a.nome.localeCompare(b.nome));
+    campiResumo.forEach((campus) => {
+      campus.modalidades.sort((a, b) => {
+        const generoCompare = String(b.genero || '').localeCompare(String(a.genero || ''));
+        if (generoCompare !== 0) return generoCompare;
+        return String(a.nome || '').localeCompare(String(b.nome || ''));
+      });
+      campus.modalidades.forEach((modalidade) => {
+        modalidade.atletas.sort((a, b) => {
+          if (a.genero !== b.genero) return String(a.genero).localeCompare(String(b.genero));
+          return String(a.nome).localeCompare(String(b.nome));
+        });
+      });
+    });
+
+    return { campi: campiResumo };
+  } catch (error) {
+    console.error('Erro ao buscar resumo de inscrições:', error);
+    throw error;
+  }
+}
+
 /**
  * Busca todos os participantes (Campi ou Atletas Nominais) inscritos e confirmados na modalidade.
  * Filtra por subcategoria (individual/dupla) caso a modalidade seja o Tênis de Mesa.
@@ -174,11 +281,11 @@ async function getInscritosModalidade(modalidadeId, subCategoria = 'geral') {
 
     if (isInd) {
       const query = `
-        SELECT a.id, a.nome AS nomeAtleta, c.nome AS nomeCampus, ia.numero_inscrito
-        FROM inscricoes_atletas ia
-        JOIN atletas a ON ia.atleta_id = a.id
+        SELECT a.id, a.nome AS nomeAtleta, c.nome AS nomeCampus, NULL AS numero_inscrito
+        FROM atleta_modalidade am
+        JOIN atletas a ON am.atleta_id = a.id
         JOIN campus c ON a.campus_id = c.id
-        WHERE ia.modalidade_id = ? AND ia.sub_categoria = ? AND a.status = 'Regular'
+        WHERE am.modalidade_id = ?
         ORDER BY a.nome ASC`;
       const [atletas] = await db.query(query, [modalidadeId, subCategoria]);
       return atletas;
@@ -389,6 +496,7 @@ module.exports = {
   getJogoPorId,
   getConfiguracoesBanco,
   getModalidadesBanco,
+  getResumoInscricoes,
   getInscritosModalidade,
   getChavesModalidade,
   getJogosModalidade,

@@ -42,6 +42,9 @@
         <p class="item-subtext">Total de inscritos mapeados para esta categoria: <strong><%= inscritosPendentes.length %> itens</strong></p>
       </div>
       <div>
+        <% if (resumoDisponivel) { %>
+          <a class="btn btn-secondary" href="/admin/chaveamento/exportar">Exportar resumo para CSV</a>
+        <% } %>
         <% if (inscricoesAbertas) { %>
           <button class="btn btn-ghost" disabled title="Aguarde o encerramento das inscrições">Aguardando Fim das Inscrições</button>
         <% } else if (chavesGeradas && chavesGeradas.length > 0) { %>
@@ -60,6 +63,42 @@
       </div>
     </div>
   </div>
+
+  <% if (resumoDisponivel) { %>
+    <section class="panel-card" style="margin-top:1.5rem;">
+      <div class="profile-header" style="justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+        <div>
+          <h2>Resumo de Inscrições</h2>
+          <p class="panel-subtitle">Clique em um campus para ver os detalhes em página separada.</p>
+        </div>
+        <div>
+          <a class="btn btn-secondary" href="/admin/chaveamento/exportar">Exportar para planilha</a>
+        </div>
+      </div>
+
+      <% if (resumoInscricoes && resumoInscricoes.campi && resumoInscricoes.campi.length) { %>
+        <div class="resumo-campi-list compact">
+          <% resumoInscricoes.campi.forEach((campus) => { %>
+            <div class="resumo-campus-item-compact">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;">
+                <div>
+                  <strong><%= campus.nome %></strong>
+                  <div class="item-subtext" style="font-size:0.85rem;color:rgba(255,255,255,0.45);">
+                    <%= campus.modalidades.length %> modalidade(s) • <%= campus.modalidades.reduce((acc,m) => acc + (m.atletas ? m.atletas.length : 0), 0) %> atleta(s)
+                  </div>
+                </div>
+                <div>
+                  <a class="btn btn-ghost" href="/admin/chaveamento/campus/<%= campus.id %>">Ver detalhes</a>
+                </div>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <p class="panel-subtitle">Nenhuma inscrição encontrada para exibir.</p>
+      <% } %>
+    </section>
+  <% } %>
 
   <div class="chaveamento-layout">
     
