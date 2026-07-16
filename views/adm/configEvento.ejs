@@ -8,6 +8,18 @@
       </p>
     </div>
 
+    <% if (typeof mensagemErro !== 'undefined' && mensagemErro) { %>
+      <div style="background: rgba(255, 77, 77, 0.1); border: 1px solid #ff4d4d; color: #ff4d4d; padding: 1rem; border-radius: 12px; margin-bottom: 1rem; font-weight: 600;">
+        <%= mensagemErro %>
+      </div>
+    <% } %>
+
+    <% if (typeof mensagemSucesso !== 'undefined' && mensagemSucesso) { %>
+      <div style="background: rgba(0, 255, 136, 0.1); border: 1px solid #00ff88; color: #00ff88; padding: 1rem; border-radius: 12px; margin-bottom: 1rem; font-weight: 600;">
+        <%= mensagemSucesso %>
+      </div>
+    <% } %>
+
     <form action="/admin/configurar/salvar" method="POST" class="modern-config-form">
       
       <div class="inner-management-card">
@@ -94,38 +106,41 @@
     <div class="inner-management-card isolated-module">
       <div class="card-context-header">
         <div>
-          <h2 class="context-title">Cadastrar Nova Modalidade Esportiva</h2>
-          <p class="context-subtitle">Insira novas categorias oficiais configurando o limite específico de atletas exigido por este esporte.</p>
+          <h2 class="context-title">Gerenciar Catálogo de Esportes</h2>
+          <p class="context-subtitle">Cadastre novos esportes oficiais e remova aqueles que não fazem parte do JIFC.</p>
         </div>
       </div>
 
       <form action="/admin/modalidades/cadastrar" method="POST" class="clean-register-form">
         <div class="dynamic-registration-flow">
-          
+          <div class="flow-element input-container">
+            <span class="field-label-text">Nome do Esporte</span>
+            <input type="text" name="nome_modalidade" class="premium-text-input" placeholder="Ex: Badminton" required>
+          </div>
+
           <div class="flow-element select-container">
-            <span class="field-label-text">Selecione a Modalidade Base</span>
-            <select name="modalidade_base" id="seletorModalidade" class="premium-select-field" required>
-              <option value="" disabled selected>Escolha um esporte...</option>
-              <option value="Atletismo">Atletismo</option>
-              <option value="Basquetebol">Basquetebol</option>
-              <option value="Futsal">Futsal</option>
-              <option value="Handebol">Handebol</option>
-              <option value="Tênis de Mesa">Tênis de Mesa</option>
-              <option value="Voleibol">Voleibol</option>
-              <option value="Vôlei de Praia">Vôlei de Praia</option>
-              <option value="Xadrez">Xadrez</option>
-              <option value="OUTRO">Outro...</option>
+            <span class="field-label-text">Tipo de Disputa</span>
+            <select name="tipo_confronto" class="premium-select-field" required>
+              <option value="Coletivo">Coletivo</option>
+              <option value="Individual">Individual</option>
             </select>
           </div>
 
-          <div class="flow-element input-container hidden-input-state" id="containerModalidadeCustomizada">
-            <span class="field-label-text custom-alert-text">Nome do Esporte Customizado</span>
-            <input type="text" name="modalidade_customizada" id="inputModalidadeCustomizada" class="premium-text-input" placeholder="Ex: Badminton">
+          <div class="flow-element select-container">
+            <span class="field-label-text">Formato de Gênero</span>
+            <select name="genero_modalidade" class="premium-select-field" required>
+              <option value="Misto">Misto</option>
+              <option value="Separado">Masculino e Feminino</option>
+            </select>
           </div>
 
-          <div class="flow-element limit-container">
-            <span class="field-label-text">Máximo de Atletas</span>
-            <input type="number" name="limite_atletas_por_modalidade" class="premium-number-input" min="1" placeholder="Ex: 12" required>
+          <div class="flow-element select-container">
+            <span class="field-label-text">Formato da Competição</span>
+            <select name="formato_disputa" class="premium-select-field" required>
+              <option value="Grupos + Mata-Mata">Grupos + Mata-Mata</option>
+              <option value="Sistema Suico">Sistema Suíço</option>
+              <option value="Baterias por Tempo">Baterias por Tempo</option>
+            </select>
           </div>
 
           <div class="flow-element button-container">
@@ -133,9 +148,26 @@
               <span>+ Adicionar</span>
             </button>
           </div>
-
         </div>
       </form>
+
+      <% if (typeof modalidades !== 'undefined' && modalidades && modalidades.length) { %>
+        <div style="margin-top: 1.25rem; display: grid; gap: 0.65rem;">
+          <% modalidades.forEach((modalidade) => { %>
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:0.75rem 0.9rem; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.03);">
+              <div>
+                <strong style="display:block; color:#fff;"><%= modalidade.nome %></strong>
+                <span style="font-size:0.8rem; color:rgba(255,255,255,0.7);"><%= modalidade.genero %> • <%= modalidade.tipo_confronto %></span>
+              </div>
+              <form action="/admin/modalidades/excluir/<%= modalidade.id %>" method="POST" onsubmit="return confirm('Deseja remover este esporte do catálogo?');">
+                <button type="submit" class="btn btn-danger" style="padding:0.45rem 0.7rem; font-size:0.82rem;">Excluir</button>
+              </form>
+            </div>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <p class="panel-subtitle" style="margin-top:1rem;">Nenhum esporte cadastrado ainda.</p>
+      <% } %>
     </div>
 
   </div>

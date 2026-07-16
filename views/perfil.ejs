@@ -9,13 +9,18 @@
       const tituloCampus = campusVisual && campusVisual.nomeExibicao ? campusVisual.nomeExibicao : (viewer.nome || 'Campus');
       const perfilLabel = publicMode ? 'Campus' : viewer.perfil;
       const emailExibicao = campusVisual && campusVisual.email ? campusVisual.email : viewer.email;
+      const fotoPerfil = campusVisual && campusVisual.fotoPerfil ? campusVisual.fotoPerfil : (viewer && viewer.fotoPerfil ? viewer.fotoPerfil : '');
       const listaModalidades = Array.isArray(modalidadesCampus) ? modalidadesCampus : [];
       const listaAtletas = Array.isArray(atletasCampus) ? atletasCampus : [];
     %>
     
     <header class="institution-header">
       <div class="institution-avatar-container">
-        <div class="institution-img institution-logo" style="--campus-color: <%= campusVisual && campusVisual.cor ? campusVisual.cor : '#ece42d' %>"><%= logoCampus %></div>
+        <% if (fotoPerfil) { %>
+          <img src="<%= fotoPerfil %>" alt="Foto de perfil" class="institution-img institution-avatar-image">
+        <% } else { %>
+          <div class="institution-img institution-logo" style="--campus-color: <%= campusVisual && campusVisual.cor ? campusVisual.cor : '#ece42d' %>"><%= logoCampus %></div>
+        <% } %>
       </div>
       
       <div class="institution-details">
@@ -27,6 +32,95 @@
         </div>
         <h1 class="institution-title"><%= tituloCampus %></h1>
         <p class="institution-meta"><%= emailExibicao %></p>
+
+        <% if (!publicMode && isLoggedIn) { %>
+          <form action="/perfil/foto" method="POST" class="profile-photo-form" id="profilePhotoForm">
+            <div class="profile-photo-controls">
+              <label class="premium-input-wrapper profile-photo-input-row">
+                <span class="field-label-text">Foto de perfil</span>
+                <div class="profile-photo-picker" style="display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center;">
+                  <input type="file" id="fotoPerfilInput" accept="image/*" class="hidden-input-state">
+                  <label for="fotoPerfilInput" class="premium-upload-btn">Escolher foto</label>
+                  <button type="button" id="removerFotoBtn" class="premium-upload-btn" style="background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.16);">Remover foto</button>
+                </div>
+              </label>
+              <input type="hidden" name="fotoPerfil" id="fotoPerfilValue" value="<%= fotoPerfil %>">
+            </div>
+          </form>
+          <script>
+            (() => {
+              const fileInput = document.getElementById('fotoPerfilInput');
+              const hiddenField = document.getElementById('fotoPerfilValue');
+              const removerBtn = document.getElementById('removerFotoBtn');
+              const form = fileInput ? fileInput.closest('form') : null;
+
+              if (!fileInput || !hiddenField || !form) {
+                return;
+              }
+
+              async function enviarFotoAutomaticamente(dataUrl) {
+                try {
+                  const resposta = await fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+                    },
+                    body: new URLSearchParams({ fotoPerfil: dataUrl }).toString(),
+                    credentials: 'same-origin'
+                  });
+
+                  if (resposta.ok || resposta.redirected) {
+                    window.location.reload();
+                  }
+                } catch (error) {
+                  console.error('Erro ao salvar foto automaticamente:', error);
+                }
+              }
+
+              fileInput.addEventListener('change', function () {
+                const [file] = this.files || [];
+                if (!file) {
+                  return;
+                }
+
+                if (!file.type || !file.type.startsWith('image/')) {
+                  this.value = '';
+                  return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function () {
+                  const dataUrl = String(reader.result || '');
+                  hiddenField.value = dataUrl;
+                  enviarFotoAutomaticamente(dataUrl);
+                };
+                reader.readAsDataURL(file);
+              });
+
+              if (removerBtn) {
+                removerBtn.addEventListener('click', async function () {
+                  hiddenField.value = '';
+                  try {
+                    const resposta = await fetch(form.action, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+                      },
+                      body: new URLSearchParams({ fotoPerfil: '' }).toString(),
+                      credentials: 'same-origin'
+                    });
+
+                    if (resposta.ok || resposta.redirected) {
+                      window.location.reload();
+                    }
+                  } catch (error) {
+                    console.error('Erro ao remover foto automaticamente:', error);
+                  }
+                });
+              }
+            })();
+          </script>
+        <% } %>
       </div>
     </header>
 

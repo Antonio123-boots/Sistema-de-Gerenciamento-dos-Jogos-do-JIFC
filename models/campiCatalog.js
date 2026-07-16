@@ -1,5 +1,6 @@
 const { readState, writeState } = require('./stateStore');
 const pool = require('../config/db');
+const { normalizarFotoPerfil, fotoPadrao } = require('./profileImageStore');
 
 const senhaPadraoCampus = 'jifc2026';
 
@@ -58,6 +59,7 @@ function montarCampus(campus) {
     email: normalizarEmail(campus.email) || `${slugBase}@ifc.edu.br`,
     senha: String(campus.senha || senhaPadraoCampus).trim(),
     cor: String(campus.cor || '#2980b9').trim(),
+    fotoPerfil: normalizarFotoPerfil(campus.fotoPerfil || campus.foto_perfil || fotoPadrao),
     banned: Boolean(campus.banned),
     banMotivo: String(campus.banMotivo || '').trim(),
     logoTexto: gerarSigla(campus.nomeExibicao || campus.nome || '')
@@ -74,6 +76,7 @@ function montarCampusDB(row) {
     email: row.email,
     senha: row.senha,
     cor: row.cor,
+    fotoPerfil: normalizarFotoPerfil(row.foto_perfil || row.fotoPerfil || fotoPadrao),
     banned: row.banned,
     banMotivo: row.ban_motivo
   });
@@ -108,6 +111,7 @@ async function ensureCampusTable() {
       senha VARCHAR(255) NOT NULL,
       slug VARCHAR(100) NOT NULL UNIQUE,
       cor VARCHAR(20) DEFAULT '#2980b9',
+      foto_perfil VARCHAR(255) DEFAULT '/imagens/avatar.svg',
       banned TINYINT(1) DEFAULT 0,
       ban_motivo TEXT DEFAULT NULL,
       criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -115,15 +119,24 @@ async function ensureCampusTable() {
   `);
 
   const [columns] = await pool.query(
-    "SELECT COLUMN_NAME AS column_name FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'campus'"
+    "SELECT COLUMN_NAME AS column_name, COLUMN_TYPE AS column_type FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'campus'"
   );
   const existingColumns = new Set(columns.map((column) => column.column_name));
+  const fotoPerfilColumn = columns.find((column) => column.column_name === 'foto_perfil');
+
+  if (fotoPerfilColumn) {
+    const columnType = String(fotoPerfilColumn.column_type || '').toLowerCase();
+    if (!columnType.includes('varchar') && !columnType.includes('char')) {
+      await pool.query("ALTER TABLE campus MODIFY COLUMN foto_perfil VARCHAR(255) DEFAULT '/imagens/avatar.svg'");
+    }
+  }
 
   const alterStatements = [
     ['nome_exibicao', "ALTER TABLE campus ADD COLUMN nome_exibicao VARCHAR(100) DEFAULT NULL"],
     ['cidade', "ALTER TABLE campus ADD COLUMN cidade VARCHAR(100) DEFAULT NULL"],
     ['slug', "ALTER TABLE campus ADD COLUMN slug VARCHAR(100) DEFAULT NULL"],
     ['cor', "ALTER TABLE campus ADD COLUMN cor VARCHAR(20) DEFAULT '#2980b9'"],
+    ['foto_perfil', "ALTER TABLE campus ADD COLUMN foto_perfil VARCHAR(255) DEFAULT '/imagens/avatar.svg'"],
     ['banned', "ALTER TABLE campus ADD COLUMN banned TINYINT(1) DEFAULT 0"],
     ['ban_motivo', "ALTER TABLE campus ADD COLUMN ban_motivo TEXT DEFAULT NULL"]
   ];
@@ -178,7 +191,7 @@ async function listarCampi() {
     await ensureCampusTable();
     await seedDefaultCampi();
     const [rows] = await pool.query(
-      'SELECT id, nome, nome_exibicao, cidade, email, senha, slug, cor, banned, ban_motivo FROM campus ORDER BY nome_exibicao ASC, nome ASC'
+      'SELECT id, nome, nome_exibicao, cidade, email, senha, slug, cor, foto_perfil, banned, ban_motivo FROM campus ORDER BY nome_exibicao ASC, nome ASC'
     );
 
     return rows.map(montarCampusDB).sort((a, b) => a.nomeExibicao.localeCompare(b.nomeExibicao));
@@ -215,7 +228,7 @@ async function buscarCampusPorIdentificador(identificador) {
 
   await ensureCampusTable();
   const [rows] = await pool.query(
-    'SELECT id, nome, nome_exibicao, cidade, email, senha, slug, cor, banned, ban_motivo FROM campus ORDER BY id ASC'
+    'SELECT id, nome, nome_exibicao, cidade, email, senha, slug, cor, foto_perfil, banned, ban_motivo FROM campus ORDER BY id ASC'
   );
 
   const valorNormalizado = normalizarEmail(valor);
@@ -337,6 +350,7 @@ async function atualizarCampus(identificador, dados) {
   const senhaInformada = String(dados.senha || '').trim();
   const senha = senhaInformada || String(campusAtual.senha || senhaPadraoCampus).trim();
   const cidade = String(dados.cidade || campusAtual.cidade || '').trim() || 'Não informado';
+  const fotoPerfil = normalizarFotoPerfil(dados.fotoPerfil || dados.foto_perfil || campusAtual.foto_perfil || campusAtual.fotoPerfil || fotoPadrao);
 
   if (!nome) {
     const erro = new Error('Informe o nome completo do campus.');
@@ -372,8 +386,8 @@ async function atualizarCampus(identificador, dados) {
 
   const slug = String(dados.slug || campusAtual.slug || gerarSlug(nomeExibicao || nome)).trim() || gerarSlug(nomeExibicao || nome);
   const [result] = await pool.query(
-    'UPDATE campus SET nome = ?, nome_exibicao = ?, cidade = ?, email = ?, senha = ?, slug = ? WHERE id = ?',
-    [nome, nomeExibicao, cidade, email, senha, slug, campusAtual.id]
+    'UPDATE campus SET nome = ?, nome_exibicao = ?, cidade = ?, email = ?, senha = ?, slug = ?, foto_perfil = ? WHERE id = ?',
+    [nome, nomeExibicao, cidade, email, senha, slug, fotoPerfil, campusAtual.id]
   );
 
   if (!result.affectedRows) {
@@ -391,6 +405,7 @@ async function atualizarCampus(identificador, dados) {
     email,
     senha,
     cor: campusAtual.cor || '#2980b9',
+    fotoPerfil,
     banned: Boolean(campusAtual.banned),
     banMotivo: campusAtual.ban_motivo || ''
   });
@@ -402,6 +417,7 @@ async function adicionarCampus(dados) {
   const email = normalizarEmail(dados.email);
   const senha = String(dados.senha || senhaPadraoCampus).trim();
   const cidade = String(dados.cidade || '').trim() || 'Não informado';
+  const fotoPerfil = normalizarFotoPerfil(dados.fotoPerfil || dados.foto_perfil || fotoPadrao);
 
   if (!nome) {
     const erro = new Error('Informe o nome completo do campus.');
@@ -448,8 +464,8 @@ async function adicionarCampus(dados) {
   }
 
   const [result] = await pool.query(
-    'INSERT INTO campus (nome, nome_exibicao, cidade, email, senha, slug, cor, banned, ban_motivo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    [nome, nomeExibicao, cidade, email, senha, slug, '#2980b9', 0, '']
+    'INSERT INTO campus (nome, nome_exibicao, cidade, email, senha, slug, cor, foto_perfil, banned, ban_motivo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [nome, nomeExibicao, cidade, email, senha, slug, '#2980b9', fotoPerfil, 0, '']
   );
 
   return montarCampus({
@@ -461,6 +477,7 @@ async function adicionarCampus(dados) {
     email,
     senha,
     cor: '#2980b9',
+    fotoPerfil,
     banned: false,
     banMotivo: ''
   });

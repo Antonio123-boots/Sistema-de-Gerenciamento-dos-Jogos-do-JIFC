@@ -34,9 +34,12 @@
       const dataNascimentoFormulario = isEditandoAtleta
         ? (atletaEmEdicaoLocal.dataNascimento || '')
         : (typeof atletaFormDraft !== 'undefined' && atletaFormDraft && atletaFormDraft.dataNascimento ? atletaFormDraft.dataNascimento : '');
+      const cpfFormulario = isEditandoAtleta
+        ? (atletaEmEdicaoLocal.cpf || '')
+        : (typeof atletaFormDraft !== 'undefined' && atletaFormDraft && atletaFormDraft.cpf ? atletaFormDraft.cpf : '');
       const statusFormulario = isEditandoAtleta
-        ? (atletaEmEdicaoLocal.status || 'Regular')
-        : (typeof atletaFormDraft !== 'undefined' && atletaFormDraft && atletaFormDraft.status ? atletaFormDraft.status : 'Regular');
+        ? (atletaEmEdicaoLocal.status || 'Analise')
+        : (typeof atletaFormDraft !== 'undefined' && atletaFormDraft && atletaFormDraft.status ? atletaFormDraft.status : 'Analise');
       const modalidadesFormulario = isEditandoAtleta
         ? (Array.isArray(atletaEmEdicaoLocal.modalidades) ? atletaEmEdicaoLocal.modalidades : String(atletaEmEdicaoLocal.modalidade || '').split(',').map((item) => item.trim()).filter(Boolean))
         : (typeof atletaFormDraft !== 'undefined' && atletaFormDraft && Array.isArray(atletaFormDraft.modalidades) ? atletaFormDraft.modalidades : []);
@@ -174,10 +177,16 @@
             </label>
 
             <label>
+              CPF
+              <input type="text" name="cpf" placeholder="Ex: 123.456.789-00" value="<%= cpfFormulario %>" class="premium-text-input">
+            </label>
+
+            <label>
               Situação
               <select name="status" required class="premium-text-input" style="height: 43px; background: #1c1d3b; color: white;">
-                <option value="Regular" <%= statusFormulario === 'Regular' ? 'selected' : '' %>>Regular</option>
+                <option value="Analise" <%= statusFormulario === 'Analise' ? 'selected' : '' %>>Em análise</option>
                 <option value="Pendente" <%= statusFormulario === 'Pendente' ? 'selected' : '' %>>Pendente</option>
+                <option value="Regular" <%= statusFormulario === 'Regular' ? 'selected' : '' %>>Regular</option>
               </select>
             </label>
 
@@ -208,7 +217,11 @@
               <small style="display:block; margin-top: 0.55rem; color: rgba(255,255,255,0.6);">Preencha todos os campos e marque no máximo 3 opções.</small>
             </div>
 
-            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; grid-column: 1 / -1;">
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; grid-column: 1 / -1;">
+              <label style="display: flex; align-items: center; gap: 0.55rem; color: rgba(255,255,255,0.75); font-size: 0.95rem;">
+                <input type="checkbox" name="validarImediatamente" value="true">
+                Validar imediatamente
+              </label>
               <button type="submit" class="btn btn-success primary-save-btn" style="border: none; height: 43px; align-self: end;">
                 <%= textoFormularioAtleta %>
               </button>
@@ -224,6 +237,7 @@
                 <tr style="color: #ece42d; border-bottom: 2px solid rgba(255,255,255,0.1);">
                   <th style="padding: 0.75rem 0.5rem;">Nome</th>
                   <th>Matrícula</th>
+                  <th>CPF</th>
                   <th>Modalidade</th>
                   <th>Status</th>
                   <th>Ações</th>
@@ -235,6 +249,7 @@
                     <tr class="<%= atleta.status === 'Regular' ? 'row--regular' : (atleta.status === 'Pendente' || atleta.status === 'Pendente_Laudo') ? 'row--pending' : 'row--irregular' %>">
                       <td style="padding: 0.75rem 0.5rem; font-weight: 600;"><%= atleta.nome %></td>
                       <td style="color: rgba(255,255,255,0.7);"><%= atleta.matricula %></td>
+                      <td style="color: rgba(255,255,255,0.7);"><%= atleta.cpf || '-' %></td>
                       <td>
                         <% const modalidadesAtleta = Array.isArray(atleta.modalidades) ? atleta.modalidades : String(atleta.modalidade || '').split(',').map((item) => item.trim()).filter(Boolean); %>
                         <span class="status-tag" style="background: rgba(255,255,255,0.05); color: #fff;"><%= modalidadesAtleta.join(', ') %></span>

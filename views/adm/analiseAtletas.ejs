@@ -20,6 +20,7 @@
               <span style="display:block; min-width: 220px;">
                 <strong><%= atleta.nome %></strong><br>
                 <small><%= modalidadesAtleta.join(', ') %> · <%= atleta.dataNascimento || '-' %></small><br>
+                <small>CPF: <%= atleta.cpf || '-' %></small><br>
                 <% if (atleta.status === 'Regular') { %>
                   <small style="color:#00ff88; font-weight:700;">● Validado</small>
                 <% } else if (atleta.status === 'Analise') { %>

@@ -37,8 +37,8 @@ app.set('layout', 'layout'); // Indica que o arquivo principal se chama 'layout.
 // Serve static files from the 'public' folder (css, imagens, js, etc.)
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 app.use(methodOverride('_method'));
 
 // Middleware que carrega a sessão do usuário a partir do cookie 'sid'.

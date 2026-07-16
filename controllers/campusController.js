@@ -123,6 +123,9 @@ function cadastrarAtleta(req, res) {
   }
 
   const nomeCampus = req.session?.usuario?.nome || 'IFC Blumenau';
+  const statusInformado = String(req.body.status || '').trim();
+  const statusParaSalvar = statusInformado === 'Regular' ? 'Analise' : (statusInformado || 'Analise');
+  const validarImediatamente = req.body.validarImediatamente === 'true' || req.body.validarImediatamente === 'on';
   try {
     const atleta = campusModel.cadastrarAtleta(nomeCampus, {
       nome: req.body.nome,
@@ -130,13 +133,15 @@ function cadastrarAtleta(req, res) {
       genero: req.body.genero,
       modalidades: req.body.modalidades || req.body.modalidade || [],
       dataNascimento: req.body.dataNascimento,
-      status: 'Analise'
+      cpf: req.body.cpf,
+      status: statusParaSalvar
     }, {
       limiteRegularTotalCampus: Number(config.limite_atletas_total_campus || 0),
-      anoEvento: Number(config.ano_evento || new Date().getFullYear())
+      anoEvento: Number(config.ano_evento || new Date().getFullYear()),
+      validarImediatamente
     });
 
-    const mensagem = 'Atleta enviado para análise do admin.';
+    const mensagem = 'Atleta cadastrado com sucesso e enviado para análise.';
     if (req.session) {
       delete req.session.atletaFormDraft;
     }
@@ -149,6 +154,7 @@ function cadastrarAtleta(req, res) {
         genero: req.body.genero || 'Masculino',
         modalidades: req.body.modalidades || req.body.modalidade || [],
         dataNascimento: req.body.dataNascimento || '',
+        cpf: req.body.cpf || '',
         status: 'Analise'
       };
     }
@@ -198,6 +204,9 @@ function editarAtleta(req, res) {
 function atualizarAtleta(req, res) {
   const nomeCampus = req.session?.usuario?.nome || 'IFC Blumenau';
   const config = adminModel.getConfiguracoes();
+  const statusInformado = String(req.body.status || '').trim();
+  const statusParaSalvar = statusInformado === 'Regular' ? 'Analise' : (statusInformado || 'Analise');
+  const validarImediatamente = req.body.validarImediatamente === 'true' || req.body.validarImediatamente === 'on';
 
   try {
     const atleta = campusModel.atualizarAtleta(req.params.id, nomeCampus, {
@@ -206,10 +215,12 @@ function atualizarAtleta(req, res) {
       genero: req.body.genero,
       modalidades: req.body.modalidades || req.body.modalidade || [],
       dataNascimento: req.body.dataNascimento,
-        status: 'Analise'
+      cpf: req.body.cpf,
+      status: statusParaSalvar
     }, {
       limiteRegularTotalCampus: Number(config.limite_atletas_total_campus || 0),
-      anoEvento: Number(config.ano_evento || new Date().getFullYear())
+      anoEvento: Number(config.ano_evento || new Date().getFullYear()),
+      validarImediatamente
     });
 
     if (!atleta) {
@@ -228,7 +239,8 @@ function atualizarAtleta(req, res) {
         genero: req.body.genero || 'Masculino',
         modalidades: req.body.modalidades || req.body.modalidade || [],
         dataNascimento: req.body.dataNascimento || '',
-          status: 'Analise'
+        cpf: req.body.cpf || '',
+        status: 'Analise'
       };
     }
     const mensagensConhecidas = ['MATRICULA_DUPLICADA', 'IDADE_LIMITE_EXCEDIDO', 'DATA_INVALIDA', 'MODALIDADES_OBRIGATORIAS', 'MODALIDADES_EXCEDIDAS', 'LIMITE_REGULAR_EXCEDIDO', 'NOME_INCOMPLETO', 'CAMPOS_OBRIGATORIOS'];
@@ -268,6 +280,7 @@ function substituirAtleta(req, res) {
       matricula: req.body.matricula,
       genero: req.body.genero,
       modalidades: req.body.modalidades || req.body.modalidade || [],
+      cpf: req.body.cpf,
       motivo: req.body.motivo || 'Substituição por laudo'
     });
     res.redirect('/campus/inscricoes?aba=atletas#atletas');

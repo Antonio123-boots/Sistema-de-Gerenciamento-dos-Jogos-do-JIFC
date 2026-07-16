@@ -1,24 +1,34 @@
 <section class="teams-shell">
     <header class="teams-hero">
-        <div class="teams-hero__copy">
+        <div class="teams-hero__content">
             <span class="teams-kicker">JIFC <%= typeof anoJifc !== 'undefined' ? anoJifc : '2026' %></span>
-            <h1>Catálogo oficial dos campi.</h1>
-            <p>Selecione um campus para abrir sua página de equipe.</p>
+            <h1>Campi participantes</h1>
+            <p>Escolha um campus para abrir o perfil completo.</p>
         </div>
-        <a href="/" class="btn btn-secondary">Voltar ao início</a>
+        <a href="/" class="teams-back-link">Voltar ao início</a>
     </header>
 
     <div class="teams-grid">
         <% (campi || []).forEach((campus) => { %>
             <a class="team-card" href="/equipes/<%= campus.slug %>">
-                <div class="team-card__logo" style="--campus-color: <%= campus.cor %>"><%= campus.logoTexto %></div>
-                <div class="team-card__content">
-                    <h2><%= campus.nomeExibicao %></h2>
-                    <% if (campus.banned) { %>
-                        <p style="margin: 0.45rem 0 0; font-size: 0.92rem; color: #ff7675;">Banido: <%= campus.banMotivo || 'sem motivo informado' %></p>
+                <% const fotoCampus = campus.fotoPerfil || campus.foto_perfil || ''; %>
+                <div class="team-card__media" style="--campus-color: <%= campus.cor || '#ece42d' %>">
+                    <% if (fotoCampus) { %>
+                        <img src="<%= fotoCampus %>" alt="Foto de <%= campus.nomeExibicao %>">
+                    <% } else { %>
+                        <div class="team-card__initials"><%= campus.logoTexto %></div>
                     <% } %>
                 </div>
-                <span class="team-card__cta"><%= campus.banned ? 'Perfil suspenso' : 'Abrir perfil' %></span>
+
+                <div class="team-card__content">
+                    <h2><%= campus.nomeExibicao %></h2>
+                    <p><%= campus.cidade || 'Campus participante' %></p>
+                </div>
+
+                <div class="team-card__footer">
+                    <span>Abrir perfil</span>
+                    <span class="team-card__arrow">→</span>
+                </div>
             </a>
         <% }) %>
     </div>

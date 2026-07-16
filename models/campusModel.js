@@ -108,6 +108,7 @@ function validarCamposObrigatoriosAtleta(dados) {
   const matricula = String(dados.matricula || '').trim();
   const genero = normalizarGenero(dados.genero) || 'Masculino';
   const dataNascimento = String(dados.dataNascimento || '').trim();
+  const cpf = String(dados.cpf || '').trim();
   const status = 'Analise';
   const modalidades = obterModalidadesSalvas(dados);
 
@@ -117,7 +118,7 @@ function validarCamposObrigatoriosAtleta(dados) {
     throw erro;
   }
 
-  return { nome, matricula, genero, dataNascimento, status, modalidades };
+  return { nome, matricula, genero, dataNascimento, cpf, status, modalidades };
 }
 
 function normalizarStatusExibicao(status) {
@@ -296,7 +297,7 @@ function cadastrarAtleta(campusNome, dados, opcoes = {}) {
   const campos = validarCamposObrigatoriosAtleta(dados);
   const matriculaNormalizada = normalizarMatricula(campos.matricula);
   const matriculaExistente = atletasCampus.some((atleta) => atleta.campus === campusNome && normalizarMatricula(atleta.matricula) === matriculaNormalizada);
-  const statusSolicitado = campos.status;
+  const statusSolicitado = opcoes.validarImediatamente ? 'Regular' : (campos.status === 'Regular' ? 'Analise' : (campos.status || 'Analise'));
   const limiteRegularTotalCampus = Number(opcoes.limiteRegularTotalCampus || 0);
   const modalidadesSelecionadas = campos.modalidades;
   const nomeCompleto = validarNomeCompleto(campos.nome);
@@ -350,6 +351,7 @@ function cadastrarAtleta(campusNome, dados, opcoes = {}) {
     modalidade: modalidadesSelecionadas.join(', '),
     modalidades: modalidadesSelecionadas,
     dataNascimento: campos.dataNascimento,
+    cpf: campos.cpf,
     campus: campusNome,
     genero: campos.genero,
     status: statusSolicitado
@@ -368,7 +370,7 @@ function atualizarAtleta(atletaId, campusNome, dados, opcoes = {}) {
   const campos = validarCamposObrigatoriosAtleta(dados);
   const matriculaNormalizada = normalizarMatricula(campos.matricula);
   const matriculaExistente = atletasCampus.some((item) => item.campus === campusNome && item.id !== Number(atletaId) && normalizarMatricula(item.matricula) === matriculaNormalizada);
-  const statusSolicitado = campos.status || atleta.status;
+  const statusSolicitado = opcoes.validarImediatamente ? 'Regular' : (campos.status === 'Regular' ? 'Analise' : (campos.status || atleta.status || 'Analise'));
   const limiteRegularTotalCampus = Number(opcoes.limiteRegularTotalCampus || 0);
   const modalidadesSelecionadas = campos.modalidades;
   const nomeCompleto = validarNomeCompleto(campos.nome);
@@ -423,6 +425,7 @@ function atualizarAtleta(atletaId, campusNome, dados, opcoes = {}) {
   atleta.modalidade = modalidadesSelecionadas.join(', ');
   atleta.modalidades = modalidadesSelecionadas;
   atleta.dataNascimento = campos.dataNascimento;
+  atleta.cpf = campos.cpf;
   atleta.genero = campos.genero;
   atleta.status = statusSolicitado;
   persistirEstadoCampus();
@@ -467,7 +470,7 @@ function substituirAtleta(campusNome, dados) {
     throw erro;
   }
 
-  const atleta = { id: Date.now(), ...dados, nome: nomeCompleto, campus: campusNome, modalidades: normalizarModalidades(dados.modalidades || dados.modalidade), genero: normalizarGenero(dados.genero), status: 'Pendente' };
+  const atleta = { id: Date.now(), ...dados, nome: nomeCompleto, campus: campusNome, modalidades: normalizarModalidades(dados.modalidades || dados.modalidade), genero: normalizarGenero(dados.genero), cpf: String(dados.cpf || '').trim(), status: 'Pendente' };
   atleta.modalidade = Array.isArray(atleta.modalidades) ? atleta.modalidades.join(', ') : dados.modalidade;
   atletasCampus.push(atleta);
   persistirEstadoCampus();

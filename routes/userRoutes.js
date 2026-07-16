@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const adminModel = require('../models/adminModel');
 const campusModel = require('../models/campusModel');
-const { listarCampi, obterCampusPorSlug, listarCredenciaisCampus, senhaPadraoCampus } = require('../models/campiCatalog');
+const { listarCampi, obterCampusPorSlug, listarCredenciaisCampus, senhaPadraoCampus, atualizarCampus } = require('../models/campiCatalog');
+const { salvarFotoPerfilUsuario } = require('../models/authUsers');
 
 const IFCS = [
     'IFC Araquari', 'IFC Blumenau', 'IFC Brusque', 'IFC Camboriú', 'IFC Concórdia',
@@ -130,6 +131,33 @@ router.get('/login', async function(req, res, next) {
 });
 
 /* GET profile page */
+router.post('/perfil/foto', async function(req, res, next) {
+    if (!req.session || !req.session.usuario) {
+        return res.redirect('/login');
+    }
+
+    const fotoPerfil = String(req.body.fotoPerfil || '').trim() || '/imagens/avatar.svg';
+
+    try {
+        if (req.session.usuario.tipo === 'campus' && req.session.usuario.campusSlug) {
+            const campusAtualizado = await atualizarCampus(req.session.usuario.campusSlug, {
+                fotoPerfil
+            });
+
+            req.session.usuario.fotoPerfil = campusAtualizado.fotoPerfil || fotoPerfil;
+        } else {
+            const fotoPersistida = salvarFotoPerfilUsuario(req.session.usuario.email, fotoPerfil);
+            req.session.usuario.fotoPerfil = fotoPersistida || fotoPerfil;
+        }
+
+        global.sessions.set(req.sessionId, req.session);
+        return res.redirect('/perfil');
+    } catch (error) {
+        console.error('Erro ao salvar foto de perfil:', error);
+        return res.redirect('/perfil');
+    }
+});
+
 router.get('/perfil', async function(req, res, next) {
     if (!req.session || !req.session.usuario) {
         return res.redirect('/login');

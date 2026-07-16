@@ -47,8 +47,9 @@
                 </div>
                 
                 <% if (typeof usuarioLogado !== 'undefined' && usuarioLogado) { %>
+                    <% const avatarLayout = usuarioLogado.fotoPerfil || '/imagens/avatar.svg'; %>
                     <div class="perfil">
-                        <a href="/perfil"><img src="/imagens/avatar.svg" alt="perfil" class="avatar"></a>
+                        <a href="/perfil"><img src="<%= avatarLayout %>" alt="perfil" class="avatar"></a>
                     </div>
                 <% } else { %>
                     <div class="login-area">
@@ -64,14 +65,14 @@
         <div class="menu-modalidades">
             <div class="modalidades-container">
                 <ul class="modalidades-list">
-                    <li class="modalidade-item"><a><img src="/imagens/Atletismo icone.png" style="height: 35px;"><span>ATLETISMO</span></a></li>
-                    <li class="modalidade-item"><a><img src="/imagens/basquete.jpg" style="height: 35px;"><span>BASQUETE</span></a></li>
-                    <li class="modalidade-item"><a><img src="/imagens/futsal.png" style="height: 35px;"><span>FUTSAL</span></a></li>
-                    <li class="modalidade-item"><a><img src="/imagens/handebol.png" style="height: 35px;"><span>HANDEBOL</span></a></li>
-                    <li class="modalidade-item"><a><img src="/imagens/tenisdemesa.jpg" style="height: 35px;"><span>TÊNIS DE MESA</span></a></li>
-                    <li class="modalidade-item"><a><img src="/imagens/volei.png" style="height: 35px;"><span>VOLEIBOL</span></a></li>
-                    <li class="modalidade-item"><a><img src="/imagens/voleidepraia.jpg" style="height: 35px;"><span>VOLEI DE PRAIA</span></a></li>
-                    <li class="modalidade-item"><a><img src="/imagens/xadrez.png" style="height: 35px;"><span>XADREZ</span></a></li>
+                    <li class="modalidade-item"><a><img src="/imagens/atletismo1.svg" style="height: 35px;"><span>ATLETISMO</span></a></li>
+                    <li class="modalidade-item"><a><img src="/imagens/basquete1.svg" style="height: 35px;"><span>BASQUETE</span></a></li>
+                    <li class="modalidade-item"><a><img src="/imagens/futsal1.svg" style="height: 35px;"><span>FUTSAL</span></a></li>
+                    <li class="modalidade-item"><a><img src="/imagens/handebol1.svg" style="height: 35px;"><span>HANDEBOL</span></a></li>
+                    <li class="modalidade-item"><a><img src="/imagens/tenisdemesa1.svg" style="height: 35px;"><span>TÊNIS DE MESA</span></a></li>
+                    <li class="modalidade-item"><a><img src="/imagens/volei1.svg" style="height: 35px;"><span>VOLEIBOL</span></a></li>
+                    <li class="modalidade-item"><a><img src="/imagens/areia1.svg" style="height: 35px;"><span>VOLEI DE PRAIA</span></a></li>
+                    <li class="modalidade-item"><a><img src="/imagens/xadrez1.svg" style="height: 35px;"><span>XADREZ</span></a></li>
                 </ul>
             </div>
         </div>

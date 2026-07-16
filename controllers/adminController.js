@@ -2,13 +2,48 @@ const adminModel = require('../models/adminModel');
 const campusModel = require('../models/campusModel');
 const { listarCampi, adicionarCampus, atualizarCampus, banCampus, desbanirCampus, removerCampus } = require('../models/campiCatalog');
 
-function renderConfigurar(req, res) {
-  res.render('adm/configEvento', {
-    title: 'Configurar Prazos',
-    usuarioLogado: req.session?.usuario || null,
-    mostrarFiltros: false,
-    configuracoes: adminModel.getConfiguracoes()
-  });
+async function renderConfigurar(req, res) {
+  try {
+    const configuracoes = adminModel.getConfiguracoes();
+    const modalidades = await adminModel.listarModalidadesConfiguracao();
+
+    res.render('adm/configEvento', {
+      title: 'Configurar Prazos',
+      usuarioLogado: req.session?.usuario || null,
+      mostrarFiltros: false,
+      configuracoes,
+      modalidades,
+      mensagemErro: req.query.erro || '',
+      mensagemSucesso: req.query.sucesso || ''
+    });
+  } catch (error) {
+    console.error(error);
+    res.redirect('/admin/configurar?erro=' + encodeURIComponent('Não foi possível carregar a configuração.'));
+  }
+}
+
+async function cadastrarModalidade(req, res) {
+  try {
+    const nome = String(req.body.nome_modalidade || '').trim();
+    const tipoConfronto = String(req.body.tipo_confronto || 'Coletivo').trim();
+    const genero = String(req.body.genero_modalidade || 'Misto').trim();
+    const formatoDisputa = String(req.body.formato_disputa || 'Grupos + Mata-Mata').trim();
+
+    await adminModel.adicionarModalidade({ nome, tipoConfronto, formatoDisputa, genero });
+    res.redirect('/admin/configurar?sucesso=' + encodeURIComponent(`Modalidade "${nome}" adicionada com sucesso.`));
+  } catch (error) {
+    res.redirect('/admin/configurar?erro=' + encodeURIComponent(error.message));
+  }
+}
+
+async function excluirModalidade(req, res) {
+  try {
+    const modalidadeId = Number(req.params.modalidadeId || req.body.modalidadeId || 0);
+    const resultado = await adminModel.removerModalidadePorId(modalidadeId);
+    res.redirect('/admin/configurar?sucesso=' + encodeURIComponent(`Modalidade "${resultado.nome}" removida com sucesso.`));
+  } catch (error) {
+    res.redirect('/admin/configurar?erro=' + encodeURIComponent(error.message));
+  }
 }
 
 
@@ -40,7 +75,8 @@ async function salvarCadastroCampus(req, res) {
         nomeExibicao: req.body.nomeExibicao,
         email: req.body.email,
         senha: req.body.senha,
-        cidade: req.body.cidade
+        cidade: req.body.cidade,
+        fotoPerfil: req.body.fotoPerfil
       });
 
       res.redirect('/admin/cadastroCampus?sucesso=' + encodeURIComponent(`Campus "${campus.nomeExibicao}" atualizado com sucesso.`));
@@ -52,7 +88,8 @@ async function salvarCadastroCampus(req, res) {
       nomeExibicao: req.body.nomeExibicao,
       email: req.body.email,
       senha: req.body.senha,
-      cidade: req.body.cidade
+      cidade: req.body.cidade,
+      fotoPerfil: req.body.fotoPerfil
     });
 
     res.redirect('/admin/cadastroCampus?sucesso=' + encodeURIComponent(`Campus "${campus.nomeExibicao}" cadastrado com sucesso.`));
@@ -165,52 +202,176 @@ function salvarConfiguracoes(req, res) {
 async function renderChaveamento(req, res) {
   try {
     const modalidadeIdParam = req.query.modalidade;
-    const subCategoria = req.query.sub || 'Individual';
     const configuracoes = adminModel.getConfiguracoes();
-    const hoje = new Date().toISOString().split('T')[0];
+    const hoje = new Date();
+    const hojeStr = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
 
-    const prazoModalidadesAberto = configuracoes.inicio_inscricao_modalidades && configuracoes.fim_inscricao_modalidades && (hoje >= configuracoes.inicio_inscricao_modalidades && hoje <= configuracoes.fim_inscricao_modalidades);
-    const prazoAtletasAberto = configuracoes.inicio_inscricao_atletas && configuracoes.fim_inscricao_atletas && (hoje >= configuracoes.inicio_inscricao_atletas && hoje <= configuracoes.fim_inscricao_atletas);
-    const inscricoesAbertas = prazoModalidadesAberto || prazoAtletasAberto;
-    const inscricoesEncerradas = configuracoes.fim_inscricao_modalidades && configuracoes.fim_inscricao_atletas && (hoje > configuracoes.fim_inscricao_modalidades && hoje > configuracoes.fim_inscricao_atletas);
-    const resumoDisponivel = !inscricoesAbertas && inscricoesEncerradas;
+    const inicioModalidades = configuracoes.inicio_inscricao_modalidades;
+    const fimModalidades = configuracoes.fim_inscricao_modalidades;
+    const inicioAtletas = configuracoes.inicio_inscricao_atletas;
+    const fimAtletas = configuracoes.fim_inscricao_atletas;
 
-    const listaModalidades = await adminModel.getModalidadesBanco();
-    if (listaModalidades.length === 0) {
+    const prazoModalidadesAberto = Boolean(inicioModalidades && fimModalidades && hojeStr >= inicioModalidades && hojeStr <= fimModalidades);
+    const prazoAtletasAberto = Boolean(inicioAtletas && fimAtletas && hojeStr >= inicioAtletas && hojeStr <= fimAtletas);
+    const inscricoesConfiguradas = Boolean(inicioModalidades && fimModalidades && inicioAtletas && fimAtletas);
+    const inscricoesAbertas = inscricoesConfiguradas && (prazoModalidadesAberto || prazoAtletasAberto);
+    const inscricoesEncerradas = inscricoesConfiguradas && hojeStr >= fimModalidades && hojeStr >= fimAtletas;
+    const chaveamentoDisponivel = !inscricoesAbertas && inscricoesEncerradas;
+    const resumoDisponivel = chaveamentoDisponivel;
+
+    let listaModalidades = [];
+    try {
+      listaModalidades = await adminModel.getModalidadesBanco();
+    } catch (error) {
+      console.error('Erro ao buscar modalidades para o chaveamento:', error);
+      listaModalidades = [];
+    }
+
+    const chaveamentoBloqueado = !chaveamentoDisponivel;
+
+    let modalidadeAtiva = { id: 0, nome: '—', categoria: '' };
+    let modalidadeAtivaNome = '—';
+    let categoriaSlug = '';
+    let modalidadesComIcone = [];
+    let modAtivaFormatada = null;
+    let subCategoria = 'geral';
+    let subProva = '';
+
+    if (listaModalidades.length > 0) {
+      modalidadeAtiva = listaModalidades[0];
+      if (modalidadeIdParam) {
+        const buscada = listaModalidades.find(m => m.id === Number(modalidadeIdParam));
+        if (buscada) modalidadeAtiva = buscada;
+      }
+
+      modalidadeAtivaNome = modalidadeAtiva.nome || '—';
+      const nomeNormalizado = String(modalidadeAtivaNome).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      categoriaSlug = nomeNormalizado;
+      if (nomeNormalizado.includes("atletismo")) {
+        subCategoria = req.query.sub || 'geral';
+        subProva = String(req.query.subProva || '').trim();
+      } else if (nomeNormalizado.includes("tenis de mesa") || nomeNormalizado.includes("tenis")) {
+        subCategoria = req.query.sub || 'individual';
+      } else {
+        subCategoria = req.query.sub || 'geral';
+      }
+      if (nomeNormalizado.includes("atletismo")) categoriaSlug = "atletismo";
+      if (nomeNormalizado.includes("xadrez")) categoriaSlug = "xadrez";
+      if (nomeNormalizado.includes("tenis de mesa") || nomeNormalizado.includes("tenis")) categoriaSlug = "tenis-de-mesa";
+      modalidadeAtiva.categoriaSlug = categoriaSlug;
+      modalidadeAtiva.categoria = categoriaSlug;
+
+      modalidadesComIcone = listaModalidades.map((m) => {
+        const nome = String(m.nome || '').trim();
+        const genero = String(m.genero || '').trim();
+        const norm = `${nome} ${genero}`.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        let imagem = '/imagens/atletismo1.svg';
+        let slug = 'atletismo';
+        if (norm.includes('futsal')) { imagem = '/imagens/futsal1.svg'; slug = 'futsal'; }
+        else if (norm.includes('volei')) { imagem = '/imagens/volei1.svg'; slug = 'volei'; }
+        else if (norm.includes('basquete')) { imagem = '/imagens/basquete1.svg'; slug = 'basquete'; }
+        else if (norm.includes('handebol')) { imagem = '/imagens/handebol1.svg'; slug = 'handebol'; }
+        else if (norm.includes('atletismo')) { imagem = '/imagens/atletismo1.svg'; slug = 'atletismo'; }
+        else if (norm.includes('tenis de mesa') || norm.includes('tenis')) { imagem = '/imagens/tenisdemesa1.svg'; slug = 'tenis-de-mesa'; }
+        else if (norm.includes('xadrez')) { imagem = '/imagens/xadrez1.svg'; slug = 'xadrez'; }
+
+        return {
+          id: m.id,
+          nome,
+          genero,
+          tipo_confronto: m.tipo_confronto,
+          categoria: slug,
+          imagem,
+          slug,
+          icone: '🏆'
+        };
+      }).sort((a, b) => {
+        const nomeCompare = a.nome.localeCompare(b.nome);
+        if (nomeCompare !== 0) return nomeCompare;
+        return a.genero.localeCompare(b.genero);
+      });
+
+      modAtivaFormatada = modalidadesComIcone.find(m => m.id === modalidadeAtiva.id) || modalidadeAtiva;
+    }
+
+    if (!chaveamentoBloqueado && listaModalidades.length === 0) {
       return res.send("Nenhuma modalidade cadastrada no banco de dados.");
     }
 
-    let modalidadeAtiva = listaModalidades[0];
-    if (modalidadeIdParam) {
-      const buscada = listaModalidades.find(m => m.id === Number(modalidadeIdParam));
-      if (buscada) modalidadeAtiva = buscada;
-    }
-
-    const nomeNormalizado = modalidadeAtiva.nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    let categoriaSlug = nomeNormalizado;
-    if (nomeNormalizado.includes("atletismo")) categoriaSlug = "atletismo";
-    if (nomeNormalizado.includes("xadrez")) categoriaSlug = "xadrez";
-    if (nomeNormalizado.includes("tenis de mesa")) categoriaSlug = "tenis-de-mesa";
-    modalidadeAtiva.categoriaSlug = categoriaSlug;
-
-    const icones = { futsal: '⚽', volei: '🏐', basquete: '🏀', handebol: '🤾', atletismo: '🏃', 'tenis-de-mesa': '🏓', xadrez: '♟️' };
-    const modalidadesComIcone = listaModalidades.map(m => {
-      const norm = m.nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      let icone = '🏆';
-      for (let k in icones) { if (norm.includes(k)) icone = icones[k]; }
-      return { ...m, icone };
-    });
-
-    const modAtivaFormatada = modalidadesComIcone.find(m => m.id === modalidadeAtiva.id);
-    const inscritos = await adminModel.getInscritosModalidade(modalidadeAtiva.id, subCategoria);
-    const chaves = await adminModel.getChavesModalidade(modalidadeAtiva.id, subCategoria);
-    const jogos = await adminModel.getJogosModalidade(modalidadeAtiva.id, subCategoria);
-
+    let inscritos = [];
+    let chaves = [];
+    let jogos = [];
     let provasAtletismo = [];
-    if (categoriaSlug === 'atletismo') {
-      provasAtletismo = [
-        { nomeProva: "Provas de Pista e Campo", atletas: inscritos }
-      ];
+
+    if (chaveamentoDisponivel) {
+      inscritos = await adminModel.getInscritosModalidade(modalidadeAtiva.id, subCategoria);
+      chaves = await adminModel.getChavesModalidade(modalidadeAtiva.id, subCategoria);
+      jogos = await adminModel.getJogosModalidade(modalidadeAtiva.id, subCategoria);
+
+      if (categoriaSlug === 'atletismo') {
+        const provasBase = [
+          { slug: 'geral', nomeProva: 'Geral', descricao: 'Atletas inscritos em atletismo', atletas: inscritos, subprovas: [] },
+          {
+            slug: 'corrida',
+            nomeProva: 'Corrida',
+            descricao: 'Selecione a prova específica de corrida.',
+            atletas: inscritos,
+            subprovas: [
+              { slug: '100m', nomeProva: '100m', descricao: 'Velocidade', atletas: inscritos.slice(0, Math.max(1, Math.ceil(inscritos.length / 4))) },
+              { slug: '200m', nomeProva: '200m', descricao: 'Velocidade', atletas: inscritos.slice(Math.max(0, Math.floor(inscritos.length / 4))) },
+              { slug: '400m', nomeProva: '400m', descricao: 'Velocidade', atletas: inscritos.slice(0, Math.max(1, Math.ceil(inscritos.length / 3))) },
+              { slug: '800m', nomeProva: '800m', descricao: 'Meio-fundo', atletas: inscritos.slice(Math.max(0, Math.floor(inscritos.length / 3))) },
+              { slug: '1500m', nomeProva: '1500m', descricao: 'Fundo', atletas: inscritos.slice(0, Math.max(1, Math.ceil(inscritos.length / 2))) },
+              { slug: '3000m', nomeProva: '3000m', descricao: 'Fundo', atletas: inscritos.slice(Math.max(0, Math.floor(inscritos.length / 2))) },
+              { slug: '5000m', nomeProva: '5000m', descricao: 'Fundo', atletas: inscritos.slice(0, Math.max(1, Math.min(6, inscritos.length))) }
+            ]
+          },
+          {
+            slug: 'salto',
+            nomeProva: 'Salto',
+            descricao: 'Selecione a prova específica de salto.',
+            atletas: inscritos,
+            subprovas: [
+              { slug: 'salto-em-distancia', nomeProva: 'Salto em Distância', descricao: 'Salto em distância', atletas: inscritos.slice(0, Math.max(1, Math.ceil(inscritos.length / 2))) },
+              { slug: 'salto-em-altura', nomeProva: 'Salto em Altura', descricao: 'Salto em altura', atletas: inscritos.slice(Math.max(0, Math.floor(inscritos.length / 2))) },
+              { slug: 'salto-triplo', nomeProva: 'Salto Triplo', descricao: 'Salto triplo', atletas: inscritos.slice(0, Math.max(1, Math.min(5, inscritos.length))) }
+            ]
+          },
+          {
+            slug: 'arremesso',
+            nomeProva: 'Arremesso',
+            descricao: 'Selecione a prova específica de arremesso.',
+            atletas: inscritos,
+            subprovas: [
+              { slug: 'disco', nomeProva: 'Disco', descricao: 'Disco', atletas: inscritos.slice(0, Math.max(1, Math.ceil(inscritos.length / 2))) },
+              { slug: 'dardo', nomeProva: 'Dardo', descricao: 'Dardo', atletas: inscritos.slice(Math.max(0, Math.floor(inscritos.length / 2))) },
+              { slug: 'peso', nomeProva: 'Peso', descricao: 'Peso', atletas: inscritos.slice(0, Math.max(1, Math.min(5, inscritos.length))) }
+            ]
+          }
+        ];
+
+        const provaAtiva = provasBase.find((prova) => String(prova.slug).toLowerCase() === String(subCategoria).toLowerCase()) || provasBase[0];
+        provasAtletismo = provasBase.map((prova) => {
+          let atletas = prova.atletas || [];
+          let subProvaSelecionada = null;
+          if (prova.slug === provaAtiva.slug && prova.subprovas && prova.subprovas.length) {
+            const subProvaAtiva = prova.subprovas.find((item) => String(item.slug).toLowerCase() === String(subProva).toLowerCase());
+            if (subProvaAtiva) {
+              atletas = subProvaAtiva.atletas;
+              subProvaSelecionada = subProvaAtiva;
+            } else if (prova.subprovas[0]) {
+              atletas = prova.subprovas[0].atletas;
+              subProvaSelecionada = prova.subprovas[0];
+            }
+          }
+          return {
+            ...prova,
+            ativa: prova.slug === provaAtiva.slug,
+            atletas,
+            subProvaSelecionada
+          };
+        });
+      }
     }
 
     let resumoInscricoes = null;
@@ -226,9 +387,11 @@ async function renderChaveamento(req, res) {
       usuarioLogado: req.session?.usuario || { tipo: 'admin' },
       mostrarFiltros: false,
       inscricoesAbertas,
+      chaveamentoBloqueado,
       listaModalidadesCompleta: modalidadesComIcone,
       modalidadeAtiva: modAtivaFormatada,
       subCategoriaAtiva: subCategoria,
+      subProvaAtiva: subProva,
       inscritosPendentes: inscritos,
       chavesGeradas: chaves,
       provasAtletismo: provasAtletismo,
@@ -246,33 +409,39 @@ async function renderChaveamento(req, res) {
 function escapeCsv(valor) {
   if (valor === null || valor === undefined) return '';
   const texto = String(valor);
-  const precisaEscapar = /[",\n\r]/.test(texto);
-  if (precisaEscapar) {
+  if (/[",\n\r]/.test(texto)) {
     return '"' + texto.replace(/"/g, '""') + '"';
   }
   return texto;
 }
 
+function construirLinhaCsv(linhas, valores) {
+  linhas.push(valores.map((valor) => escapeCsv(valor)).join(','));
+}
+
 async function exportResumoInscricoes(req, res) {
   try {
     const resumo = await adminModel.getResumoInscricoes();
-    const linhas = [
-      ['Campus', 'Modalidade', 'Gênero', 'Atleta', 'Matrícula', 'Data de Nascimento', 'Status']
-    ];
+    const linhas = [];
+    construirLinhaCsv(linhas, ['Campus', 'Modalidade', 'Gênero', 'Atleta', 'Matrícula', 'Data de Nascimento', 'Status']);
 
-    resumo.campi.forEach((campus) => {
-      campus.modalidades.forEach((modalidade) => {
+    (resumo.campi || []).forEach((campus) => {
+      construirLinhaCsv(linhas, ['']);
+      construirLinhaCsv(linhas, [campus.nome, '', '', '', '', '', '']);
+      (campus.modalidades || []).forEach((modalidade) => {
+        construirLinhaCsv(linhas, ['']);
+        construirLinhaCsv(linhas, [modalidade.nome, '', '', '', '', '', '']);
         const appendAtletas = (lista, generoLabel) => {
           if (!lista || !lista.length) return;
           lista.forEach((atleta) => {
-            linhas.push([
-              campus.nome,
-              modalidade.nome,
+            construirLinhaCsv(linhas, [
+              '',
+              '',
               generoLabel,
               atleta.nome,
               atleta.matricula,
               atleta.dataNascimento,
-              atleta.status
+              atleta.status || 'Regular'
             ]);
           });
         };
@@ -282,10 +451,11 @@ async function exportResumoInscricoes(req, res) {
       });
     });
 
-    const csv = linhas.map((row) => row.map(escapeCsv).join(',')).join('\r\n');
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', 'attachment; filename="resumo-inscricoes.csv"');
-    res.send(csv);
+    const csv = linhas.join('\r\n');
+    const buffer = Buffer.from(['\uFEFF', csv].join(''), 'utf8');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8; header=present');
+    res.setHeader('Content-Disposition', 'attachment; filename="resumo-inscricoes-por-campus.csv"');
+    res.send(buffer);
   } catch (error) {
     console.error(error);
     res.status(500).send('Erro ao exportar o resumo de inscrições.');
@@ -401,6 +571,8 @@ async function salvarPlacar(req, res) {
 
 module.exports = {
   renderConfigurar,
+  cadastrarModalidade,
+  excluirModalidade,
   salvarConfiguracoes,
   renderCadastroCampus,
   salvarCadastroCampus,

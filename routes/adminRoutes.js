@@ -5,6 +5,8 @@ const adminController = require('../controllers/adminController');
 // Rotas administrativas: configuração, registro de campus, análise e placar
 router.get('/configurar', adminController.renderConfigurar);
 router.post('/configurar/salvar', adminController.salvarConfiguracoes);
+router.post('/modalidades/cadastrar', adminController.cadastrarModalidade);
+router.post('/modalidades/excluir/:modalidadeId', adminController.excluirModalidade);
 
 router.get('/cadastroCampus', adminController.renderCadastroCampus);
 router.post('/cadastroCampus/salvar', adminController.salvarCadastroCampus);

@@ -45,6 +45,18 @@
             <input type="password" name="senha" class="premium-text-input" placeholder="<%= campusEdicao ? 'Deixe em branco para manter a senha atual' : 'Senha do campus' %>" <%= campusEdicao ? '' : 'required' %>>
           </label>
         </div>
+
+        <div class="management-fields-row profile-photo-input-row" style="margin-top: 1.25rem;">
+          <label class="premium-input-wrapper">
+            <span class="field-label-text">Foto de perfil</span>
+            <div class="profile-photo-picker">
+              <input type="file" id="campusFotoInput" accept="image/*" class="hidden-input-state">
+              <label for="campusFotoInput" class="premium-upload-btn">Escolher foto</label>
+              <span class="profile-photo-helper">Qualquer tipo de imagem</span>
+            </div>
+            <input type="hidden" name="fotoPerfil" id="campusFotoValue" value="<%= campusEdicao ? (campusEdicao.fotoPerfil || '') : '' %>">
+          </label>
+        </div>
       </div>
 
       <div class="config-submit-bar" style="justify-content:space-between; gap:1rem;">
@@ -56,6 +68,35 @@
         </button>
       </div>
     </form>
+
+    <script>
+      (() => {
+        const fileInput = document.getElementById('campusFotoInput');
+        const hiddenField = document.getElementById('campusFotoValue');
+
+        if (!fileInput || !hiddenField) {
+          return;
+        }
+
+        fileInput.addEventListener('change', function () {
+          const [file] = this.files || [];
+          if (!file) {
+            return;
+          }
+
+          if (!file.type || !file.type.startsWith('image/')) {
+            this.value = '';
+            return;
+          }
+
+          const reader = new FileReader();
+          reader.onload = function () {
+            hiddenField.value = String(reader.result || '');
+          };
+          reader.readAsDataURL(file);
+        });
+      })();
+    </script>
 
     <div class="inner-management-card" style="margin-top: 1.5rem;">
       <div class="card-context-header">

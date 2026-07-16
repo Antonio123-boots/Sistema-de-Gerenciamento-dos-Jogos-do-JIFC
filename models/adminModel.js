@@ -94,7 +94,9 @@ function validarAtleta(atletaId) {
 async function getJogos() {
   try {
     const query = `
-      SELECT j.id, j.fase, j.status, j.placar_casa, j.placar_fora,
+      SELECT j.id, j.fase, j.status,
+             COALESCE(rc.placar_1, 0) AS placar_casa,
+             COALESCE(rc.placar_2, 0) AS placar_fora,
              DATE_FORMAT(j.data_hora, '%d/%m') AS data,
              DATE_FORMAT(j.data_hora, '%H:%i') AS horario,
              c1.nome AS casa, c2.nome AS fora,
@@ -107,6 +109,7 @@ async function getJogos() {
       LEFT JOIN campus c2 ON j.campus_2_id = c2.id
       LEFT JOIN atletas a1 ON j.atleta_1_id = a1.id
       LEFT JOIN atletas a2 ON j.atleta_2_id = a2.id
+      LEFT JOIN resultados_coletivos rc ON rc.jogo_id = j.id
       ORDER BY j.id ASC`;
     const [linhas] = await db.query(query);
     return linhas;
@@ -148,10 +151,90 @@ async function getConfiguracoesBanco() {
  */
 async function getModalidadesBanco() {
   try {
-    const [linhas] = await db.query('SELECT * FROM modalidades ORDER BY genero DESC, nome ASC');
+    const [linhas] = await db.query(`
+      SELECT *
+      FROM modalidades
+      WHERE nome NOT IN ('Tênis', 'Tenis')
+      ORDER BY genero DESC, nome ASC
+    `);
     return linhas;
   } catch (error) {
     console.error("Erro ao buscar modalidades no banco:", error);
+    throw error;
+  }
+}
+
+async function listarModalidadesConfiguracao() {
+  try {
+    const [linhas] = await db.query(`
+      SELECT id, nome, genero, tipo_confronto, formato_disputa
+      FROM modalidades
+      WHERE nome NOT IN ('Tênis', 'Tenis')
+      ORDER BY nome ASC, FIELD(genero, 'Masculino', 'Feminino', 'Misto') ASC
+    `);
+    return linhas;
+  } catch (error) {
+    console.error('Erro ao listar modalidades para configuração:', error);
+    throw error;
+  }
+}
+
+async function adicionarModalidade({ nome, tipoConfronto = 'Coletivo', formatoDisputa = 'Grupos + Mata-Mata', genero = 'Misto' }) {
+  const nomeLimpo = String(nome || '').trim();
+  if (!nomeLimpo) {
+    throw new Error('Informe o nome da modalidade esportiva.');
+  }
+
+  const nomeNormalizado = nomeLimpo
+    .replace(/^Tênis$/i, 'Tênis de Mesa')
+    .replace(/^Basquetebol$/i, 'Basquete')
+    .replace(/^Voleibol$/i, 'Vôlei')
+    .trim();
+
+  const tipo = String(tipoConfronto || 'Coletivo').trim();
+  const formato = String(formatoDisputa || 'Grupos + Mata-Mata').trim();
+  const generos = String(genero || 'Misto').toLowerCase() === 'misto' ? ['Misto'] : ['Masculino', 'Feminino'];
+
+  const inseridos = [];
+  for (const generoItem of generos) {
+    const [existente] = await db.query('SELECT id FROM modalidades WHERE nome = ? AND genero = ?', [nomeNormalizado, generoItem]);
+    if (!existente.length) {
+      const [resultado] = await db.query(
+        'INSERT INTO modalidades (nome, genero, tipo_confronto, formato_disputa) VALUES (?, ?, ?, ?)',
+        [nomeNormalizado, generoItem, tipo, formato]
+      );
+      inseridos.push(resultado.insertId);
+    }
+  }
+
+  return inseridos;
+}
+
+async function removerModalidadePorId(modalidadeId) {
+  const [modalidadeRows] = await db.query('SELECT nome FROM modalidades WHERE id = ?', [modalidadeId]);
+  if (!modalidadeRows.length) {
+    throw new Error('Modalidade não encontrada.');
+  }
+
+  const nome = modalidadeRows[0].nome;
+  const [linhas] = await db.query('SELECT id FROM modalidades WHERE nome = ?', [nome]);
+  const ids = linhas.map((item) => item.id);
+
+  if (!ids.length) return { removidos: 0, nome };
+
+  const placeholders = ids.map(() => '?').join(',');
+
+  await db.query('START TRANSACTION');
+  try {
+    await db.query(`DELETE FROM atleta_modalidade WHERE modalidade_id IN (${placeholders})`, ids);
+    await db.query(`DELETE FROM campus_modalidade WHERE modalidade_id IN (${placeholders})`, ids);
+    await db.query(`DELETE FROM chaves WHERE modalidade_id IN (${placeholders})`, ids);
+    await db.query(`DELETE FROM jogos WHERE modalidade_id IN (${placeholders})`, ids);
+    await db.query(`DELETE FROM modalidades WHERE id IN (${placeholders})`, ids);
+    await db.query('COMMIT');
+    return { removidos: ids.length, nome };
+  } catch (error) {
+    await db.query('ROLLBACK');
     throw error;
   }
 }
@@ -175,6 +258,7 @@ async function getResumoInscricoes() {
       JOIN atletas a ON am.atleta_id = a.id
       JOIN campus c ON a.campus_id = c.id
       JOIN modalidades m ON am.modalidade_id = m.id
+      WHERE m.nome NOT IN ('Tênis', 'Tenis')
       ORDER BY c.nome ASC, m.genero DESC, m.nome ASC, a.genero ASC, a.nome ASC
     `);
 
@@ -189,6 +273,7 @@ async function getResumoInscricoes() {
       FROM campus_modalidade cm
       JOIN campus c ON cm.campus_id = c.id
       JOIN modalidades m ON cm.modalidade_id = m.id
+      WHERE m.nome NOT IN ('Tênis', 'Tenis')
       ORDER BY c.nome ASC, m.genero DESC, m.nome ASC
     `);
 
@@ -215,6 +300,8 @@ async function getResumoInscricoes() {
           genero,
           tipoConfronto,
           atletas: [],
+          atletasMasculino: [],
+          atletasFeminino: [],
           hasCampusInscricao: false
         };
         campus.modalidades.push(modalidade);
@@ -231,14 +318,22 @@ async function getResumoInscricoes() {
     for (const row of atletas) {
       const campus = ensureCampus(row.campus_id, row.campus_nome);
       const modalidade = ensureModalidade(campus, row.modalidade_id, row.modalidade_nome, row.modalidade_genero, row.tipo_confronto);
-      modalidade.atletas.push({
+      const genero = String(row.atleta_genero || 'Masculino');
+      const atleta = {
         id: row.atleta_id,
         nome: row.atleta_nome,
         matricula: row.matricula,
-        genero: row.atleta_genero || 'Masculino',
+        genero,
         dataNascimento: row.data_nascimento,
         status: 'Regular'
-      });
+      };
+
+      modalidade.atletas.push(atleta);
+      if (genero === 'Feminino') {
+        modalidade.atletasFeminino.push(atleta);
+      } else {
+        modalidade.atletasMasculino.push(atleta);
+      }
     }
 
     const campiResumo = Array.from(campusMap.values()).sort((a, b) => a.nome.localeCompare(b.nome));
@@ -253,6 +348,8 @@ async function getResumoInscricoes() {
           if (a.genero !== b.genero) return String(a.genero).localeCompare(String(b.genero));
           return String(a.nome).localeCompare(String(b.nome));
         });
+        modalidade.atletasMasculino.sort((a, b) => String(a.nome).localeCompare(String(b.nome)));
+        modalidade.atletasFeminino.sort((a, b) => String(a.nome).localeCompare(String(b.nome)));
       });
     });
 
@@ -273,58 +370,83 @@ async function getResumoInscricoes() {
  */
 async function getInscritosModalidade(modalidadeId, subCategoria = 'geral') {
   try {
-    const [mod] = await db.query('SELECT tipo_confronto, categoria, slug FROM modalidades WHERE id = ?', [modalidadeId]);
+    const [mod] = await db.query('SELECT tipo_confronto, nome FROM modalidades WHERE id = ?', [modalidadeId]);
     if (!mod.length) return [];
 
-    const m = mod[0];
-    const isInd = (m.tipo_confronto === 'Individual' || m.categoria === 'atletismo' || m.categoria === 'xadrez' || subCategoria === 'individual');
+    const modalidade = mod[0];
+    const nomeNormalizado = String(modalidade.nome || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const isInd = modalidade.tipo_confronto === 'Individual' || nomeNormalizado.includes('atletismo') || nomeNormalizado.includes('xadrez') || subCategoria === 'individual';
 
     if (isInd) {
-      const query = `
-        SELECT a.id, a.nome AS nomeAtleta, c.nome AS nomeCampus, NULL AS numero_inscrito
+      const [atletas] = await db.query(`
+        SELECT a.id, a.nome AS nomeAtleta, c.nome AS nomeCampus, NULL AS numeroInscrito
         FROM atleta_modalidade am
         JOIN atletas a ON am.atleta_id = a.id
         JOIN campus c ON a.campus_id = c.id
         WHERE am.modalidade_id = ?
-        ORDER BY a.nome ASC`;
-      const [atletas] = await db.query(query, [modalidadeId, subCategoria]);
+        ORDER BY a.nome ASC
+      `, [modalidadeId]);
       return atletas;
-    } else {
-      const query = `
-        SELECT c.nome AS nomeCampus, c.id AS campus_id
-        FROM campus_modalidade cm
-        JOIN campus c ON cm.campus_id = c.id
-        WHERE cm.modalidade_id = ?
-        ORDER BY c.nome ASC`;
-      const [campi] = await db.query(query, [modalidadeId]);
-      return campi;
     }
+
+    const [campi] = await db.query(`
+      SELECT c.id AS campus_id, c.nome AS nomeCampus
+      FROM campus_modalidade cm
+      JOIN campus c ON cm.campus_id = c.id
+      WHERE cm.modalidade_id = ?
+      ORDER BY c.nome ASC
+    `, [modalidadeId]);
+    return campi;
   } catch (error) {
-    console.error("Erro ao buscar inscritos da modalidade:", error);
+    console.error('Erro ao buscar inscritos da modalidade:', error);
     throw error;
   }
 }
+
 /**
  * Busca a divisão atual de grupos/chaves salvos no banco para exibição na área central.
  */
-async function getChavesModalidade(modalidadeId, subCategoria = 'geral') {
+async function getChavesModalidade(modalidadeId) {
   try {
-    const [chaves] = await db.query('SELECT * FROM chaves WHERE modalidade_id = ? AND sub_categoria = ? ORDER BY letra ASC', [modalidadeId, subCategoria]);
-    
-    for (let chave of chaves) {
-      const query = `
-        SELECT hc.*, c.nome AS nomeCampus, a.nome AS nomeAtleta
-        FROM historico_confrontos hc
-        LEFT JOIN campus c ON hc.campus_id = c.id
-        LEFT JOIN atletas a ON hc.atleta_id = a.id
-        WHERE hc.chave_id = ?
-        ORDER BY hc.pontos DESC, hc.saldo_pontuacao DESC, hc.pontos_pro DESC`;
-      const [integrantes] = await db.query(query, [chave.id]);
+    const [mod] = await db.query('SELECT tipo_confronto FROM modalidades WHERE id = ?', [modalidadeId]);
+    const isInd = mod[0]?.tipo_confronto === 'Individual';
+
+    const [chaves] = await db.query(
+      'SELECT id, modalidade_id, numero_chave AS numeroChave, nome_chave AS nomeChave FROM chaves WHERE modalidade_id = ? ORDER BY numero_chave ASC, id ASC',
+      [modalidadeId]
+    );
+
+    for (const chave of chaves) {
+      let integrantes = [];
+
+      if (isInd) {
+        const [atletas] = await db.query(`
+          SELECT a.id AS atleta_id, a.nome AS nomeAtleta, c.nome AS nomeCampus, NULL AS numeroInscrito
+          FROM jogos j
+          JOIN atletas a ON a.id = j.atleta_1_id OR a.id = j.atleta_2_id
+          LEFT JOIN campus c ON c.id = a.campus_id
+          WHERE j.modalidade_id = ? AND j.chave_id = ?
+          GROUP BY a.id, a.nome, c.nome
+          ORDER BY a.nome ASC
+        `, [modalidadeId, chave.id]);
+        integrantes = atletas;
+      } else {
+        const [campi] = await db.query(`
+          SELECT c.id AS campus_id, c.nome AS nomeCampus, NULL AS nomeAtleta, NULL AS numeroInscrito
+          FROM campus_modalidade cm
+          JOIN campus c ON c.id = cm.campus_id
+          WHERE cm.modalidade_id = ? AND cm.chave_id = ?
+          ORDER BY c.nome ASC
+        `, [modalidadeId, chave.id]);
+        integrantes = campi;
+      }
+
       chave.integrantes = integrantes;
     }
+
     return chaves;
   } catch (error) {
-    console.error("Erro ao coletar chaves do banco:", error);
+    console.error('Erro ao coletar chaves do banco:', error);
     throw error;
   }
 }
@@ -335,21 +457,30 @@ async function getChavesModalidade(modalidadeId, subCategoria = 'geral') {
 async function getJogosModalidade(modalidadeId, subCategoria = 'geral') {
   try {
     const query = `
-      SELECT j.id, j.fase, j.status, j.placar_casa, j.placar_fora, 
-             DATE_FORMAT(j.data_hora, '%d/%m') AS data, DATE_FORMAT(j.data_hora, '%H:%i') AS horario, 
-             c1.nome AS casa, c2.nome AS fora, a1.nome AS atletaCasa, a2.nome AS atletaFora, m.tipo_confronto 
-      FROM jogos j 
-      JOIN modalidades m ON j.modalidade_id = m.id 
-      LEFT JOIN campus c1 ON j.campus_1_id = c1.id 
-      LEFT JOIN campus c2 ON j.campus_2_id = c2.id 
-      LEFT JOIN atletas a1 ON j.atleta_1_id = a1.id 
-      LEFT JOIN atletas a2 ON j.atleta_2_id = a2.id 
+      SELECT j.id, j.fase, j.status,
+             COALESCE(rc.placar_1, 0) AS placar_casa,
+             COALESCE(rc.placar_2, 0) AS placar_fora,
+             DATE_FORMAT(j.data_hora, '%d/%m') AS data,
+             DATE_FORMAT(j.data_hora, '%H:%i') AS horario,
+             c1.nome AS casa,
+             c2.nome AS fora,
+             a1.nome AS atletaCasa,
+             a2.nome AS atletaFora,
+             m.tipo_confronto,
+             m.tipo_confronto = 'Individual' AS tipoIndividual
+      FROM jogos j
+      JOIN modalidades m ON j.modalidade_id = m.id
+      LEFT JOIN campus c1 ON j.campus_1_id = c1.id
+      LEFT JOIN campus c2 ON j.campus_2_id = c2.id
+      LEFT JOIN atletas a1 ON j.atleta_1_id = a1.id
+      LEFT JOIN atletas a2 ON j.atleta_2_id = a2.id
+      LEFT JOIN resultados_coletivos rc ON rc.jogo_id = j.id
       WHERE j.modalidade_id = ? AND (j.fase LIKE ? OR ? = 'geral')
       ORDER BY j.id ASC`;
     const [jogos] = await db.query(query, [modalidadeId, `%${subCategoria}%`, subCategoria]);
     return jogos;
   } catch (error) {
-    console.error("Erro ao buscar jogos da modalidade:", error);
+    console.error('Erro ao buscar jogos da modalidade:', error);
     throw error;
   }
 }
@@ -359,29 +490,32 @@ async function getJogosModalidade(modalidadeId, subCategoria = 'geral') {
  */
 async function persistirEstruturaChaveamento(modalidadeId, subCategoria, chavesMapeadas) {
   try {
-    const [mod] = await db.query('SELECT tipo_confronto, categoria FROM modalidades WHERE id = ?', [modalidadeId]);
-    const isInd = mod[0].tipo_confronto === 'Individual';
+    const [mod] = await db.query('SELECT tipo_confronto FROM modalidades WHERE id = ?', [modalidadeId]);
+    const isInd = mod[0]?.tipo_confronto === 'Individual';
 
-    for (let letraChave in chavesMapeadas) {
+    await db.query('DELETE FROM jogos WHERE modalidade_id = ?', [modalidadeId]);
+    await db.query('UPDATE campus_modalidade SET chave_id = NULL WHERE modalidade_id = ?', [modalidadeId]);
+    await db.query('DELETE FROM chaves WHERE modalidade_id = ?', [modalidadeId]);
+
+    let numeroChave = 1;
+    for (const letraChave of Object.keys(chavesMapeadas)) {
       const nomeGrupo = `Grupo ${letraChave}`;
       const [resChave] = await db.query(
-        'INSERT INTO chaves (modalidade_id, sub_categoria, letra, nome_chave) VALUES (?, ?, ?, ?)',
-        [modalidadeId, subCategoria, letraChave, nomeGrupo]
+        'INSERT INTO chaves (modalidade_id, numero_chave, nome_chave) VALUES (?, ?, ?)',
+        [modalidadeId, numeroChave, nomeGrupo]
       );
       const chaveId = resChave.insertId;
 
       const grupoAtual = chavesMapeadas[letraChave];
-      for (let participante of grupoAtual) {
-        await db.query(
-          `INSERT INTO historico_confrontos (modalidade_id, chave_id, campus_id, atleta_id) VALUES (?, ?, ?, ?)`,
-          [modalidadeId, chaveId, isInd ? null : participante.campus_id || participante.id, isInd ? participante.id : null]
-        );
-        
+      for (const participante of grupoAtual) {
         if (!isInd) {
-          await db.query(
-            'UPDATE campus_modalidade SET chave_id = ? WHERE campus_id = ? AND modalidade_id = ?',
-            [chaveId, participante.campus_id || participante.id, modalidadeId]
-          );
+          const campusId = participante.campus_id || participante.id;
+          if (campusId) {
+            await db.query(
+              'UPDATE campus_modalidade SET chave_id = ? WHERE campus_id = ? AND modalidade_id = ?',
+              [chaveId, campusId, modalidadeId]
+            );
+          }
         }
       }
 
@@ -391,25 +525,28 @@ async function persistirEstruturaChaveamento(modalidadeId, subCategoria, chavesM
           const tB = grupoAtual[y];
 
           await db.query(
-            `INSERT INTO jogos (modalidade_id, fase, campus_1_id, campus_2_id, atleta_1_id, atleta_2_id, data_hora, local_jogo, status) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO jogos (modalidade_id, chave_id, fase, campus_1_id, campus_2_id, atleta_1_id, atleta_2_id, data_hora, local_jogo, status)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
-              modalidadeId, 
-              `Fase de Grupos (${subCategoria})`, 
-              isInd ? null : tA.campus_id || tA.id, 
-              isInd ? null : tB.campus_id || tB.id, 
-              isInd ? tA.id : null, 
-              isInd ? tB.id : null, 
-              new Date(), 
-              'Ginásio Central', 
+              modalidadeId,
+              chaveId,
+              `Fase de Grupos (${subCategoria})`,
+              isInd ? null : (tA.campus_id || tA.id),
+              isInd ? null : (tB.campus_id || tB.id),
+              isInd ? tA.id : null,
+              isInd ? tB.id : null,
+              new Date(),
+              'Ginásio Central',
               'Agendado'
             ]
           );
         }
       }
+
+      numeroChave += 1;
     }
   } catch (error) {
-    console.error("Erro na transação de gravação de chaves:", error);
+    console.error('Erro na transação de gravação de chaves:', error);
     throw error;
   }
 }
@@ -419,11 +556,11 @@ async function persistirEstruturaChaveamento(modalidadeId, subCategoria, chavesM
  */
 async function resetarChaveamentoModalidade(modalidadeId, subCategoria = 'geral') {
   try {
-    await db.query('DELETE j FROM jogos j WHERE j.modalidade_id = ?', [modalidadeId]);
-    await db.query('DELETE FROM historico_confrontos WHERE modalidade_id = ?', [modalidadeId]);
-    await db.query('DELETE FROM chaves WHERE modalidade_id = ? AND sub_categoria = ?', [modalidadeId, subCategoria]);
+    await db.query('DELETE FROM jogos WHERE modalidade_id = ?', [modalidadeId]);
+    await db.query('UPDATE campus_modalidade SET chave_id = NULL WHERE modalidade_id = ?', [modalidadeId]);
+    await db.query('DELETE FROM chaves WHERE modalidade_id = ?', [modalidadeId]);
   } catch (error) {
-    console.error("Erro ao redefinir tabelas de chaveamento:", error);
+    console.error('Erro ao redefinir tabelas de chaveamento:', error);
     throw error;
   }
 }
@@ -433,7 +570,14 @@ async function resetarChaveamentoModalidade(modalidadeId, subCategoria = 'geral'
  */
 async function atualizarPlacarJogo(jogoId, placarCasa, placarFora, status) {
   try {
-    await db.query('UPDATE jogos SET placar_casa = ?, placar_fora = ?, status = ? WHERE id = ?', [placarCasa, placarFora, status, jogoId]);
+    await db.query('UPDATE jogos SET status = ? WHERE id = ?', [status, jogoId]);
+
+    const [resultadoExistente] = await db.query('SELECT 1 FROM resultados_coletivos WHERE jogo_id = ?', [jogoId]);
+    if (resultadoExistente.length > 0) {
+      await db.query('UPDATE resultados_coletivos SET placar_1 = ?, placar_2 = ? WHERE jogo_id = ?', [placarCasa, placarFora, jogoId]);
+    } else {
+      await db.query('INSERT INTO resultados_coletivos (jogo_id, placar_1, placar_2) VALUES (?, ?, ?)', [jogoId, placarCasa, placarFora]);
+    }
   } catch (error) {
     console.error("Erro ao salvar resultado de jogo:", error);
     throw error;
@@ -496,6 +640,9 @@ module.exports = {
   getJogoPorId,
   getConfiguracoesBanco,
   getModalidadesBanco,
+  listarModalidadesConfiguracao,
+  adicionarModalidade,
+  removerModalidadePorId,
   getResumoInscricoes,
   getInscritosModalidade,
   getChavesModalidade,

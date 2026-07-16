@@ -13,14 +13,24 @@
     </div>
   </div>
 
-  <div class="menu-modalidades" style="margin-top: 0; background: rgba(0,0,0,0.2); border-radius: 12px;">
+  <% if (typeof chaveamentoBloqueado !== 'undefined' && chaveamentoBloqueado) { %>
+    <section class="panel-card" style="margin-top:1.5rem; border:1px solid rgba(255,107,107,0.35); background:rgba(255,107,107,0.08);">
+      <div class="welcome-card" style="padding:1.5rem; background:transparent; border:none;">
+        <h2 style="margin-bottom:0.5rem;">Chaveamento ainda indisponível</h2>
+        <p class="panel-subtitle">Aguarde o encerramento das inscrições de modalidades e atletas para abrir o painel de chaveamento.</p>
+      </div>
+    </section>
+  <% } else { %>
+
+  <div class="menu-modalidades premium" style="margin-top: 0;">
     <div class="modalidades-container">
-      <ul class="modalidades-list">
+      <ul class="modalidades-list compact premium-list">
         <% listaModalidadesCompleta.forEach((mod) => { %>
-          <li class="modalidade-item">
-            <a href="/admin/chaveamento?modalidade=<%= mod.id %>" class="<%= modalidadeAtiva.id === mod.id ? 'active-sport' : '' %>">
-              <span class="modalidade-icon"><%= mod.icone %></span>
-              <span><%= mod.nome %></span>
+          <li class="modalidade-item compact premium-item">
+            <a href="/admin/chaveamento?modalidade=<%= mod.id %>" class="<%= modalidadeAtiva.id === mod.id ? 'active-sport premium-active' : '' %>">
+              <img src="<%= mod.imagem || '/imagens/atletismo1.svg' %>" alt="<%= mod.nome %>" onerror="this.src='/imagens/atletismo1.svg'">
+              <span class="sport-card-name"><%= mod.nome %></span>
+              <span class="sport-card-gender"><%= String(mod.genero || '').toUpperCase() %></span>
             </a>
           </li>
         <% }) %>
@@ -33,120 +43,84 @@
       <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=individual" class="btn-sub-tab <%= subCategoriaAtiva === 'individual' ? 'active' : '' %>">Individual</a>
       <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=dupla" class="btn-sub-tab <%= subCategoriaAtiva === 'dupla' ? 'active' : '' %>">Em Dupla</a>
     </div>
+  <% } else if (modalidadeAtiva.categoria === 'atletismo') { %>
+    <div class="sub-tabs-container" style="margin-top: 1.5rem;">
+      <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=geral" class="btn-sub-tab <%= subCategoriaAtiva === 'geral' ? 'active' : '' %>">Geral</a>
+      <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=corrida" class="btn-sub-tab <%= subCategoriaAtiva === 'corrida' ? 'active' : '' %>">Corrida</a>
+      <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=salto" class="btn-sub-tab <%= subCategoriaAtiva === 'salto' ? 'active' : '' %>">Salto</a>
+      <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=arremesso" class="btn-sub-tab <%= subCategoriaAtiva === 'arremesso' ? 'active' : '' %>">Arremesso</a>
+    </div>
   <% } %>
 
-  <div class="admin-actions-zone" style="margin-top: 1.5rem;">
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-      <div>
-        <h2 style="margin-bottom: 0.2rem;">Status do Chaveamento: <strong style="color: #fff;"><%= modalidadeAtiva.nome %> (<%= subCategoriaAtiva ? subCategoriaAtiva.toUpperCase() : 'GERAL' %>)</strong></h2>
-        <p class="item-subtext">Total de inscritos mapeados para esta categoria: <strong><%= inscritosPendentes.length %> itens</strong></p>
-      </div>
-      <div>
-        <% if (resumoDisponivel) { %>
-          <a class="btn btn-secondary" href="/admin/chaveamento/exportar">Exportar resumo para CSV</a>
-        <% } %>
-        <% if (inscricoesAbertas) { %>
-          <button class="btn btn-ghost" disabled title="Aguarde o encerramento das inscrições">Aguardando Fim das Inscrições</button>
-        <% } else if (chavesGeradas && chavesGeradas.length > 0) { %>
-          <form action="/admin/chaveamento/limpar" method="POST" style="display: inline-block;">
-            <input type="hidden" name="modalidadeId" value="<%= modalidadeAtiva.id %>">
-            <input type="hidden" name="subCategoria" value="<%= subCategoriaAtiva %>">
-            <button type="submit" class="btn btn-danger">Refazer Sorteio</button>
-          </form>
-        <% } else { %>
-          <form action="/admin/chaveamento/gerar" method="POST" style="display: inline-block;">
-            <input type="hidden" name="modalidadeId" value="<%= modalidadeAtiva.id %>">
-            <input type="hidden" name="subCategoria" value="<%= subCategoriaAtiva %>">
-            <button type="submit" class="btn btn-success">🎲 Realizar Sorteio Dinâmico</button>
-          </form>
-        <% } %>
-      </div>
+  <div class="admin-actions-zone" style="margin-top: 1rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; padding:0.7rem 0.8rem; border:1px solid rgba(255,255,255,0.08); border-radius:14px; background:rgba(255,255,255,0.03);">
+    <div class="mini-summary-line">
+      <span class="item-subtext">Inscritos mapeados: <strong><%= inscritosPendentes.length %></strong></span>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:0.6rem;">
+      <% if (inscricoesAbertas) { %>
+        <button class="btn btn-ghost" disabled title="Aguarde o encerramento das inscrições">Aguardando Fim das Inscrições</button>
+      <% } else if (chavesGeradas && chavesGeradas.length > 0) { %>
+        <form action="/admin/chaveamento/limpar" method="POST" style="display: inline-block;">
+          <input type="hidden" name="modalidadeId" value="<%= modalidadeAtiva.id %>">
+          <input type="hidden" name="subCategoria" value="<%= subCategoriaAtiva %>">
+          <button type="submit" class="btn btn-danger">Refazer Sorteio</button>
+        </form>
+      <% } else { %>
+        <form action="/admin/chaveamento/gerar" method="POST" style="display: inline-block;">
+          <input type="hidden" name="modalidadeId" value="<%= modalidadeAtiva.id %>">
+          <input type="hidden" name="subCategoria" value="<%= subCategoriaAtiva %>">
+          <button type="submit" class="btn btn-success">🎲 Realizar Sorteio Dinâmico</button>
+        </form>
+      <% } %>
     </div>
   </div>
 
-  <% if (resumoDisponivel) { %>
-    <section class="panel-card" style="margin-top:1.5rem;">
-      <div class="profile-header" style="justify-content:space-between; gap:1rem; flex-wrap:wrap;">
-        <div>
-          <h2>Resumo de Inscrições</h2>
-          <p class="panel-subtitle">Clique em um campus para ver os detalhes em página separada.</p>
-        </div>
-        <div>
-          <a class="btn btn-secondary" href="/admin/chaveamento/exportar">Exportar para planilha</a>
-        </div>
-      </div>
-
-      <% if (resumoInscricoes && resumoInscricoes.campi && resumoInscricoes.campi.length) { %>
-        <div class="resumo-campi-list compact">
-          <% resumoInscricoes.campi.forEach((campus) => { %>
-            <div class="resumo-campus-item-compact">
-              <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;">
-                <div>
-                  <strong><%= campus.nome %></strong>
-                  <div class="item-subtext" style="font-size:0.85rem;color:rgba(255,255,255,0.45);">
-                    <%= campus.modalidades.length %> modalidade(s) • <%= campus.modalidades.reduce((acc,m) => acc + (m.atletas ? m.atletas.length : 0), 0) %> atleta(s)
-                  </div>
-                </div>
-                <div>
-                  <a class="btn btn-ghost" href="/admin/chaveamento/campus/<%= campus.id %>">Ver detalhes</a>
-                </div>
-              </div>
-            </div>
-          <% }) %>
-        </div>
-      <% } else { %>
-        <p class="panel-subtitle">Nenhuma inscrição encontrada para exibir.</p>
-      <% } %>
-    </section>
-  <% } %>
-
   <div class="chaveamento-layout">
-    
-    <aside class="chaveamento-sidebar">
-      <h3 class="sidebar-title">
-        <%= modalidadeAtiva.categoria === 'atletismo' || subCategoriaAtiva === 'individual' || modalidadeAtiva.categoria === 'xadrez' ? 'Atletas Inscritos' : 'Campi Confirmados' %>
-      </h3>
-      <ul class="sidebar-list">
-        <% if (inscritosPendentes && inscritosPendentes.length > 0) { %>
-          <% inscritosPendentes.forEach((inscrito) => { %>
-            <li class="sidebar-item">
-              <% if (modalidadeAtiva.categoria === 'atletismo' || modalidadeAtiva.categoria === 'xadrez' || subCategoriaAtiva === 'individual') { %>
-                <strong><%= inscrito.nomeAtleta %></strong> <br>
-                <span class="item-subtext"><%= inscrito.nomeCampus %></span>
-              <% } else { %>
-                <strong><%= inscrito.nomeCampus %></strong>
-              <% } %>
-            </li>
-          <% }) %>
-        <% } else { %>
-          <li class="feedback-empty" style="padding: 1rem 0;">Nenhum registro encontrado.</li>
-        <% } %>
-      </ul>
-    </aside>
-
     <main class="chaveamento-content">
       
       <% if (modalidadeAtiva.categoria === 'atletismo') { %>
         <h2>Provas e Atletas Confirmados</h2>
-        <p class="panel-subtitle" style="margin-bottom: 1.5rem;">O atletismo lista os competidores por tipo de prova de campo ou pista.</p>
-        
-        <div class="chaves-container">
-          <% provasAtletismo.forEach((prova) => { %>
-            <div class="chave-card">
-              <div class="chave-title">🏃 <%= prova.nomeProva %></div>
-              <ul class="chave-equipes-list">
-                <% prova.atletas.forEach((atleta, index) => { %>
-                  <li class="chave-equipe-item">
-                    <span><span class="chave-equipe-pos">#<%= index + 1 %></span> <%= atleta.nome %></span>
-                    <span class="item-subtext"><%= atleta.campus %></span>
-                  </li>
-                <% }) %>
-                <% if(prova.atletas.length === 0) { %>
-                  <li class="feedback-empty">Sem atletas nesta prova.</li>
-                <% } %>
-              </ul>
+        <p class="panel-subtitle" style="margin-bottom: 1.5rem;">Escolha a categoria de prova para ver o agrupamento dos atletas abaixo.</p>
+
+        <div style="display:grid; grid-template-columns: 220px 1fr; gap:1rem; align-items:start; margin-bottom: 1.5rem;">
+          <div class="chave-card" style="padding: 1rem;">
+            <div class="chave-title" style="font-size: 0.95rem; margin-bottom: 0.75rem;">Categorias</div>
+            <div style="display:flex; flex-direction:column; gap:0.5rem;">
+              <% provasAtletismo.forEach((prova) => { %>
+                <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=<%= prova.slug %>" class="btn <%= prova.ativa ? 'btn-success' : 'btn-ghost' %>" style="justify-content:center; text-align:center;">
+                  <%= prova.nomeProva %>
+                </a>
+              <% }) %>
             </div>
-          <% }) %>
+          </div>
+
+          <% const provaAtivaAtual = provasAtletismo.find((prova) => prova.ativa) || provasAtletismo[0]; %>
+          <div class="chave-card">
+            <div class="chave-title">🏃 <%= provaAtivaAtual.nomeProva %></div>
+            <p class="panel-subtitle" style="margin: 0 0 1rem; font-size: 0.8rem;"><%= provaAtivaAtual.descricao %></p>
+
+            <% if (provaAtivaAtual.subprovas && provaAtivaAtual.subprovas.length) { %>
+              <div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom: 1rem;">
+                <% provaAtivaAtual.subprovas.forEach((subprova) => { %>
+                  <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=<%= provaAtivaAtual.slug %>&subProva=<%= subprova.slug %>" class="btn <%= (typeof subProvaAtiva !== 'undefined' && subProvaAtiva === subprova.slug) ? 'btn-success' : 'btn-ghost' %>" style="font-size:0.8rem; padding:0.45rem 0.7rem;">
+                    <%= subprova.nomeProva %>
+                  </a>
+                <% }) %>
+              </div>
+            <% } %>
+
+            <ul class="chave-equipes-list">
+              <% provaAtivaAtual.atletas.forEach((atleta, index) => { %>
+                <li class="chave-equipe-item">
+                  <span><span class="chave-equipe-pos">#<%= index + 1 %></span> <%= atleta.nomeAtleta || atleta.nome %></span>
+                  <span class="item-subtext"><%= atleta.nomeCampus || atleta.campus || 'Campus não informado' %></span>
+                </li>
+              <% }) %>
+              <% if(provaAtivaAtual.atletas.length === 0) { %>
+                <li class="feedback-empty">Sem atletas nesta prova.</li>
+              <% } %>
+            </ul>
+          </div>
         </div>
 
       <% } else if (modalidadeAtiva.categoria === 'xadrez') { %>
@@ -202,8 +176,8 @@
       <% } %>
 
       <% if (jogosProgramados && jogosProgramados.length > 0) { %>
-        <div style="margin-top: 3rem;">
-          <h2 style="margin-bottom: 1rem;">Confrontos Gerados automaticamente</h2>
+        <div style="margin-top: 2rem;">
+          <h2 style="margin-bottom: 0.75rem;">Confrontos</h2>
           <div class="game-grid">
             <% jogosProgramados.forEach((jogo) => { %>
               <article class="game-card">
@@ -226,7 +200,33 @@
         </div>
       <% } %>
 
+      <% if (resumoDisponivel) { %>
+        <section class="panel-card compact-summary-card" style="margin-top: 1.5rem; padding: 0.9rem 1rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; margin-bottom:0.75rem;">
+            <h3 style="margin:0; font-size: 1rem;">Campus</h3>
+            <a class="btn btn-secondary" style="padding:0.45rem 0.7rem; font-size:0.8rem;" href="/admin/chaveamento/exportar">CSV</a>
+          </div>
+          <% if (resumoInscricoes && resumoInscricoes.campi && resumoInscricoes.campi.length) { %>
+            <div class="resumo-campi-list compact">
+              <% resumoInscricoes.campi.forEach((campus) => { %>
+                <% const totalAtletasCampus = campus.modalidades.reduce((acc, modalidade) => acc + ((modalidade.atletas && modalidade.atletas.length) ? modalidade.atletas.length : 0), 0); %>
+                <div class="resumo-campus-item-compact">
+                  <div>
+                    <strong><%= campus.nome %></strong>
+                    <div class="item-subtext"><%= totalAtletasCampus %> atletas</div>
+                  </div>
+                  <a class="btn btn-ghost" href="/admin/chaveamento/campus/<%= campus.id %>">Detalhes</a>
+                </div>
+              <% }) %>
+            </div>
+          <% } else { %>
+            <p class="panel-subtitle" style="margin:0;">Nenhuma inscrição encontrada.</p>
+          <% } %>
+        </section>
+      <% } %>
+
     </main>
 
   </div>
+  <% } %>
 </section>

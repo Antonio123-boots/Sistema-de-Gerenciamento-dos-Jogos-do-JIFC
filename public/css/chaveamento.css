@@ -2,28 +2,14 @@
    A JUSTES E COMPONENTES ESPECÍFICOS PARA O CHAVEAMENTO (JIFC)
    ========================================================================== */
 
-/* Layout Principal com Sidebar no Painel Admin */
+/* Layout Principal simplificado */
 .chaveamento-layout {
-    display: table;
     width: 100%;
-    table-layout: fixed;
-    border-spacing: 1.5rem 0;
     margin-top: 1rem;
 }
 
-.chaveamento-sidebar {
-    display: table-cell;
-    width: 300px;
-    vertical-align: top;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 18px;
-    padding: 1.2rem;
-}
-
 .chaveamento-content {
-    display: table-cell;
-    vertical-align: top;
+    width: 100%;
 }
 
 /* Sub-abas (Usado no Tênis de Mesa: Individual x Duplas) */
@@ -67,9 +53,9 @@
 /* Grid de Chaves Acadêmicas */
 .chaves-container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 0.9rem;
+    margin-bottom: 1.2rem;
 }
 
 .chave-card {
@@ -79,8 +65,8 @@
     border-left: 1px solid rgba(255, 255, 255, 0.08);
     border-right: 1px solid rgba(255, 255, 255, 0.08);
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    padding: 1.2rem;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    padding: 1rem;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
 }
 
 .chave-title {
@@ -126,21 +112,77 @@
     font-size: 0.85rem;
 }
 
-/* Sidebar Listas */
-.sidebar-title {
-    font-size: 1rem;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.6);
-    letter-spacing: 0.5px;
-    margin-bottom: 0.8rem;
-    font-weight: 700;
+/* Menu premium de modalidades com imagem */
+.menu-modalidades.premium {
+    overflow-x: auto;
+    margin-bottom: 1rem;
 }
 
-.sidebar-list {
+.modalidades-list.compact.premium-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+    padding: 0;
+    margin: 0;
     list-style: none;
+}
+
+.modalidade-item.compact.premium-item a {
     display: flex;
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
     gap: 0.4rem;
+    padding: 0.8rem 0.65rem;
+    border-radius: 18px;
+    background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+    border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.92);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    min-height: 122px;
+    text-align: center;
+    box-shadow: 0 8px 22px rgba(0,0,0,0.16);
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.modalidade-item.compact.premium-item a:hover {
+    transform: translateY(-3px);
+    border-color: rgba(236, 228, 45, 0.35);
+    box-shadow: 0 14px 28px rgba(0,0,0,0.2);
+    background: linear-gradient(145deg, rgba(255,255,255,0.11), rgba(255,255,255,0.045));
+}
+
+.modalidade-item.compact.premium-item a img {
+    width: 54px;
+    height: 54px;
+    object-fit: contain;
+    filter: brightness(0) saturate(100%);
+}
+
+.sport-card-name {
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+.sport-card-gender {
+    font-size: 0.66rem;
+    color: rgba(255,255,255,0.72);
+    letter-spacing: 0.18em;
+}
+
+.modalidade-item.compact.premium-item a.active-sport,
+.modalidade-item.compact.premium-item a.premium-active {
+    background: linear-gradient(145deg, rgba(236, 228, 45, 0.36), rgba(11, 13, 28, 0.95));
+    border-color: rgba(236, 228, 45, 0.42);
+    color: #fff;
+    box-shadow: 0 16px 36px rgba(236, 228, 45, 0.24);
+}
+
+.modalidade-item.compact.premium-item a.active-sport img,
+.modalidade-item.compact.premium-item a.premium-active img {
+    filter: brightness(0) saturate(100%) invert(88%) sepia(35%) saturate(1200%) hue-rotate(5deg) brightness(105%) contrast(95%);
 }
 
 .resumo-campi-list {
@@ -151,25 +193,26 @@
 
 /* Compact list used on the resumo principal (links para página por campus) */
 .resumo-campi-list.compact {
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 0.85rem;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 0.75rem;
 }
 
 .resumo-campus-item-compact {
-    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
     border: 1px solid rgba(255,255,255,0.06);
-    padding: 0.8rem 1rem;
+    padding: 0.7rem 0.85rem;
     border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 0.75rem;
     transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
 }
 
 .resumo-campus-item-compact:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(255,122,89,0.08);
-    background: linear-gradient(180deg, rgba(255,122,89,0.04), rgba(255,255,255,0.02));
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(255,122,89,0.08);
+    background: linear-gradient(180deg, rgba(255,122,89,0.045), rgba(255,255,255,0.02));
 }
 
 .resumo-campus-item-compact .item-subtext {
@@ -180,11 +223,11 @@
 
 .resumo-campus-item-compact .btn-ghost {
     background: transparent;
-    border: 1px solid rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
     color: rgba(255,255,255,0.95);
-    padding: 0.45rem 0.75rem;
+    padding: 0.4rem 0.65rem;
     border-radius: 8px;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
 }
 
 /* Per-campus page improvements */

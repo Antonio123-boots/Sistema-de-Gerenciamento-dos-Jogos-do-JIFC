@@ -9,7 +9,9 @@ CREATE TABLE campus (
     nome VARCHAR(100) NOT NULL UNIQUE,
     cidade VARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
-    senha VARCHAR(255) NOT NULL, 
+    senha VARCHAR(255) NOT NULL,
+    foto_perfil VARCHAR(255) DEFAULT '/imagens/avatar.svg',
+    ativo BOOLEAN DEFAULT TRUE, -- Evita exclusão física e perda de histórico
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -21,37 +23,53 @@ CREATE TABLE administradores (
     nome VARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     senha VARCHAR(255) NOT NULL,
+    foto_perfil VARCHAR(255) DEFAULT '/imagens/avatar.svg',
+    ativo BOOLEAN DEFAULT TRUE, -- Permite desativar um administrador sem apagar dados
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- =========================================================================
--- 3. TABELA DE MODALIDADES (Melhorada com Gênero)
+-- 3. TABELA DE JUÍZES / ÁRBITROS
+-- =========================================================================
+CREATE TABLE juizes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    senha VARCHAR(255) NOT NULL,
+    foto_perfil VARCHAR(255) DEFAULT '/imagens/avatar.svg',
+    ativo BOOLEAN DEFAULT TRUE, -- Permite desativar um juiz sem quebrar histórico de jogos
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =========================================================================
+-- 4. TABELA DE MODALIDADES
 -- =========================================================================
 CREATE TABLE modalidades (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(100) NOT NULL,
-    genero ENUM('Masculino', 'Feminino', 'Misto') NOT NULL, -- Evita misturar categorias
+    genero ENUM('Masculino', 'Feminino', 'Misto') NOT NULL,
     tipo_confronto ENUM('Coletivo', 'Individual') NOT NULL, 
     formato_disputa ENUM('Grupos + Mata-Mata', 'Sistema Suico', 'Baterias por Tempo') NOT NULL,
-    UNIQUE KEY uq_modalidade_genero (nome, genero) -- Impede duplicar "Futsal Masculino" duas vezes
+    UNIQUE KEY uq_modalidade_genero (nome, genero)
 );
 
 -- =========================================================================
--- 4. TABELA DE ATLETAS
+-- 5. TABELA DE ATLETAS (Atualizada com CPF e RG)
 -- =========================================================================
 CREATE TABLE atletas (
     id INT AUTO_INCREMENT PRIMARY KEY,
     campus_id INT NOT NULL,
     nome VARCHAR(100) NOT NULL,
+    cpf CHAR(11) NOT NULL UNIQUE,          -- CPF obrigatório para segurança e seguro dos atletas 
     matricula VARCHAR(30) NOT NULL UNIQUE,
-    genero ENUM('Masculino', 'Feminino') NOT NULL,
+    genero ENUM('Masculino', 'Feminino') NOT NULL, -- Gênero biológico para as categorias correspondentes
     data_nascimento DATE NOT NULL,
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (campus_id) REFERENCES campus(id) ON DELETE CASCADE
 );
 
 -- =========================================================================
--- 5. TABELA INTERMEDIÁRIA: INSCRIÇÕES DE ATLETAS NAS MODALIDADES
+-- 6. TABELA INTERMEDIÁRIA: INSCRIÇÕES DE ATLETAS NAS MODALIDADES
 -- =========================================================================
 CREATE TABLE atleta_modalidade (
     atleta_id INT NOT NULL,
@@ -62,26 +80,22 @@ CREATE TABLE atleta_modalidade (
 );
 
 -- =========================================================================
--- 6. TABELA DE CHAVES (Grupos do torneio) - CORRIGIDA
+-- 7. TABELA DE CHAVES (Grupos do torneio)
 -- =========================================================================
 CREATE TABLE chaves (
     id INT AUTO_INCREMENT PRIMARY KEY,
     modalidade_id INT NOT NULL,
-    
-    -- Criamos uma coluna simples para você passar se é a chave 1, 2 ou 3 da modalidade
     numero_chave INT NOT NULL DEFAULT 1, 
     
-    -- Agora a coluna gerada aponta para 'numero_chave', o que é 100% permitido!
-    nome_chave CHAR(1) GENERATED ALWAYS AS (CHAR(numero_chave + 64 USING utf8mb4)) STORED, 
+    -- Geração automática da Letra do Grupo (1 -> A, 2 -> B, etc.) de forma determinística
+    nome_chave CHAR(1) GENERATED ALWAYS AS (CONVERT(CHAR(numero_chave + 64) USING utf8mb4)) STORED, 
     
     FOREIGN KEY (modalidade_id) REFERENCES modalidades(id) ON DELETE CASCADE,
-    
-    -- Garante que você não crie por acidente duas "Chaves A" na mesma modalidade
     UNIQUE KEY uq_modalidade_numero_chave (modalidade_id, numero_chave)
 );
 
 -- =========================================================================
--- 7. TABELA INTERMEDIÁRIA: MODALIDADES QUE O CAMPUS VAI PARTICIPAR
+-- 8. TABELA INTERMEDIÁRIA: MODALIDADES QUE O CAMPUS VAI PARTICIPAR
 -- =========================================================================
 CREATE TABLE campus_modalidade (
     campus_id INT NOT NULL,
@@ -94,11 +108,12 @@ CREATE TABLE campus_modalidade (
 );
 
 -- =========================================================================
--- 8. TABELA DE JOGOS / CONFRONTOS 
+-- 9. TABELA DE JOGOS / CONFRONTOS
 -- =========================================================================
 CREATE TABLE jogos (
     id INT AUTO_INCREMENT PRIMARY KEY,
     modalidade_id INT NOT NULL,
+    chave_id INT DEFAULT NULL, -- Facilitador direto para carregar a tabela daquele grupo específico
     fase ENUM('Fase de Grupos', 'Oitavas', 'Quartas', 'Semifinal', 'Final', 'Bateria Única', 'Eliminatória') NOT NULL, 
     
     -- Participantes Coletivos
@@ -113,31 +128,38 @@ CREATE TABLE jogos (
     local_jogo VARCHAR(100) NOT NULL,
     status ENUM('Agendado', 'Em Andamento', 'Encerrado', 'Cancelado') DEFAULT 'Agendado',
     
-    -- Vencedores (Estes podem manter o SET NULL tranquilamente, pois não estão no CHECK)
+    -- Vencedores
     vencedor_campus_id INT DEFAULT NULL,
     vencedor_atleta_id INT DEFAULT NULL,
     
-    -- Chaves Estrangeiras Corrigidas para CASCADE nos participantes ativos
     FOREIGN KEY (modalidade_id) REFERENCES modalidades(id) ON DELETE CASCADE,
+    FOREIGN KEY (chave_id) REFERENCES chaves(id) ON DELETE SET NULL,
     FOREIGN KEY (campus_1_id) REFERENCES campus(id) ON DELETE CASCADE,
     FOREIGN KEY (campus_2_id) REFERENCES campus(id) ON DELETE CASCADE,
     FOREIGN KEY (atleta_1_id) REFERENCES atletas(id) ON DELETE CASCADE,
     FOREIGN KEY (atleta_2_id) REFERENCES atletas(id) ON DELETE CASCADE,
     
-    -- Mantidos como SET NULL por segurança histórica dos vencedores
     FOREIGN KEY (vencedor_campus_id) REFERENCES campus(id) ON DELETE SET NULL,
     FOREIGN KEY (vencedor_atleta_id) REFERENCES atletas(id) ON DELETE SET NULL,
 
-    -- GARANTIA DE INTEGRIDADE (Agora funciona 100% no MySQL 8.0+)
+    -- GARANTIAS DE INTEGRIDADE (Garante coerência na escolha de equipes ou atletas)
     CONSTRAINT chk_tipo_confronto CHECK (
-        (campus_1_id IS NOT NULL AND atleta_1_id IS NULL) OR 
-        (atleta_1_id IS NOT NULL AND campus_1_id IS NULL) OR 
-        (campus_1_id IS NULL AND atleta_1_id IS NULL)
+        -- Cenário 1: Jogo Coletivo (Campi definidos, atletas nulos)
+        (campus_1_id IS NOT NULL AND campus_2_id IS NOT NULL AND atleta_1_id IS NULL AND atleta_2_id IS NULL) OR
+        -- Cenário 2: Jogo Individual (Atletas definidos, campi nulos)
+        (atleta_1_id IS NOT NULL AND atleta_2_id IS NOT NULL AND campus_1_id IS NULL AND campus_2_id IS NULL) OR
+        -- Cenário 3: Jogo indefinido (Gera o jogo vazio previamente para preencher conforme o torneio avança)
+        (campus_1_id IS NULL AND campus_2_id IS NULL AND atleta_1_id IS NULL AND atleta_2_id IS NULL)
+    ),
+    
+    -- Garante que um campus ou atleta nunca jogue contra si mesmo
+    CONSTRAINT chk_confronto_duplicado CHECK (
+        (campus_1_id <> campus_2_id) OR (atleta_1_id <> atleta_2_id)
     )
 );
 
 -- =========================================================================
--- 9. TABELA PARA ESPORTES COLETIVOS TRADICIONAIS
+-- 10. TABELA PARA ESPORTES COLETIVOS TRADICIONAIS
 -- =========================================================================
 CREATE TABLE resultados_coletivos (
     jogo_id INT PRIMARY KEY,
@@ -147,7 +169,7 @@ CREATE TABLE resultados_coletivos (
 );
 
 -- =========================================================================
--- 10. TABELA PARA ESPORTES POR SETS
+-- 11. TABELA PARA ESPORTES POR SETS
 -- =========================================================================
 CREATE TABLE resultados_por_sets (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -156,11 +178,11 @@ CREATE TABLE resultados_por_sets (
     pontos_1 INT NOT NULL DEFAULT 0, 
     pontos_2 INT NOT NULL DEFAULT 0, 
     FOREIGN KEY (jogo_id) REFERENCES jogos(id) ON DELETE CASCADE,
-    UNIQUE KEY uq_jogo_set (jogo_id, numero_set) -- Impede duplicar o "Set 1" para o mesmo jogo
+    UNIQUE KEY uq_jogo_set (jogo_id, numero_set)
 );
 
 -- =========================================================================
--- 11. TABELA PARA CORRIDAS / ATLETISMO / NATAÇÃO
+-- 12. TABELA PARA CORRIDAS / ATLETISMO / NATAÇÃO
 -- =========================================================================
 CREATE TABLE resultados_atletismo (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -174,7 +196,7 @@ CREATE TABLE resultados_atletismo (
 );
 
 -- =========================================================================
--- 12. CONFIGURAÇÕES DO EVENTO
+-- 13. CONFIGURAÇÕES DO EVENTO (Validação cronológica das etapas)
 -- =========================================================================
 CREATE TABLE configuracoes_evento (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -186,35 +208,33 @@ CREATE TABLE configuracoes_evento (
     inicio_sorteio_chaves DATE NOT NULL,
     fim_sorteio_chaves DATE NOT NULL,
     
-    -- Validação para garantir que as datas fazem sentido cronológico
-    CONSTRAINT chk_datas_modalidades CHECK (inicio_inscricao_modalidades <= fim_inscricao_modalidades),
-    CONSTRAINT chk_datas_atletas CHECK (inicio_inscricao_atletas <= fim_inscricao_atletas)
+    -- Garante que as etapas respeitem uma ordem de datas lógica no fluxo do evento
+    CONSTRAINT chk_fluxo_cronologico CHECK (
+        inicio_inscricao_modalidades <= fim_inscricao_modalidades AND
+        fim_inscricao_modalidades <= inicio_inscricao_atletas AND
+        inicio_inscricao_atletas <= fim_inscricao_atletas AND
+        fim_inscricao_atletas <= inicio_sorteio_chaves AND
+        inicio_sorteio_chaves <= fim_sorteio_chaves
+    )
 );
 
 -- =========================================================================
--- 13. TABELA DE CLASSIFICAÇÃO / PONTUAÇÃO GERAL (Fase de Grupos)
+-- 14. TABELA DE CLASSIFICAÇÃO / PONTUAÇÃO GERAL (Fase de Grupos)
 -- =========================================================================
 CREATE TABLE classificacao_grupos (
     id INT AUTO_INCREMENT PRIMARY KEY,
     modalidade_id INT NOT NULL,
     chave_id INT NOT NULL,
     
-    -- Participante: Pode ser um Campus (Coletivo) ou um Atleta (Individual)
     campus_id INT DEFAULT NULL,
     atleta_id INT DEFAULT NULL,
     
-    -- Histórico básico comum a modalidades de confronto direto (Grupos / Suíço)
     pontos INT DEFAULT 0,
     jogos_jogados INT DEFAULT 0,
     vitorias INT DEFAULT 0,
-    empates INT DEFAULT 0,       -- Fica zero em esportes sem empate (Vôlei, Basquete, Tênis de Mesa)
+    empates INT DEFAULT 0,       
     derrotas INT DEFAULT 0,
     
-    -- Estatísticas genéricas de pontuação (Aplica-se aos mais de 15 esportes):
-    -- No Futsal/Handebol: Gols feitos e Gols sofridos
-    -- No Vôlei/Tênis de Mesa: Sets ganhos e Sets perdidos
-    -- No Basquete: Pontos convertidos e Pontos sofridos
-    -- No Xadrez: Pontos de partida (1.0, 0.5, 0.0) acumulados aqui
     pontos_pro INT DEFAULT 0,
     pontos_contra INT DEFAULT 0,
     saldo_pontuacao INT GENERATED ALWAYS AS (pontos_pro - pontos_contra) STORED,
@@ -224,7 +244,6 @@ CREATE TABLE classificacao_grupos (
     FOREIGN KEY (campus_id) REFERENCES campus(id) ON DELETE CASCADE,
     FOREIGN KEY (atleta_id) REFERENCES atletas(id) ON DELETE CASCADE,
     
-    -- Restrições de Integridade (Mantendo o padrão do seu banco de dados)
     CONSTRAINT uq_participante_por_chave UNIQUE (chave_id, campus_id, atleta_id),
     
     CONSTRAINT chk_tipo_participante_classificacao CHECK (

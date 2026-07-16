@@ -83,6 +83,7 @@ async function cadastrarAtleta(cookie, atleta) {
   parts.push(`matricula=${encodeURIComponent(atleta.matricula)}`);
   parts.push(`genero=${encodeURIComponent(atleta.genero)}`);
   parts.push(`dataNascimento=${encodeURIComponent(atleta.dataNascimento)}`);
+  if (atleta.cpf) parts.push(`cpf=${encodeURIComponent(atleta.cpf)}`);
   (atleta.modalidades || []).forEach(m => parts.push(`modalidades=${encodeURIComponent(m)}`));
   const body = parts.join('&');
   const headers = {

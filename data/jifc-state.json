@@ -3,11 +3,11 @@
     "ano_evento": 2026,
     "inicio_evento": "2026-07-24",
     "fim_evento": "2026-07-26",
-    "inicio_inscricao_modalidades": "2026-07-02",
-    "fim_inscricao_modalidades": "2026-07-17",
-    "inicio_inscricao_atletas": "2026-07-02",
-    "fim_inscricao_atletas": "2026-07-17",
-    "inicio_sorteio_chaves": "2026-07-04",
+    "inicio_inscricao_modalidades": "2026-07-01",
+    "fim_inscricao_modalidades": "2026-07-10",
+    "inicio_inscricao_atletas": "2026-07-01",
+    "fim_inscricao_atletas": "2026-07-10",
+    "inicio_sorteio_chaves": "2026-07-11",
     "limite_atletas_total_campus": 15
   },
   "campus": {
@@ -120,6 +120,13 @@
         "Futsal Masculino",
         "Basquete Masculino",
         "Voleibol Masculino"
+      ],
+      "Campus Fraiburgo": [
+        "Atletismo Masculino",
+        "Atletismo Feminino",
+        "Futsal Masculino",
+        "Handebol Masculino",
+        "Vôlei de Praia Feminino"
       ]
     },
     "atletasCampus": [
@@ -341,20 +348,6 @@
         "status": "Regular"
       },
       {
-        "id": 1782090034832,
-        "nome": "Armando Mendes Neto",
-        "matricula": "19192323",
-        "modalidade": "Futsal Masculino, Tênis de Mesa Masculino, Voleibol Masculino",
-        "modalidades": [
-          "Futsal Masculino",
-          "Tênis de Mesa Masculino",
-          "Voleibol Masculino"
-        ],
-        "dataNascimento": "2009-04-04",
-        "campus": "IFC Sombrio",
-        "status": "Reprovado"
-      },
-      {
         "id": 1782092443817,
         "nome": "Valentina Roxo",
         "matricula": "2109987",
@@ -380,20 +373,6 @@
         "campus": "IFC Sombrio",
         "genero": "Feminino",
         "status": "Regular"
-      },
-      {
-        "id": 1782096699589,
-        "nome": "Felipe Duarte",
-        "matricula": "34343434",
-        "modalidade": "Atletismo Masculino, Tênis de Mesa Masculino",
-        "modalidades": [
-          "Atletismo Masculino",
-          "Tênis de Mesa Masculino"
-        ],
-        "dataNascimento": "2008-03-03",
-        "campus": "IFC Sombrio",
-        "genero": "Masculino",
-        "status": "Reprovado"
       },
       {
         "id": 1782096727872,
@@ -563,6 +542,60 @@
         "campus": "Campus Blumenau",
         "genero": "Feminino",
         "status": "Analise"
+      },
+      {
+        "id": 1783095093578,
+        "nome": "Antonio Gonçalves Stuart",
+        "matricula": "20202020",
+        "modalidade": "Atletismo Masculino",
+        "modalidades": [
+          "Atletismo Masculino"
+        ],
+        "dataNascimento": "2008-10-23",
+        "campus": "Campus Fraiburgo",
+        "genero": "Masculino",
+        "status": "Regular"
+      },
+      {
+        "id": 1784149523770,
+        "nome": "Teste Cpf",
+        "matricula": "20269999",
+        "modalidade": "Futsal Masculino",
+        "modalidades": [
+          "Futsal Masculino"
+        ],
+        "dataNascimento": "2008-01-01",
+        "campus": "IFC Blumenau",
+        "genero": "Masculino",
+        "status": "Analise"
+      },
+      {
+        "id": 1784149728649,
+        "nome": "Teste Cpf 2",
+        "matricula": "20269998",
+        "modalidade": "Futsal Masculino",
+        "modalidades": [
+          "Futsal Masculino"
+        ],
+        "dataNascimento": "2008-01-02",
+        "cpf": "22233344455",
+        "campus": "IFC Blumenau",
+        "genero": "Masculino",
+        "status": "Analise"
+      },
+      {
+        "id": 1784152136878,
+        "nome": "Teste Validacao",
+        "matricula": "20269997",
+        "modalidade": "Futsal Masculino",
+        "modalidades": [
+          "Futsal Masculino"
+        ],
+        "dataNascimento": "2008-01-03",
+        "cpf": "11122233344",
+        "campus": "IFC Blumenau",
+        "genero": "Masculino",
+        "status": "Regular"
       }
     ]
   },
@@ -579,5 +612,13 @@
         "banMotivo": ""
       }
     ]
+  },
+  "usuarios": {
+    "admin@ifc.edu.br": {
+      "fotoPerfil": "/uploads/perfil/perfil-1784162024468-1784162024468.webp"
+    },
+    "instituicao@ifc.edu.br": {
+      "fotoPerfil": "/uploads/perfil/perfil-1784145805094-1784145805096.jpg"
+    }
   }
 }

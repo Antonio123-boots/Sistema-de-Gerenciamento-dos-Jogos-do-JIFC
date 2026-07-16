@@ -102,7 +102,7 @@ a {
 }
 
 .login-btn {
-  color: #fff;
+  color: #fefefe;
   font-weight: 700;
 }
 
@@ -334,11 +334,10 @@ a {
 }
 
 .menu-modalidades {
-  background: rgba(236, 228, 45, 0.08);
-  backdrop-filter: blur(10px);
-  padding: 0.8rem 2rem;
-  border-bottom: 1px solid rgba(236, 228, 45, 0.2);
+  background: rgba(255, 255, 255, 0.02);
+  padding: 0.8rem 1rem;
   margin-top: 0.5rem;
+  border-radius: 12px;
 }
 
 .modalidades-container {
@@ -352,7 +351,7 @@ a {
   gap: 0.5rem;
   overflow-x: auto;
   scrollbar-width: thin;
-  padding: 0.5rem 0;
+  padding: 0.35rem 0;
 }
 
 .modalidades-list::-webkit-scrollbar {
@@ -360,7 +359,7 @@ a {
 }
 
 .modalidades-list::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .modalidades-list::-webkit-scrollbar-thumb {
@@ -379,31 +378,44 @@ a {
   align-items: center;
   justify-content: center;
   gap: 0.35rem;
-  padding: 0.8rem 1.2rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: transparent;
+  border: 1px solid transparent;
   color: #fff;
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  transition: all 0.3s ease;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.modalidade-item a img {
+  filter: brightness(0) invert(1);
+  transition: filter 1s ease;
 }
 
 .modalidade-item a:hover {
-  background: #ece42d;
-  color: #1c1d3b;
-  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ece42d;
+  transform: none;
+  box-shadow: none;
+}
+
+.modalidade-item a:hover img {
+  filter: brightness(0) saturate(100%) invert(88%) sepia(35%) saturate(1200%) hue-rotate(5deg) brightness(105%) contrast(95%);
 }
 
 .active-sport {
   background: rgba(236, 228, 45, 0.18) !important;
   color: #fff !important;
-  border: 1px solid rgba(236, 228, 45, 0.35);
+  border: 1px solid rgba(236, 228, 45, 0.35) !important;
 }
 
 .menu-dias {
   background: transparent;
-  padding: 1rem 2rem;
-  margin-top: 1rem;
+  padding: 0.5rem 0 0.75rem;
+  margin-top: 0.35rem;
 }
 
 .dias-container {
@@ -413,7 +425,9 @@ a {
 
 .dias-list {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .dia-item {
@@ -422,20 +436,24 @@ a {
 
 .dia-item a {
   display: inline-block;
-  padding: 0.5rem 1rem;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  padding: 0.55rem 1rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   color: #fff;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
 .dia-item a:hover {
-  background: rgba(236, 228, 45, 0.16);
-  color: #ece42d;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: none;
+  transform: none;
 }
 
 .search-box button {
