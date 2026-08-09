@@ -8,7 +8,7 @@
           <li class="modalidade-item">
             <a href="<%= isAdmin ? '/admin' : '' %>/chaveamento?modalidade=<%= mod.id %>" 
                class="<%= modalidadeAtiva.id === mod.id ? 'active-sport' : '' %>">
-              <span class="modalidade-icon"><%= mod.icone || '🏆' %></span>
+              <img src="<%= mod.icone && (mod.icone.startsWith('/') || mod.icone.startsWith('http')) ? mod.icone : (mod.imagem || '/imagens/atletismo1.svg') %>" alt="<%= mod.nome.replace('Masculino', '').trim() %>" style="width: 26px; height: 26px; object-fit: cover; border-radius: 50%; margin-right: 0.5rem;">
               <span><%= mod.nome.replace('Masculino', '').trim() %></span>
             </a>
           </li>
@@ -25,7 +25,7 @@
           <li class="modalidade-item">
             <a href="<%= isAdmin ? '/admin' : '' %>/chaveamento?modalidade=<%= mod.id %>" 
                class="<%= modalidadeAtiva.id === mod.id ? 'active-sport' : '' %>">
-              <span class="modalidade-icon"><%= mod.icone || '🏆' %></span>
+              <img src="<%= mod.icone && (mod.icone.startsWith('/') || mod.icone.startsWith('http')) ? mod.icone : (mod.imagem || '/imagens/atletismo1.svg') %>" alt="<%= mod.nome.replace('Feminino', '').trim() %>" style="width: 26px; height: 26px; object-fit: cover; border-radius: 50%; margin-right: 0.5rem;">
               <span><%= mod.nome.replace('Feminino', '').trim() %></span>
             </a>
           </li>

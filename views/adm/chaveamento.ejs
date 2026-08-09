@@ -27,8 +27,8 @@
       <ul class="modalidades-list compact premium-list">
         <% listaModalidadesCompleta.forEach((mod) => { %>
           <li class="modalidade-item compact premium-item">
-            <a href="/admin/chaveamento?modalidade=<%= mod.id %>" class="<%= modalidadeAtiva.id === mod.id ? 'active-sport premium-active' : '' %>">
-              <img src="<%= mod.imagem || '/imagens/atletismo1.svg' %>" alt="<%= mod.nome %>" onerror="this.src='/imagens/atletismo1.svg'">
+            <a href="/admin/chaveamento?modalidade=<%= mod.id %>#modalidade" class="<%= modalidadeAtiva.id === mod.id ? 'active-sport premium-active' : '' %>">
+              <img src="<%= mod.icone && (mod.icone.startsWith('/') || mod.icone.startsWith('http')) ? mod.icone : (mod.imagem || '/imagens/atletismo1.svg') %>" alt="<%= mod.nome %>" onerror="this.src='/imagens/atletismo1.svg'">
               <span class="sport-card-name"><%= mod.nome %></span>
               <span class="sport-card-gender"><%= String(mod.genero || '').toUpperCase() %></span>
             </a>
@@ -40,15 +40,15 @@
 
   <% if (modalidadeAtiva.categoria === 'tenis-de-mesa') { %>
     <div class="sub-tabs-container" style="margin-top: 1.5rem;">
-      <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=individual" class="btn-sub-tab <%= subCategoriaAtiva === 'individual' ? 'active' : '' %>">Individual</a>
-      <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=dupla" class="btn-sub-tab <%= subCategoriaAtiva === 'dupla' ? 'active' : '' %>">Em Dupla</a>
+      <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=individual#modalidade" class="btn-sub-tab <%= subCategoriaAtiva === 'individual' ? 'active' : '' %>">Individual</a>
+      <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=dupla#modalidade" class="btn-sub-tab <%= subCategoriaAtiva === 'dupla' ? 'active' : '' %>">Em Dupla</a>
     </div>
   <% } else if (modalidadeAtiva.categoria === 'atletismo') { %>
-    <div class="sub-tabs-container" style="margin-top: 1.5rem;">
-      <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=geral" class="btn-sub-tab <%= subCategoriaAtiva === 'geral' ? 'active' : '' %>">Geral</a>
-      <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=corrida" class="btn-sub-tab <%= subCategoriaAtiva === 'corrida' ? 'active' : '' %>">Corrida</a>
-      <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=salto" class="btn-sub-tab <%= subCategoriaAtiva === 'salto' ? 'active' : '' %>">Salto</a>
-      <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=arremesso" class="btn-sub-tab <%= subCategoriaAtiva === 'arremesso' ? 'active' : '' %>">Arremesso</a>
+    <div id="modalidade" class="sub-tabs-container" style="margin-top: 1.5rem;">
+      <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=geral#modalidade" class="btn-sub-tab <%= subCategoriaAtiva === 'geral' ? 'active' : '' %>">Geral</a>
+      <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=corrida#modalidade" class="btn-sub-tab <%= subCategoriaAtiva === 'corrida' ? 'active' : '' %>">Corrida</a>
+      <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=salto#modalidade" class="btn-sub-tab <%= subCategoriaAtiva === 'salto' ? 'active' : '' %>">Salto</a>
+      <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=arremesso#modalidade" class="btn-sub-tab <%= subCategoriaAtiva === 'arremesso' ? 'active' : '' %>">Arremesso</a>
     </div>
   <% } %>
 
@@ -65,6 +65,10 @@
           <input type="hidden" name="subCategoria" value="<%= subCategoriaAtiva %>">
           <button type="submit" class="btn btn-danger">Refazer Sorteio</button>
         </form>
+      <% } else if (!modalidadeSorteavel) { %>
+        <button class="btn btn-ghost" disabled title="Esta modalidade não possui sorteio automático">Sorteio automático indisponível</button>
+      <% } else if (!permitirGerarSorteio) { %>
+        <button class="btn btn-ghost" disabled title="Sorteio bloqueado até a data definida">Sorteio será liberado em breve</button>
       <% } else { %>
         <form action="/admin/chaveamento/gerar" method="POST" style="display: inline-block;">
           <input type="hidden" name="modalidadeId" value="<%= modalidadeAtiva.id %>">
@@ -72,8 +76,53 @@
           <button type="submit" class="btn btn-success">🎲 Realizar Sorteio Dinâmico</button>
         </form>
       <% } %>
+      <form id="cancel-draw-form" action="/admin/chaveamento/cancelar" method="POST" style="display: inline-block;">
+        <button type="submit" class="btn btn-danger">🗑️ Cancelar Sorteio</button>
+      </form>
+
+      <div id="cancel-draw-modal" class="confirm-modal-overlay" hidden>
+        <div class="confirm-modal-card" role="dialog" aria-modal="true" aria-labelledby="cancel-draw-title">
+          <div class="confirm-modal-icon">🗑️</div>
+          <h3 id="cancel-draw-title">Cancelar sorteio?</h3>
+          <p>Essa ação apagará todos os sorteios já gerados para os esportes com chaves, exceto Atletismo e Xadrez.</p>
+          <div class="confirm-modal-actions">
+            <button type="button" class="btn btn-ghost" data-modal-cancel>Cancelar</button>
+            <button type="button" class="btn btn-danger" data-modal-confirm>Confirmar</button>
+          </div>
+        </div>
+      </div>
+
+      <script>
+        (function () {
+          const form = document.getElementById('cancel-draw-form');
+          const modal = document.getElementById('cancel-draw-modal');
+          if (!form || !modal) return;
+
+          form.addEventListener('submit', function (event) {
+            event.preventDefault();
+            modal.hidden = false;
+            modal.classList.add('active');
+          });
+
+          modal.querySelector('[data-modal-cancel]')?.addEventListener('click', function () {
+            modal.hidden = true;
+            modal.classList.remove('active');
+          });
+
+          modal.querySelector('[data-modal-confirm]')?.addEventListener('click', function () {
+            form.submit();
+          });
+        })();
+      </script>
     </div>
   </div>
+  <% if (!inscricoesAbertas && !permitirGerarSorteio) { %>
+    <section class="panel-card" style="margin-top:1rem; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03);">
+      <div class="welcome-card" style="padding:1rem; background:transparent; border:none;">
+        <p class="panel-subtitle">O painel de chaveamento exibe as inscrições, mas o sorteio só estará liberado a partir de <strong><%= inicioSorteio || 'após o fim das inscrições' %></strong>.</p>
+      </div>
+    </section>
+  <% } %>
 
   <div class="chaveamento-layout">
     <main class="chaveamento-content">
@@ -87,7 +136,7 @@
             <div class="chave-title" style="font-size: 0.95rem; margin-bottom: 0.75rem;">Categorias</div>
             <div style="display:flex; flex-direction:column; gap:0.5rem;">
               <% provasAtletismo.forEach((prova) => { %>
-                <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=<%= prova.slug %>" class="btn <%= prova.ativa ? 'btn-success' : 'btn-ghost' %>" style="justify-content:center; text-align:center;">
+                <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=<%= prova.slug %>#modalidade" class="btn <%= prova.ativa ? 'btn-success' : 'btn-ghost' %>" style="justify-content:center; text-align:center;">
                   <%= prova.nomeProva %>
                 </a>
               <% }) %>
@@ -102,7 +151,7 @@
             <% if (provaAtivaAtual.subprovas && provaAtivaAtual.subprovas.length) { %>
               <div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom: 1rem;">
                 <% provaAtivaAtual.subprovas.forEach((subprova) => { %>
-                  <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=<%= provaAtivaAtual.slug %>&subProva=<%= subprova.slug %>" class="btn <%= (typeof subProvaAtiva !== 'undefined' && subProvaAtiva === subprova.slug) ? 'btn-success' : 'btn-ghost' %>" style="font-size:0.8rem; padding:0.45rem 0.7rem;">
+                  <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=<%= provaAtivaAtual.slug %>&subProva=<%= subprova.slug %>#modalidade" class="btn <%= (typeof subProvaAtiva !== 'undefined' && subProvaAtiva === subprova.slug) ? 'btn-success' : 'btn-ghost' %>" style="font-size:0.8rem; padding:0.45rem 0.7rem;">
                     <%= subprova.nomeProva %>
                   </a>
                 <% }) %>
@@ -147,7 +196,7 @@
           <div class="chaves-container">
             <% chavesGeradas.forEach((chave) => { %>
               <div class="chave-card">
-                <div class="chave-title">Grupo <%= chave.letra %></div>
+                <div class="chave-title">Chave <%= chave.letra %></div>
                 <ul class="chave-equipes-list">
                   <% chave.integrantes.forEach((equipe, idx) => { %>
                     <li class="chave-equipe-item">
@@ -166,6 +215,30 @@
               </div>
             <% }) %>
           </div>
+        <% } else if (inscritosPendentes && inscritosPendentes.length > 0) { %>
+          <div class="welcome-card" style="padding: 2rem;">
+            <h3 style="margin: 0 0 1rem;">Inscrições Confirmadas</h3>
+            <% if (isIndividualModalidade) { %>
+              <p style="margin-bottom: 1rem; color: rgba(255,255,255,0.7);">Atletas já inscritos nesta modalidade estão disponíveis para análise. O sorteio será gerado na data agendada.</p>
+            <% } else { %>
+              <p style="margin-bottom: 1rem; color: rgba(255,255,255,0.7);">Campi já inscritos nesta modalidade estão disponíveis para análise. O sorteio será gerado na data agendada.</p>
+            <% } %>
+            <ul class="chave-equipes-list">
+              <% inscritosPendentes.forEach((inscrito, idx) => { %>
+                <li class="chave-equipe-item">
+                  <div>
+                    <span class="chave-equipe-pos"><%= idx + 1 %></span>
+                    <% if (isIndividualModalidade) { %>
+                      <span><%= inscrito.nomeAtleta || inscrito.nome || 'Atleta não identificado' %></span>
+                      <span class="item-subtext"><%= inscrito.nomeCampus || inscrito.campus || 'Campus não informado' %></span>
+                    <% } else { %>
+                      <span><%= inscrito.nomeCampus || inscrito.nome || 'Campus não identificado' %></span>
+                    <% } %>
+                  </div>
+                </li>
+              <% }) %>
+            </ul>
+          </div>
         <% } else { %>
           <div class="welcome-card" style="padding: 2rem;">
             <p>O chaveamento desta categoria ainda não foi gerado pelo sistema.</p>
@@ -175,29 +248,136 @@
 
       <% } %>
 
-      <% if (jogosProgramados && jogosProgramados.length > 0) { %>
-        <div style="margin-top: 2rem;">
-          <h2 style="margin-bottom: 0.75rem;">Confrontos</h2>
-          <div class="game-grid">
-            <% jogosProgramados.forEach((jogo) => { %>
-              <article class="game-card">
-                <p class="game-time"><%= jogo.data %> · <%= jogo.horario %></p>
-                <h3>
-                  <%= jogo.tipoIndividual ? jogo.atletaCasa : jogo.casa %> 
-                  x 
-                  <%= jogo.tipoIndividual ? jogo.atletaFora : jogo.fora %>
-                </h3>
-                <p class="game-result" style="font-size: 0.85rem;">Fase: <%= jogo.fase %></p>
-                <p class="game-result">Placar: <strong style="color: #ece42d;"><%= jogo.placar || 'vs' %></strong></p>
-                <span class="status-pill"><%= jogo.status %></span>
-                
-                <div class="profile-actions" style="margin-top: 1rem;">
-                  <a class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.5rem;" href="/admin/jogos/placar/<%= jogo.id %>">Atualizar Resultado</a>
+      <% if (rodadasJogos && rodadasJogos.length > 0) { %>
+        <div class="match-carousel-wrapper" id="match-carousel-<%= modalidadeAtiva.id %>" style="margin-top: 2rem;">
+          <div class="match-carousel-header">
+            <div>
+              <h2 style="margin-bottom: 0.25rem;">Confrontos por rodada</h2>
+              <p class="panel-subtitle" style="margin: 0;">Acesse as rodadas disponíveis para organizar os confrontos e atualizar data, horário, local e status.</p>
+            </div>
+            <div class="match-carousel-controls">
+              <div class="carousel-dots" style="margin:0; display:flex; gap:0.5rem; flex-wrap:wrap;">
+                <% rodadasJogos.forEach((rodada, index) => { %>
+                  <button type="button" class="carousel-dot <%= index === 0 ? 'active' : '' %>" data-slide-index="<%= index %>" aria-label="Ir para <%= rodada.label %>" style="width:auto; min-width:100px; min-height:44px; padding:0.65rem 0.9rem; border-radius:999px; font-weight:700; background: <%= index === 0 ? 'linear-gradient(135deg, #ece42d, #f7e85a)' : 'rgba(255,255,255,0.08)' %>; color: <%= index === 0 ? '#10131d' : '#fff' %>; border: 1px solid <%= index === 0 ? 'rgba(236,228,45,0.45)' : 'rgba(255,255,255,0.12)' %>; box-shadow: <%= index === 0 ? '0 10px 24px rgba(236,228,45,0.2)' : 'none' %>; transition: all 180ms ease;"><%= rodada.label %> (<%= rodada.jogos.length %>)</button>
+                <% }) %>
+              </div>
+            </div>
+          </div>
+
+          <div class="match-carousel">
+            <% rodadasJogos.forEach((rodada, index) => { %>
+              <section class="match-slide <%= index === 0 ? 'active' : '' %>" data-slide-index="<%= index %>">
+                <div class="round-badge"><%= rodada.label %></div>
+                <div class="game-grid">
+                  <% rodada.jogos.forEach((jogo) => { %>
+                    <article class="game-card">
+                      <p class="game-time"><%= jogo.data %> · <%= jogo.horario %></p>
+                      <h3>
+                        <%= jogo.tipoIndividual ? jogo.atletaCasa : jogo.casa %>
+                        x
+                        <%= jogo.tipoIndividual ? jogo.atletaFora : jogo.fora %>
+                      </h3>
+                      <p class="game-result" style="font-size: 0.85rem;">Chave: <%= typeof jogo.chaveLabel !== 'undefined' && jogo.chaveLabel ? jogo.chaveLabel : (jogo.chave_id || '—') %> · Fase: <%= jogo.fase %></p>
+                      <p class="game-result">Placar: <strong style="color: #ece42d;"><%= jogo.placar || 'vs' %></strong></p>
+                      <span class="status-pill"><%= jogo.status %></span>
+
+                      <form action="/admin/chaveamento/jogo/<%= jogo.id %>/salvar" method="POST" style="margin-top: 1rem; display:grid; gap:0.6rem;">
+                        <label style="display:grid; gap:0.25rem; font-size:0.8rem;">
+                          <span>Data</span>
+                          <% if (Array.isArray(datasEventoDisponiveis) && datasEventoDisponiveis.length) { %>
+                            <select name="dataJogo" style="padding:0.45rem 0.6rem; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.04); color:#fff;">
+                              <option value="" <%= !jogo.dataInput ? 'selected' : '' %>>Selecionar data</option>
+                              <% datasEventoDisponiveis.forEach((data) => { %>
+                                <option value="<%= data %>" <%= jogo.dataInput === data ? 'selected' : '' %>><%= data.split('-').reverse().join('/') %></option>
+                              <% }) %>
+                            </select>
+                          <% } else { %>
+                            <input type="date" name="dataJogo" value="<%= jogo.dataInput || '' %>" style="padding:0.45rem 0.6rem; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.04); color:#fff;">
+                          <% } %>
+                        </label>
+                        <label style="display:grid; gap:0.25rem; font-size:0.8rem;">
+                          <span>Horário</span>
+                          <input type="time" name="horarioJogo" value="<%= jogo.horarioInput || '' %>" style="padding:0.45rem 0.6rem; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.04); color:#fff;">
+                        </label>
+                        <label style="display:grid; gap:0.25rem; font-size:0.8rem;">
+                          <span>Local</span>
+                          <input type="text" name="localJogo" value="<%= jogo.localJogo || 'A definir' %>" style="padding:0.45rem 0.6rem; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.04); color:#fff;">
+                        </label>
+                        <label style="display:grid; gap:0.25rem; font-size:0.8rem;">
+                          <span>Status</span>
+                          <select name="status" style="padding:0.45rem 0.6rem; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.04); color:#fff;">
+                            <option value="Agendado" <%= jogo.status === 'Agendado' ? 'selected' : '' %>>Agendado</option>
+                            <option value="Em Andamento" <%= jogo.status === 'Em Andamento' ? 'selected' : '' %>>Em Andamento</option>
+                            <option value="Encerrado" <%= jogo.status === 'Encerrado' ? 'selected' : '' %>>Encerrado</option>
+                          </select>
+                        </label>
+                        <button class="btn btn-secondary" type="submit" style="font-size:0.8rem; padding:0.5rem;">Salvar confronto</button>
+                      </form>
+                    </article>
+                  <% }) %>
                 </div>
-              </article>
+              </section>
             <% }) %>
           </div>
+
+          <% if (rodadasJogos.length > 1) { %>
+            <div class="carousel-dots" style="margin-top: 1rem; display:flex; gap:0.5rem; flex-wrap:wrap; justify-content:center;">
+              <% rodadasJogos.forEach((rodada, index) => { %>
+                <button type="button" class="carousel-dot <%= index === 0 ? 'active' : '' %>" data-slide-index="<%= index %>" aria-label="Ir para <%= rodada.label %>" style="width:auto; min-width:100px; min-height:44px; padding:0.65rem 0.9rem; border-radius:999px; font-weight:700; background: <%= index === 0 ? 'linear-gradient(135deg, #ece42d, #f7e85a)' : 'rgba(255,255,255,0.08)' %>; color: <%= index === 0 ? '#10131d' : '#fff' %>; border: 1px solid <%= index === 0 ? 'rgba(236,228,45,0.45)' : 'rgba(255,255,255,0.12)' %>; box-shadow: <%= index === 0 ? '0 10px 24px rgba(236,228,45,0.2)' : 'none' %>; transition: all 180ms ease;"><%= rodada.label %></button>
+              <% }) %>
+            </div>
+          <% } %>
         </div>
+
+        <script>
+          (function () {
+            const wrapper = document.getElementById('match-carousel-<%= modalidadeAtiva.id %>');
+            if (!wrapper) return;
+
+            const slides = Array.from(wrapper.querySelectorAll('.match-slide'));
+            const dots = Array.from(wrapper.querySelectorAll('.carousel-dot'));
+            const counter = wrapper.querySelector('.carousel-counter');
+            const navButtons = Array.from(wrapper.querySelectorAll('.carousel-nav'));
+            let activeIndex = 0;
+
+            function mostrarSlide(index) {
+              activeIndex = (index + slides.length) % slides.length;
+              slides.forEach((slide, slideIndex) => {
+                slide.classList.toggle('active', slideIndex === activeIndex);
+              });
+              dots.forEach((dot, dotIndex) => {
+                const isActive = dotIndex === activeIndex;
+                dot.classList.toggle('active', isActive);
+                dot.style.background = isActive
+                  ? 'linear-gradient(135deg, #ece42d, #f7e85a)'
+                  : 'rgba(255,255,255,0.08)';
+                dot.style.color = isActive ? '#10131d' : '#fff';
+                dot.style.borderColor = isActive ? 'rgba(236,228,45,0.45)' : 'rgba(255,255,255,0.12)';
+                dot.style.boxShadow = isActive ? '0 10px 24px rgba(236,228,45,0.2)' : 'none';
+              });
+              if (counter) {
+                counter.textContent = `${activeIndex + 1} / ${slides.length}`;
+              }
+            }
+
+            navButtons.forEach((button) => {
+              button.addEventListener('click', () => {
+                const direction = Number(button.dataset.direction || 1);
+                mostrarSlide(activeIndex + direction);
+              });
+            });
+
+            dots.forEach((dot) => {
+              dot.addEventListener('click', () => {
+                mostrarSlide(Number(dot.dataset.slideIndex || 0));
+              });
+            });
+
+            if (slides.length > 1) {
+              // A navegação só avança quando o usuário clica em uma rodada.
+            }
+          })();
+        </script>
       <% } %>
 
       <% if (resumoDisponivel) { %>

@@ -34,19 +34,66 @@
         <p class="institution-meta"><%= emailExibicao %></p>
 
         <% if (!publicMode && isLoggedIn) { %>
-          <form action="/perfil/foto" method="POST" class="profile-photo-form" id="profilePhotoForm">
-            <div class="profile-photo-controls">
-              <label class="premium-input-wrapper profile-photo-input-row">
-                <span class="field-label-text">Foto de perfil</span>
-                <div class="profile-photo-picker" style="display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center;">
-                  <input type="file" id="fotoPerfilInput" accept="image/*" class="hidden-input-state">
-                  <label for="fotoPerfilInput" class="premium-upload-btn">Escolher foto</label>
-                  <button type="button" id="removerFotoBtn" class="premium-upload-btn" style="background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.16);">Remover foto</button>
-                </div>
-              </label>
-              <input type="hidden" name="fotoPerfil" id="fotoPerfilValue" value="<%= fotoPerfil %>">
+          <% if (viewer.tipo) { %>
+            <% if (typeof mensagemErro !== 'undefined' && mensagemErro) { %>
+              <div style="background: rgba(255, 77, 77, 0.1); border: 1px solid #ff4d4d; color: #ff4d4d; padding: 0.8rem 0.9rem; border-radius: 10px; margin: 0.8rem 0 1rem; font-weight: 600;">
+                <%= mensagemErro %>
+              </div>
+            <% } %>
+            <% if (typeof mensagemSucesso !== 'undefined' && mensagemSucesso) { %>
+              <div style="background: rgba(0, 255, 136, 0.1); border: 1px solid #00ff88; color: #00ff88; padding: 0.8rem 0.9rem; border-radius: 10px; margin: 0.8rem 0 1rem; font-weight: 600;">
+                <%= mensagemSucesso %>
+              </div>
+            <% } %>
+            <div style="display:flex; flex-wrap:wrap; gap:0.75rem; margin: 0 0 1rem;">
+              <button type="button" class="premium-upload-btn" onclick="document.getElementById('editProfilePanel').style.display = document.getElementById('editProfilePanel').style.display === 'none' ? 'block' : 'none'">Editar perfil</button>
             </div>
-          </form>
+            <div id="editProfilePanel" style="display:none; margin-bottom:1rem; padding:1rem; border-radius:14px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);">
+              <form action="/perfil/editar" method="POST" class="profile-photo-form">
+                <div class="management-fields-row split-2" style="margin-bottom:0.8rem;">
+                  <label class="premium-input-wrapper">
+                    <span class="field-label-text">Nome completo</span>
+                    <input type="text" name="nome" class="premium-text-input" value="<%= campusVisual && campusVisual.nome ? campusVisual.nome : '' %>">
+                  </label>
+                  <label class="premium-input-wrapper">
+                    <span class="field-label-text">Nome de exibição</span>
+                    <input type="text" name="nomeExibicao" class="premium-text-input" value="<%= campusVisual && campusVisual.nomeExibicao ? campusVisual.nomeExibicao : '' %>">
+                  </label>
+                </div>
+                <div class="management-fields-row split-2" style="margin-bottom:0.8rem;">
+                  <label class="premium-input-wrapper">
+                    <span class="field-label-text">E-mail</span>
+                    <input type="email" name="email" class="premium-text-input" value="<%= campusVisual && campusVisual.email ? campusVisual.email : '' %>">
+                  </label>
+                  <label class="premium-input-wrapper">
+                    <span class="field-label-text">Senha</span>
+                    <input type="password" name="senha" class="premium-text-input" placeholder="Deixe em branco para manter a atual">
+                  </label>
+                </div>
+                <div class="management-fields-row" style="margin-bottom:0.8rem;">
+                  <label class="premium-input-wrapper" style="width:100%;">
+                    <span class="field-label-text">Cidade</span>
+                    <input type="text" name="cidade" class="premium-text-input" value="<%= campusVisual && campusVisual.cidade ? campusVisual.cidade : '' %>">
+                  </label>
+                </div>
+                <input type="hidden" name="fotoPerfil" id="fotoPerfilValue" value="<%= fotoPerfil %>">
+                <div class="profile-photo-controls">
+                  <label class="premium-input-wrapper profile-photo-input-row">
+                    <span class="field-label-text">Foto de perfil</span>
+                    <div class="profile-photo-picker" style="display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center;">
+                      <input type="file" id="fotoPerfilInput" accept="image/*" class="hidden-input-state">
+                      <label for="fotoPerfilInput" class="premium-upload-btn">Escolher foto</label>
+                      <button type="button" id="removerFotoBtn" class="premium-upload-btn" style="background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.16);">Remover foto</button>
+                    </div>
+                  </label>
+                </div>
+                <div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-top:0.8rem;">
+                  <button type="submit" class="btn btn-primary">Salvar alterações</button>
+                  <button type="button" class="btn btn-secondary" onclick="document.getElementById('editProfilePanel').style.display='none'">Cancelar</button>
+                </div>
+              </form>
+            </div>
+          <% } %>
           <script>
             (() => {
               const fileInput = document.getElementById('fotoPerfilInput');

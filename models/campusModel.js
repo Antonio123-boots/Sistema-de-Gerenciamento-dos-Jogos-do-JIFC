@@ -1,4 +1,5 @@
 // Base de dados local em memória para modalidades e atletas dos campus.
+const db = require('../config/db');
 const { listarCampiSync } = require('./campiCatalog');
 const { readState, writeState } = require('./stateStore');
 
@@ -23,8 +24,229 @@ const inscricoesCampus = estadoInicialCampus.inscricoesCampus;
 
 const atletasCampus = estadoInicialCampus.atletasCampus;
 
+function normalizarCPFParaBanco(valor) {
+  return String(valor || '').replace(/\D/g, '').slice(0, 11);
+}
+
+function normalizarNomeModalidadeParaBanco(nome) {
+  return String(nome || '')
+    .trim()
+    .replace(/^Tênis$/i, 'Tênis de Mesa')
+    .trim();
+}
+
+function inferirGeneroModalidade(nome) {
+  const nomeNormalizado = String(nome || '').trim().toLowerCase();
+  if (nomeNormalizado.includes('feminino')) {
+    return 'Feminino';
+  }
+
+  if (nomeNormalizado.includes('masculino')) {
+    return 'Masculino';
+  }
+
+  return 'Misto';
+}
+
+function inferirTipoConfrontoModalidade(nome) {
+  const nomeNormalizado = String(nome || '').trim().toLowerCase();
+  if (/(atletismo|natação|natacao|corrida|salto|lançamento|lancamento|esgrima|xadrez|tênis de mesa|tenis de mesa)/i.test(nomeNormalizado)) {
+    return 'Individual';
+  }
+  return 'Coletivo';
+}
+
+function inferirFormatoDisputaModalidade(nome) {
+  const nomeNormalizado = String(nome || '').trim().toLowerCase();
+  if (/(atletismo|natação|natacao|corrida|salto|lançamento|lancamento|esgrima|xadrez|tênis de mesa|tenis de mesa)/i.test(nomeNormalizado)) {
+    return 'Baterias por Tempo';
+  }
+  return 'Grupos + Mata-Mata';
+}
+
+async function buscarCampusIdNoBanco(campusNome) {
+  const nome = String(campusNome || '').trim();
+  if (!nome) {
+    return null;
+  }
+
+  try {
+    const [linhas] = await db.query(
+      'SELECT id FROM campus WHERE nome = ? OR nome_exibicao = ? OR slug = ? LIMIT 1',
+      [nome, nome, gerarSlug(nome)]
+    );
+    return linhas[0]?.id || null;
+  } catch (error) {
+    console.error('Erro ao localizar campus no banco:', error);
+    return null;
+  }
+}
+
+async function garantirCampusNoBanco(campusNome) {
+  const campusId = await buscarCampusIdNoBanco(campusNome);
+  if (campusId) {
+    return campusId;
+  }
+
+  const nome = String(campusNome || '').trim();
+  if (!nome) {
+    return null;
+  }
+
+  try {
+    const slug = gerarSlug(nome);
+    const [resultado] = await db.query(
+      'INSERT INTO campus (nome, nome_exibicao, cidade, email, senha, slug, cor, foto_perfil, banned, ban_motivo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [nome, nome, nome, `${slug}@ifc.edu.br`, 'jifc2026', slug, '#2980b9', '/imagens/avatar.svg', 0, '']
+    );
+    return resultado.insertId;
+  } catch (error) {
+    console.error('Erro ao criar campus no banco:', error);
+    return null;
+  }
+}
+
+async function garantirModalidadeNoBanco(nomeModalidade) {
+  const nome = normalizarNomeModalidadeParaBanco(nomeModalidade);
+  if (!nome) {
+    return null;
+  }
+
+  const nomeBase = nome.replace(/\s+(Masculino|Feminino)$/i, '').trim();
+  const genero = inferirGeneroModalidade(nome);
+  const tipoConfronto = inferirTipoConfrontoModalidade(nome);
+  const formatoDisputa = inferirFormatoDisputaModalidade(nome);
+
+  try {
+    const [linhas] = await db.query(
+      'SELECT id FROM modalidades WHERE (nome = ? OR nome = ?) AND genero = ? LIMIT 1',
+      [nome, nomeBase, genero]
+    );
+
+    if (linhas[0]?.id) {
+      return linhas[0].id;
+    }
+
+    const [resultado] = await db.query(
+      'INSERT INTO modalidades (nome, genero, tipo_confronto, formato_disputa) VALUES (?, ?, ?, ?)',
+      [nome, genero, tipoConfronto, formatoDisputa]
+    );
+
+    return resultado.insertId;
+  } catch (error) {
+    console.error('Erro ao garantir modalidade no banco:', error);
+    return null;
+  }
+}
+
+async function sincronizarLinksCampusModalidade(campusId, modalidades) {
+  if (!campusId) {
+    return;
+  }
+
+  const modalidadesSelecionadas = normalizarInscricoesCampus(modalidades);
+  const modalidadeIds = [];
+
+  for (const modalidade of modalidadesSelecionadas) {
+    const modalidadeId = await garantirModalidadeNoBanco(modalidade);
+    if (modalidadeId) {
+      modalidadeIds.push(modalidadeId);
+    }
+  }
+
+  const idsUnicos = [...new Set(modalidadeIds)];
+  await db.query('DELETE FROM campus_modalidade WHERE campus_id = ?', [campusId]);
+
+  for (const modalidadeId of idsUnicos) {
+    await db.query('INSERT INTO campus_modalidade (campus_id, modalidade_id) VALUES (?, ?)', [campusId, modalidadeId]);
+  }
+}
+
+async function sincronizarAtletaNoBanco(campusId, atletaDados, modalidadesSelecionadas = []) {
+  if (!campusId) {
+    return null;
+  }
+
+  const nome = String(atletaDados?.nome || '').trim();
+  const matricula = normalizarMatricula(atletaDados?.matricula);
+  const cpf = normalizarCPFParaBanco(atletaDados?.cpf);
+  const genero = normalizarGenero(atletaDados?.genero) || 'Masculino';
+  const dataNascimento = String(atletaDados?.dataNascimento || '').trim();
+  const modalidades = normalizarModalidades(modalidadesSelecionadas);
+  const modalidadeIds = [];
+
+  for (const modalidade of modalidades) {
+    const modalidadeId = await garantirModalidadeNoBanco(modalidade);
+    if (modalidadeId) {
+      modalidadeIds.push(modalidadeId);
+    }
+  }
+
+  const [existente] = await db.query('SELECT id FROM atletas WHERE campus_id = ? AND matricula = ? LIMIT 1', [campusId, matricula]);
+  let atletaId = existente?.[0]?.id || null;
+
+  if (atletaId) {
+    await db.query(
+      'UPDATE atletas SET nome = ?, cpf = ?, genero = ?, data_nascimento = ? WHERE id = ?',
+      [nome, cpf, genero, dataNascimento, atletaId]
+    );
+  } else {
+    const [resultado] = await db.query(
+      'INSERT INTO atletas (campus_id, nome, cpf, matricula, genero, data_nascimento) VALUES (?, ?, ?, ?, ?, ?)',
+      [campusId, nome, cpf, matricula, genero, dataNascimento]
+    );
+    atletaId = resultado.insertId;
+  }
+
+  await db.query('DELETE FROM atleta_modalidade WHERE atleta_id = ?', [atletaId]);
+  for (const modalidadeId of [...new Set(modalidadeIds)]) {
+    await db.query('INSERT INTO atleta_modalidade (atleta_id, modalidade_id) VALUES (?, ?)', [atletaId, modalidadeId]);
+  }
+
+  return atletaId;
+}
+
 function normalizarMatricula(matricula) {
-  return String(matricula || '').trim();
+  return String(matricula || '')
+    .trim()
+    .replace(/\D/g, '')
+    .slice(0, 12);
+}
+
+function formatarCPF(valor) {
+  const apenasDigitos = String(valor || '')
+    .replace(/\D/g, '')
+    .slice(0, 11);
+
+  if (apenasDigitos.length <= 3) {
+    return apenasDigitos;
+  }
+
+  if (apenasDigitos.length <= 6) {
+    return `${apenasDigitos.slice(0, 3)}.${apenasDigitos.slice(3)}`;
+  }
+
+  if (apenasDigitos.length <= 9) {
+    return `${apenasDigitos.slice(0, 3)}.${apenasDigitos.slice(3, 6)}.${apenasDigitos.slice(6)}`;
+  }
+
+  return `${apenasDigitos.slice(0, 3)}.${apenasDigitos.slice(3, 6)}.${apenasDigitos.slice(6, 9)}-${apenasDigitos.slice(9, 11)}`;
+}
+
+function normalizarCPF(cpf) {
+  return formatarCPF(cpf);
+}
+
+function validarMatricula(matricula) {
+  const valor = normalizarMatricula(matricula);
+
+  if (!/^\d{9,12}$/.test(valor)) {
+    const erro = new Error('A matrícula deve conter entre 9 e 12 dígitos.');
+    erro.code = 'MATRICULA_INVALIDA';
+    throw erro;
+  }
+
+  return valor;
 }
 
 function validarNomeCompleto(nome) {
@@ -81,6 +303,46 @@ function normalizarModalidades(valor) {
   return [...new Set(modalidades)].slice(0, 3);
 }
 
+function normalizarListaDetalhes(valor) {
+  const lista = Array.isArray(valor) ? valor : [valor];
+  const detalhes = lista
+    .map((item) => String(item || '').trim())
+    .filter(Boolean);
+
+  return [...new Set(detalhes)];
+}
+
+function normalizarDetalhesAtleta(dados = {}) {
+  const modalidades = normalizarModalidades(dados.modalidades || dados.modalidade);
+  const temAtletismo = modalidades.some((modalidade) => /atletismo/i.test(modalidade));
+  const temTenisMesa = modalidades.some((modalidade) => /tênis de mesa|tenis de mesa/i.test(modalidade));
+
+  return {
+    atletismoProvas: temAtletismo ? normalizarListaDetalhes(dados.atletismoProvas || dados.provasAtletismo) : [],
+    tenisMesaParticipacoes: temTenisMesa ? normalizarListaDetalhes(dados.tenisMesaParticipacoes || dados.participacoesTenisMesa) : []
+  };
+}
+
+function validarDetalhesAtleta(dados, modalidadesSelecionadas = []) {
+  const detalhes = normalizarDetalhesAtleta(dados);
+  const temAtletismo = modalidadesSelecionadas.some((modalidade) => /atletismo/i.test(modalidade));
+  const temTenisMesa = modalidadesSelecionadas.some((modalidade) => /tênis de mesa|tenis de mesa/i.test(modalidade));
+
+  if (temAtletismo && detalhes.atletismoProvas.length === 0) {
+    const erro = new Error('Selecione pelo menos uma prova de atletismo.');
+    erro.code = 'PROVAS_ATLETISMO_OBRIGATORIAS';
+    throw erro;
+  }
+
+  if (temTenisMesa && detalhes.tenisMesaParticipacoes.length === 0) {
+    const erro = new Error('Selecione pelo menos uma participação para tênis de mesa.');
+    erro.code = 'PARTICIPACOES_TENIS_MESA_OBRIGATORIAS';
+    throw erro;
+  }
+
+  return detalhes;
+}
+
 function normalizarInscricoesCampus(valor) {
   const lista = Array.isArray(valor) ? valor : [valor];
   const modalidades = lista
@@ -105,12 +367,13 @@ function obterModalidadesSalvas(dados) {
 
 function validarCamposObrigatoriosAtleta(dados) {
   const nome = String(dados.nome || '').trim();
-  const matricula = String(dados.matricula || '').trim();
+  const matricula = validarMatricula(dados.matricula);
   const genero = normalizarGenero(dados.genero) || 'Masculino';
   const dataNascimento = String(dados.dataNascimento || '').trim();
-  const cpf = String(dados.cpf || '').trim();
+  const cpf = normalizarCPF(String(dados.cpf || '').trim());
   const status = 'Analise';
   const modalidades = obterModalidadesSalvas(dados);
+  const detalhesAtleta = normalizarDetalhesAtleta(dados);
 
   if (!nome || !matricula || !dataNascimento || !modalidades.length) {
     const erro = new Error('Preencha todos os campos antes de inscrever o atleta.');
@@ -118,7 +381,7 @@ function validarCamposObrigatoriosAtleta(dados) {
     throw erro;
   }
 
-  return { nome, matricula, genero, dataNascimento, cpf, status, modalidades };
+  return { nome, matricula, genero, dataNascimento, cpf, status, modalidades, ...detalhesAtleta };
 }
 
 function normalizarStatusExibicao(status) {
@@ -186,6 +449,47 @@ function persistirEstadoCampus() {
   writeState(estadoAtual);
 }
 
+function gerarSlug(texto) {
+  return String(texto || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[-]/g, (s) => s)
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+    .slice(0, 30);
+}
+
+function removerCampusDoEstado(campusAtual) {
+  const nomesCampus = [campusAtual?.nome, campusAtual?.nomeExibicao, campusAtual?.slug]
+    .filter((valor) => typeof valor === 'string' && valor.trim())
+    .map((valor) => valor.trim())
+    .filter((valor, index, lista) => lista.indexOf(valor) === index);
+
+  if (inscricoesCampus && typeof inscricoesCampus === 'object') {
+    for (const nomeCampus of nomesCampus) {
+      delete inscricoesCampus[nomeCampus];
+      delete inscricoesCampus[gerarSlug(nomeCampus)];
+    }
+  }
+
+  if (Array.isArray(atletasCampus)) {
+    const proximoEstado = atletasCampus.filter((atleta) => {
+      const campusNome = String(atleta?.campus || '').trim();
+      const campusSlug = String(atleta?.campusSlug || '').trim();
+      return (
+        campusNome !== String(campusAtual?.nome || '').trim() &&
+        campusNome !== String(campusAtual?.nomeExibicao || '').trim() &&
+        campusSlug !== String(campusAtual?.slug || '').trim()
+      );
+    });
+
+    atletasCampus.splice(0, atletasCampus.length, ...proximoEstado);
+  }
+
+  persistirEstadoCampus();
+}
+
 function determinarStatusAtleta(dados, excluirId = null, statusSolicitado = 'Regular', opcoes = {}) {
   const matriculaNormalizada = normalizarMatricula(dados.matricula);
   const statusBase = normalizarStatusSolicitado(statusSolicitado);
@@ -223,9 +527,16 @@ function getInscricoes(campusNome) {
 }
 
 // Salva a lista de modalidades escolhidas por um campus.
-function salvarInscricoes(campusNome, modalidades) {
-  inscricoesCampus[campusNome] = normalizarInscricoesCampus(modalidades);
+async function salvarInscricoes(campusNome, modalidades) {
+  const listaNormalizada = normalizarInscricoesCampus(modalidades);
+  inscricoesCampus[campusNome] = listaNormalizada;
   persistirEstadoCampus();
+
+  const campusId = await garantirCampusNoBanco(campusNome);
+  if (campusId) {
+    await sincronizarLinksCampusModalidade(campusId, listaNormalizada);
+  }
+
   return getInscricoes(campusNome);
 }
 
@@ -236,7 +547,9 @@ function getAtletas(campusNome) {
     modalidades: normalizarModalidades(item.modalidades || item.modalidade),
     modalidade: Array.isArray(item.modalidades) ? item.modalidades.join(', ') : item.modalidade,
     genero: item.genero || extrairGeneroPorModalidade(item.modalidades || item.modalidade),
-    status: normalizarStatusExibicao(item.status)
+    status: normalizarStatusExibicao(item.status),
+    atletismoProvas: Array.isArray(item.atletismoProvas) ? item.atletismoProvas : [],
+    tenisMesaParticipacoes: Array.isArray(item.tenisMesaParticipacoes) ? item.tenisMesaParticipacoes : []
   }));
 }
 
@@ -247,7 +560,9 @@ function getAtletasParaAnalise(campusNome = null) {
     modalidades: normalizarModalidades(item.modalidades || item.modalidade),
     modalidade: Array.isArray(item.modalidades) ? item.modalidades.join(', ') : item.modalidade,
     genero: item.genero || extrairGeneroPorModalidade(item.modalidades || item.modalidade),
-    status: normalizarStatusExibicao(item.status)
+    status: normalizarStatusExibicao(item.status),
+    atletismoProvas: Array.isArray(item.atletismoProvas) ? item.atletismoProvas : [],
+    tenisMesaParticipacoes: Array.isArray(item.tenisMesaParticipacoes) ? item.tenisMesaParticipacoes : []
   })).sort((a, b) => a.campus.localeCompare(b.campus) || a.nome.localeCompare(b.nome));
 }
 
@@ -258,7 +573,9 @@ function getAtletaPorId(atletaId) {
     modalidades: normalizarModalidades(atleta.modalidades || atleta.modalidade),
     modalidade: Array.isArray(atleta.modalidades) ? atleta.modalidades.join(', ') : atleta.modalidade,
     genero: atleta.genero || extrairGeneroPorModalidade(atleta.modalidades || atleta.modalidade),
-    status: normalizarStatusExibicao(atleta.status)
+    status: normalizarStatusExibicao(atleta.status),
+    atletismoProvas: Array.isArray(atleta.atletismoProvas) ? atleta.atletismoProvas : [],
+    tenisMesaParticipacoes: Array.isArray(atleta.tenisMesaParticipacoes) ? atleta.tenisMesaParticipacoes : []
   } : null;
 }
 
@@ -293,13 +610,14 @@ function getQuantidadeDisponivelRegular(campusNome, limiteRegularTotalCampus) {
 }
 
 // Cria um novo atleta com status regular ou pendente.
-function cadastrarAtleta(campusNome, dados, opcoes = {}) {
+async function cadastrarAtleta(campusNome, dados, opcoes = {}) {
   const campos = validarCamposObrigatoriosAtleta(dados);
   const matriculaNormalizada = normalizarMatricula(campos.matricula);
   const matriculaExistente = atletasCampus.some((atleta) => atleta.campus === campusNome && normalizarMatricula(atleta.matricula) === matriculaNormalizada);
   const statusSolicitado = opcoes.validarImediatamente ? 'Regular' : (campos.status === 'Regular' ? 'Analise' : (campos.status || 'Analise'));
   const limiteRegularTotalCampus = Number(opcoes.limiteRegularTotalCampus || 0);
   const modalidadesSelecionadas = campos.modalidades;
+  const detalhesAtleta = validarDetalhesAtleta(dados, modalidadesSelecionadas);
   const nomeCompleto = validarNomeCompleto(campos.nome);
 
   if (matriculaExistente) {
@@ -354,14 +672,22 @@ function cadastrarAtleta(campusNome, dados, opcoes = {}) {
     cpf: campos.cpf,
     campus: campusNome,
     genero: campos.genero,
-    status: statusSolicitado
+    status: statusSolicitado,
+    atletismoProvas: detalhesAtleta.atletismoProvas,
+    tenisMesaParticipacoes: detalhesAtleta.tenisMesaParticipacoes
   };
   atletasCampus.push(atleta);
   persistirEstadoCampus();
+
+  const campusId = await garantirCampusNoBanco(campusNome);
+  if (campusId) {
+    await sincronizarAtletaNoBanco(campusId, atleta, modalidadesSelecionadas);
+  }
+
   return atleta;
 }
 
-function atualizarAtleta(atletaId, campusNome, dados, opcoes = {}) {
+async function atualizarAtleta(atletaId, campusNome, dados, opcoes = {}) {
   const atleta = localizarAtletaPorId(atletaId);
   if (!atleta || atleta.campus !== campusNome) {
     return null;
@@ -373,6 +699,7 @@ function atualizarAtleta(atletaId, campusNome, dados, opcoes = {}) {
   const statusSolicitado = opcoes.validarImediatamente ? 'Regular' : (campos.status === 'Regular' ? 'Analise' : (campos.status || atleta.status || 'Analise'));
   const limiteRegularTotalCampus = Number(opcoes.limiteRegularTotalCampus || 0);
   const modalidadesSelecionadas = campos.modalidades;
+  const detalhesAtleta = validarDetalhesAtleta(dados, modalidadesSelecionadas);
   const nomeCompleto = validarNomeCompleto(campos.nome);
 
   if (matriculaExistente) {
@@ -428,7 +755,14 @@ function atualizarAtleta(atletaId, campusNome, dados, opcoes = {}) {
   atleta.cpf = campos.cpf;
   atleta.genero = campos.genero;
   atleta.status = statusSolicitado;
+  atleta.atletismoProvas = detalhesAtleta.atletismoProvas;
+  atleta.tenisMesaParticipacoes = detalhesAtleta.tenisMesaParticipacoes;
   persistirEstadoCampus();
+
+  const campusId = await garantirCampusNoBanco(campusNome);
+  if (campusId) {
+    await sincronizarAtletaNoBanco(campusId, atleta, modalidadesSelecionadas);
+  }
 
   return { ...atleta };
 }
@@ -450,7 +784,7 @@ function atualizarStatusAtleta(atletaId, novoStatus) {
   return { ...atleta };
 }
 
-function excluirAtleta(atletaId, campusNome) {
+async function excluirAtleta(atletaId, campusNome) {
   const indice = atletasCampus.findIndex((item) => item.id === Number(atletaId) && item.campus === campusNome);
   if (indice === -1) {
     return false;
@@ -458,11 +792,22 @@ function excluirAtleta(atletaId, campusNome) {
 
   atletasCampus.splice(indice, 1);
   persistirEstadoCampus();
+
+  const campusId = await garantirCampusNoBanco(campusNome);
+  if (campusId) {
+    const idNumerico = Number(atletaId);
+    const [linhas] = await db.query('SELECT id FROM atletas WHERE campus_id = ? AND id = ? LIMIT 1', [campusId, idNumerico]);
+    if (linhas[0]?.id) {
+      await db.query('DELETE FROM atleta_modalidade WHERE atleta_id = ?', [linhas[0].id]);
+      await db.query('DELETE FROM atletas WHERE id = ?', [linhas[0].id]);
+    }
+  }
+
   return true;
 }
 
 // Cria uma substituição com status pendente de laudo.
-function substituirAtleta(campusNome, dados) {
+async function substituirAtleta(campusNome, dados) {
   const nomeCompleto = validarNomeCompleto(dados.nome);
   if (!nomeCompleto) {
     const erro = new Error('Informe o nome completo do atleta, com nome e sobrenome.');
@@ -470,16 +815,28 @@ function substituirAtleta(campusNome, dados) {
     throw erro;
   }
 
-  const atleta = { id: Date.now(), ...dados, nome: nomeCompleto, campus: campusNome, modalidades: normalizarModalidades(dados.modalidades || dados.modalidade), genero: normalizarGenero(dados.genero), cpf: String(dados.cpf || '').trim(), status: 'Pendente' };
+  const modalidadesSelecionadas = normalizarModalidades(dados.modalidades || dados.modalidade);
+  const detalhesAtleta = validarDetalhesAtleta(dados, modalidadesSelecionadas);
+  const atleta = { id: Date.now(), ...dados, nome: nomeCompleto, campus: campusNome, matricula: normalizarMatricula(dados.matricula), modalidades: modalidadesSelecionadas, genero: normalizarGenero(dados.genero), cpf: normalizarCPF(dados.cpf), status: 'Pendente', atletismoProvas: detalhesAtleta.atletismoProvas, tenisMesaParticipacoes: detalhesAtleta.tenisMesaParticipacoes };
   atleta.modalidade = Array.isArray(atleta.modalidades) ? atleta.modalidades.join(', ') : dados.modalidade;
   atletasCampus.push(atleta);
   persistirEstadoCampus();
+
+  const campusId = await garantirCampusNoBanco(campusNome);
+  if (campusId) {
+    await sincronizarAtletaNoBanco(campusId, atleta, modalidadesSelecionadas);
+  }
+
   return atleta;
 }
 
 module.exports = {
+  normalizarCPF,
+  normalizarMatricula,
+  validarCamposObrigatoriosAtleta,
   getInscricoes,
   salvarInscricoes,
+  removerCampusDoEstado,
   getAtletas,
   getAtletasParaAnalise,
   getAtletaPorId,

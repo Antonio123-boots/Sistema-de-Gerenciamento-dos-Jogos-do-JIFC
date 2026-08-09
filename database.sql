@@ -50,6 +50,7 @@ CREATE TABLE modalidades (
     genero ENUM('Masculino', 'Feminino', 'Misto') NOT NULL,
     tipo_confronto ENUM('Coletivo', 'Individual') NOT NULL, 
     formato_disputa ENUM('Grupos + Mata-Mata', 'Sistema Suico', 'Baterias por Tempo') NOT NULL,
+    icone VARCHAR(255) DEFAULT NULL,
     UNIQUE KEY uq_modalidade_genero (nome, genero)
 );
 
@@ -114,7 +115,8 @@ CREATE TABLE jogos (
     id INT AUTO_INCREMENT PRIMARY KEY,
     modalidade_id INT NOT NULL,
     chave_id INT DEFAULT NULL, -- Facilitador direto para carregar a tabela daquele grupo específico
-    fase ENUM('Fase de Grupos', 'Oitavas', 'Quartas', 'Semifinal', 'Final', 'Bateria Única', 'Eliminatória') NOT NULL, 
+    fase ENUM('Fase de Grupos', 'Oitavas', 'Quartas', 'Semifinal', 'Final', 'Bateria Única', 'Eliminatória') NOT NULL,
+    rodada INT NOT NULL DEFAULT 1,
     
     -- Participantes Coletivos
     campus_1_id INT DEFAULT NULL,

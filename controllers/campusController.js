@@ -7,49 +7,58 @@ function obterDataAtual() {
 }
 
 // 1. Exibe as modalidades já inscritas pelo campus logado
-function renderInscricoes(req, res) {
-  const nomeCampus = req.session?.usuario?.nome || 'IFC Blumenau';
-  const config = adminModel.getConfiguracoes();
-  const hoje = obterDataAtual();
-  const anoEvento = Number(config.ano_evento || new Date().getFullYear());
-  const abaAtiva = req.query.aba === 'atletas' ? 'atletas' : 'modalidades';
-  const atletaEmEdicao = req.query.editar ? campusModel.getAtletaPorId(req.query.editar) : null;
+async function renderInscricoes(req, res) {
+  try {
+    const nomeCampus = req.session?.usuario?.nome || 'IFC Blumenau';
+    const config = adminModel.getConfiguracoes();
+    const hoje = obterDataAtual();
+    const anoEvento = Number(config.ano_evento || new Date().getFullYear());
+    const abaAtiva = req.query.aba === 'atletas' ? 'atletas' : 'modalidades';
+    const atletaEmEdicao = req.query.editar ? campusModel.getAtletaPorId(req.query.editar) : null;
 
-  const inicioModalidades = config.inicio_inscricao_modalidades;
-  const fimModalidades = config.fim_inscricao_modalidades;
-  const prazoModalidadesAberto = inicioModalidades && fimModalidades && (hoje >= inicioModalidades && hoje <= fimModalidades);
+    const inicioModalidades = config.inicio_inscricao_modalidades;
+    const fimModalidades = config.fim_inscricao_modalidades;
+    const prazoModalidadesAberto = inicioModalidades && fimModalidades && (hoje >= inicioModalidades && hoje <= fimModalidades);
 
-  const inicioAtletas = config.inicio_inscricao_atletas;
-  const fimAtletas = config.fim_inscricao_atletas;
-  const prazoAtletasAberto = inicioAtletas && fimAtletas && (hoje >= inicioAtletas && hoje <= fimAtletas);
+    const inicioAtletas = config.inicio_inscricao_atletas;
+    const fimAtletas = config.fim_inscricao_atletas;
+    const prazoAtletasAberto = inicioAtletas && fimAtletas && (hoje >= inicioAtletas && hoje <= fimAtletas);
 
-  res.render('campus/inscrições', {
-    title: 'Painel de Inscrições',
-    usuarioLogado: req.session?.usuario || null,
-    mostrarFiltros: false,
-    modalidadesInscritas: campusModel.getInscricoes(nomeCampus),
-    atletas: campusModel.getAtletas(nomeCampus),
-    nomeCampus,
-    prazoModalidadesAberto,
-    prazoAtletasAberto,
-    quantidadeRegulares: campusModel.getQuantidadeRegulares(nomeCampus),
-    quantidadePendentes: campusModel.getQuantidadePendentes(nomeCampus),
-    quantidadeAnalise: campusModel.getQuantidadeAnalise(nomeCampus),
-    quantidadeReprovados: campusModel.getQuantidadeReprovados(nomeCampus),
-    quantidadeTotal: campusModel.getQuantidadeTotal(nomeCampus),
-    limiteAtletasTotalCampus: Number(config.limite_atletas_total_campus || 0),
-    anoEvento,
-    abaAtiva,
-    atletaEmEdicao,
-    mensagemErro: req.query.erro || '',
-    mensagemSucesso: req.query.sucesso || '',
-    prazosModalidades: { inicio: inicioModalidades, fim: fimModalidades },
-    prazosAtletas: { inicio: inicioAtletas, fim: fimAtletas }
-  });
+    const modalidadesDisponiveis = await adminModel.getModalidadesBanco();
+
+    res.render('campus/inscrições', {
+      title: 'Painel de Inscrições',
+      usuarioLogado: req.session?.usuario || null,
+      mostrarFiltros: false,
+      modalidadesInscritas: campusModel.getInscricoes(nomeCampus),
+      atletas: campusModel.getAtletas(nomeCampus),
+      atletaFormDraft: req.session?.atletaFormDraft || null,
+      nomeCampus,
+      prazoModalidadesAberto,
+      prazoAtletasAberto,
+      quantidadeRegulares: campusModel.getQuantidadeRegulares(nomeCampus),
+      quantidadePendentes: campusModel.getQuantidadePendentes(nomeCampus),
+      quantidadeAnalise: campusModel.getQuantidadeAnalise(nomeCampus),
+      quantidadeReprovados: campusModel.getQuantidadeReprovados(nomeCampus),
+      quantidadeTotal: campusModel.getQuantidadeTotal(nomeCampus),
+      limiteAtletasTotalCampus: Number(config.limite_atletas_total_campus || 0),
+      anoEvento,
+      abaAtiva,
+      atletaEmEdicao,
+      mensagemErro: req.query.erro || '',
+      mensagemSucesso: req.query.sucesso || '',
+      prazosModalidades: { inicio: inicioModalidades, fim: fimModalidades },
+      prazosAtletas: { inicio: inicioAtletas, fim: fimAtletas },
+      modalidadesDisponiveis
+    });
+  } catch (error) {
+    console.error('Erro ao carregar inscrições de campus:', error);
+    res.status(500).send('Erro ao carregar as inscrições do campus.');
+  }
 }
 
 // 2. Salva as modalidades escolhidas no painel do campus
-function salvarInscricoes(req, res) {
+async function salvarInscricoes(req, res) {
   const config = adminModel.getConfiguracoes();
   const hoje = obterDataAtual();
   const inicio = config.inicio_inscricao_modalidades;
@@ -61,8 +70,13 @@ function salvarInscricoes(req, res) {
   }
 
   const nomeCampus = req.session?.usuario?.nome || 'IFC Blumenau';
-  campusModel.salvarInscricoes(nomeCampus, req.body.modalidades || []);
-  res.redirect('/campus/inscricoes');
+  try {
+    await campusModel.salvarInscricoes(nomeCampus, req.body.modalidades || []);
+    res.redirect('/campus/inscricoes');
+  } catch (error) {
+    console.error('Erro ao salvar modalidades do campus:', error);
+    res.status(500).send('Erro ao salvar as modalidades do campus.');
+  }
 }
 
 // 3. Mostra a lista de atletas do campus para cadastro ou substituição
@@ -111,7 +125,7 @@ function renderAtletas(req, res) {
 }
 
 // 4. Registra um novo atleta na base de dados local
-function cadastrarAtleta(req, res) {
+async function cadastrarAtleta(req, res) {
   const config = adminModel.getConfiguracoes();
   const hoje = obterDataAtual();
   const inicio = config.inicio_inscricao_atletas;
@@ -127,11 +141,13 @@ function cadastrarAtleta(req, res) {
   const statusParaSalvar = statusInformado === 'Regular' ? 'Analise' : (statusInformado || 'Analise');
   const validarImediatamente = req.body.validarImediatamente === 'true' || req.body.validarImediatamente === 'on';
   try {
-    const atleta = campusModel.cadastrarAtleta(nomeCampus, {
+    const atleta = await campusModel.cadastrarAtleta(nomeCampus, {
       nome: req.body.nome,
       matricula: req.body.matricula,
       genero: req.body.genero,
       modalidades: req.body.modalidades || req.body.modalidade || [],
+      atletismoProvas: req.body.atletismoProvas || req.body.provasAtletismo || [],
+      tenisMesaParticipacoes: req.body.tenisMesaParticipacoes || req.body.participacoesTenisMesa || [],
       dataNascimento: req.body.dataNascimento,
       cpf: req.body.cpf,
       status: statusParaSalvar
@@ -153,12 +169,14 @@ function cadastrarAtleta(req, res) {
         matricula: req.body.matricula || '',
         genero: req.body.genero || 'Masculino',
         modalidades: req.body.modalidades || req.body.modalidade || [],
+        atletismoProvas: req.body.atletismoProvas || req.body.provasAtletismo || [],
+        tenisMesaParticipacoes: req.body.tenisMesaParticipacoes || req.body.participacoesTenisMesa || [],
         dataNascimento: req.body.dataNascimento || '',
         cpf: req.body.cpf || '',
         status: 'Analise'
       };
     }
-    const mensagensConhecidas = ['MATRICULA_DUPLICADA', 'LIMITE_REGULAR_EXCEDIDO', 'DATA_INVALIDA', 'IDADE_LIMITE_EXCEDIDO', 'MODALIDADES_OBRIGATORIAS', 'MODALIDADES_EXCEDIDAS', 'NOME_INCOMPLETO', 'CAMPOS_OBRIGATORIOS'];
+    const mensagensConhecidas = ['MATRICULA_DUPLICADA', 'MATRICULA_INVALIDA', 'LIMITE_REGULAR_EXCEDIDO', 'DATA_INVALIDA', 'IDADE_LIMITE_EXCEDIDO', 'MODALIDADES_OBRIGATORIAS', 'MODALIDADES_EXCEDIDAS', 'PROVAS_ATLETISMO_OBRIGATORIAS', 'PARTICIPACOES_TENIS_MESA_OBRIGATORIAS', 'NOME_INCOMPLETO', 'CAMPOS_OBRIGATORIOS'];
     const mensagem = mensagensConhecidas.includes(error.code)
       ? error.message
       : 'Não foi possível cadastrar o atleta.';
@@ -201,7 +219,7 @@ function editarAtleta(req, res) {
   });
 }
 
-function atualizarAtleta(req, res) {
+async function atualizarAtleta(req, res) {
   const nomeCampus = req.session?.usuario?.nome || 'IFC Blumenau';
   const config = adminModel.getConfiguracoes();
   const statusInformado = String(req.body.status || '').trim();
@@ -209,11 +227,13 @@ function atualizarAtleta(req, res) {
   const validarImediatamente = req.body.validarImediatamente === 'true' || req.body.validarImediatamente === 'on';
 
   try {
-    const atleta = campusModel.atualizarAtleta(req.params.id, nomeCampus, {
+    const atleta = await campusModel.atualizarAtleta(req.params.id, nomeCampus, {
       nome: req.body.nome,
       matricula: req.body.matricula,
       genero: req.body.genero,
       modalidades: req.body.modalidades || req.body.modalidade || [],
+      atletismoProvas: req.body.atletismoProvas || req.body.provasAtletismo || [],
+      tenisMesaParticipacoes: req.body.tenisMesaParticipacoes || req.body.participacoesTenisMesa || [],
       dataNascimento: req.body.dataNascimento,
       cpf: req.body.cpf,
       status: statusParaSalvar
@@ -238,20 +258,22 @@ function atualizarAtleta(req, res) {
         matricula: req.body.matricula || '',
         genero: req.body.genero || 'Masculino',
         modalidades: req.body.modalidades || req.body.modalidade || [],
+        atletismoProvas: req.body.atletismoProvas || req.body.provasAtletismo || [],
+        tenisMesaParticipacoes: req.body.tenisMesaParticipacoes || req.body.participacoesTenisMesa || [],
         dataNascimento: req.body.dataNascimento || '',
         cpf: req.body.cpf || '',
         status: 'Analise'
       };
     }
-    const mensagensConhecidas = ['MATRICULA_DUPLICADA', 'IDADE_LIMITE_EXCEDIDO', 'DATA_INVALIDA', 'MODALIDADES_OBRIGATORIAS', 'MODALIDADES_EXCEDIDAS', 'LIMITE_REGULAR_EXCEDIDO', 'NOME_INCOMPLETO', 'CAMPOS_OBRIGATORIOS'];
+    const mensagensConhecidas = ['MATRICULA_DUPLICADA', 'MATRICULA_INVALIDA', 'IDADE_LIMITE_EXCEDIDO', 'DATA_INVALIDA', 'MODALIDADES_OBRIGATORIAS', 'MODALIDADES_EXCEDIDAS', 'PROVAS_ATLETISMO_OBRIGATORIAS', 'PARTICIPACOES_TENIS_MESA_OBRIGATORIAS', 'LIMITE_REGULAR_EXCEDIDO', 'NOME_INCOMPLETO', 'CAMPOS_OBRIGATORIOS'];
     const mensagem = mensagensConhecidas.includes(error.code) ? error.message : 'Não foi possível atualizar o atleta.';
     res.redirect('/campus/inscricoes?aba=atletas&erro=' + encodeURIComponent(mensagem) + '#atletas');
   }
 }
 
-function excluirAtleta(req, res) {
+async function excluirAtleta(req, res) {
   const nomeCampus = req.session?.usuario?.nome || 'IFC Blumenau';
-  const removido = campusModel.excluirAtleta(req.params.id, nomeCampus);
+  const removido = await campusModel.excluirAtleta(req.params.id, nomeCampus);
 
   if (!removido) {
     return res.redirect('/campus/inscricoes?aba=atletas&erro=' + encodeURIComponent('Atleta não encontrado para exclusão.') + '#atletas');
@@ -261,7 +283,7 @@ function excluirAtleta(req, res) {
 }
 
 // 5. Registra uma substituição com status pendente de laudo
-function substituirAtleta(req, res) {
+async function substituirAtleta(req, res) {
   const config = adminModel.getConfiguracoes();
   const hoje = obterDataAtual();
   const inicio = config.inicio_inscricao_atletas;
@@ -275,11 +297,13 @@ function substituirAtleta(req, res) {
   const nomeCampus = req.session?.usuario?.nome || 'IFC Blumenau';
 
   try {
-    campusModel.substituirAtleta(nomeCampus, {
+    await campusModel.substituirAtleta(nomeCampus, {
       nome: req.body.nome,
       matricula: req.body.matricula,
       genero: req.body.genero,
       modalidades: req.body.modalidades || req.body.modalidade || [],
+      atletismoProvas: req.body.atletismoProvas || req.body.provasAtletismo || [],
+      tenisMesaParticipacoes: req.body.tenisMesaParticipacoes || req.body.participacoesTenisMesa || [],
       cpf: req.body.cpf,
       motivo: req.body.motivo || 'Substituição por laudo'
     });

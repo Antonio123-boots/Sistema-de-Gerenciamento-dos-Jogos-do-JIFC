@@ -2,6 +2,15 @@ const { readState, writeState } = require('./stateStore');
 const pool = require('../config/db');
 const { normalizarFotoPerfil, fotoPadrao } = require('./profileImageStore');
 
+let campusModel;
+function getCampusModel() {
+  if (!campusModel) {
+    campusModel = require('./campusModel');
+  }
+
+  return campusModel;
+}
+
 const senhaPadraoCampus = 'jifc2026';
 
 const campiDefault = [
@@ -45,6 +54,99 @@ function gerarSlug(texto) {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '')
     .slice(0, 30);
+}
+
+function obterEstadoCatalogo() {
+  const estado = readState();
+  if (!estado.campiCatalog || typeof estado.campiCatalog !== 'object') {
+    estado.campiCatalog = {};
+  }
+
+  return estado;
+}
+
+function persistirEstadoCatalogo(estado) {
+  writeState(estado);
+}
+
+async function limparDependenciasCampusNoBanco(connection, campusId) {
+  const consultas = [
+    { sql: 'DELETE FROM classificacao_grupos WHERE campus_id = ?', params: [campusId] },
+    { sql: 'DELETE FROM resultados_coletivos WHERE jogo_id IN (SELECT id FROM jogos WHERE campus_1_id = ? OR campus_2_id = ?)', params: [campusId, campusId] },
+    { sql: 'DELETE FROM resultados_por_sets WHERE jogo_id IN (SELECT id FROM jogos WHERE campus_1_id = ? OR campus_2_id = ?)', params: [campusId, campusId] },
+    { sql: 'DELETE FROM resultados_atletismo WHERE jogo_id IN (SELECT id FROM jogos WHERE campus_1_id = ? OR campus_2_id = ?) OR atleta_id IN (SELECT id FROM atletas WHERE campus_id = ?)', params: [campusId, campusId, campusId] },
+    { sql: 'DELETE FROM jogos WHERE campus_1_id = ? OR campus_2_id = ?', params: [campusId, campusId] },
+    { sql: 'DELETE FROM atleta_modalidade WHERE atleta_id IN (SELECT id FROM atletas WHERE campus_id = ?)', params: [campusId] },
+    { sql: 'DELETE FROM campus_modalidade WHERE campus_id = ?', params: [campusId] },
+    { sql: 'DELETE FROM atletas WHERE campus_id = ?', params: [campusId] }
+  ];
+
+  for (const consulta of consultas) {
+    try {
+      await connection.query(consulta.sql, consulta.params);
+    } catch (error) {
+      const mensagem = String(error?.message || '');
+      if (/doesn't exist|unknown table|base table|table .* doesn't exist/i.test(mensagem)) {
+        continue;
+      }
+      throw error;
+    }
+  }
+}
+
+function limparEstadoCampusRemovido(campusAtual) {
+  const estado = obterEstadoCatalogo();
+  const nomesCampus = [campusAtual.nome, campusAtual.nomeExibicao, campusAtual.slug]
+    .filter((valor) => typeof valor === 'string' && valor.trim())
+    .map((valor) => valor.trim())
+    .filter((valor, index, lista) => lista.indexOf(valor) === index);
+
+  const estadoCampus = estado.campus || {};
+  estado.campus = estadoCampus;
+
+  if (estadoCampus.inscricoesCampus && typeof estadoCampus.inscricoesCampus === 'object') {
+    for (const nomeCampus of nomesCampus) {
+      delete estadoCampus.inscricoesCampus[nomeCampus];
+      delete estadoCampus.inscricoesCampus[gerarSlug(nomeCampus)];
+    }
+  }
+
+  if (Array.isArray(estadoCampus.atletasCampus)) {
+    estadoCampus.atletasCampus = estadoCampus.atletasCampus.filter((atleta) => {
+      const campusNome = String(atleta?.campus || '').trim();
+      const campusSlug = String(atleta?.campusSlug || '').trim();
+      return (
+        campusNome !== String(campusAtual.nome || '').trim() &&
+        campusNome !== String(campusAtual.nomeExibicao || '').trim() &&
+        campusSlug !== String(campusAtual.slug || '').trim()
+      );
+    });
+  }
+
+  if (estado.usuarios && typeof estado.usuarios === 'object') {
+    delete estado.usuarios[normalizarEmail(campusAtual.email)];
+  }
+
+  if (estado.campiCatalog && Array.isArray(estado.campiCatalog.campi)) {
+    estado.campiCatalog.campi = estado.campiCatalog.campi.filter((campus) => {
+      const slug = String(campus?.slug || '').trim();
+      const email = normalizarEmail(campus?.email);
+      const nome = String(campus?.nome || '').trim();
+      return (
+        slug !== String(campusAtual.slug || '').trim() &&
+        email !== normalizarEmail(campusAtual.email) &&
+        nome !== String(campusAtual.nome || '').trim()
+      );
+    });
+  }
+
+  const campusModelInstancia = getCampusModel();
+  if (campusModelInstancia && typeof campusModelInstancia.removerCampusDoEstado === 'function') {
+    campusModelInstancia.removerCampusDoEstado(campusAtual);
+  }
+
+  estado.campiCatalog.defaultCampiSeeded = true;
+  persistirEstadoCatalogo(estado);
 }
 
 function montarCampus(campus) {
@@ -168,9 +270,16 @@ async function ensureCampusTable() {
 }
 
 async function seedDefaultCampi() {
+  const estado = obterEstadoCatalogo();
+  if (estado.campiCatalog.defaultCampiSeeded) {
+    return;
+  }
+
   const [rows] = await pool.query('SELECT COUNT(*) AS total FROM campus');
   const total = Number(rows?.[0]?.total || 0);
   if (total > 0) {
+    estado.campiCatalog.defaultCampiSeeded = true;
+    persistirEstadoCatalogo(estado);
     return;
   }
 
@@ -184,6 +293,9 @@ async function seedDefaultCampi() {
       [nome, nomeExibicao, nomeExibicao, email, senhaPadraoCampus, slug, campus.cor || '#2980b9', 0, '']
     );
   }
+
+  estado.campiCatalog.defaultCampiSeeded = true;
+  persistirEstadoCatalogo(estado);
 }
 
 async function listarCampi() {
@@ -326,13 +438,29 @@ async function removerCampus(slug) {
     throw erro;
   }
 
-  const [result] = await pool.query('DELETE FROM campus WHERE id = ?', [campusAtual.id]);
-  if (!result.affectedRows) {
-    const erro = new Error('Campus não encontrado para exclusão.');
-    erro.code = 'CAMPUS_NAO_ENCONTRADO';
-    throw erro;
+  const connection = await pool.getConnection();
+
+  try {
+    await connection.beginTransaction();
+    await limparDependenciasCampusNoBanco(connection, campusAtual.id);
+
+    const [result] = await connection.query('DELETE FROM campus WHERE id = ?', [campusAtual.id]);
+    if (!result.affectedRows) {
+      await connection.rollback();
+      const erro = new Error('Campus não encontrado para exclusão.');
+      erro.code = 'CAMPUS_NAO_ENCONTRADO';
+      throw erro;
+    }
+
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
   }
 
+  limparEstadoCampusRemovido(campusAtual);
   return true;
 }
 

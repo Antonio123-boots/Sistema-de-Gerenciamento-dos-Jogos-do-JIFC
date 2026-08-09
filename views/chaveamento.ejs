@@ -12,7 +12,9 @@
         <% listaModalidadesCompleta.forEach((mod) => { %>
           <li class="modalidade-item">
             <a href="/chaveamento?modalidade=<%= mod.id %>" class="<%= modalidadeAtiva.id === mod.id ? 'active-sport' : '' %>">
-              <span class="modalidade-icon"><%= mod.icone %></span>
+              <span class="modalidade-icon">
+                <img src="<%= mod.icone && (mod.icone.startsWith('/') || mod.icone.startsWith('http')) ? mod.icone : (mod.imagem || '/imagens/atletismo1.svg') %>" alt="<%= mod.nome %>" style="width: 26px; height: 26px; object-fit: cover; border-radius: 50%;">
+              </span>
               <span><%= mod.nome %></span>
             </a>
           </li>
@@ -46,6 +48,7 @@
           </div>
         <% }) %>
       </div>
+    <% } %>
 
     <% if (modalidadeAtiva.categoria === 'xadrez') { %>
       <div class="chave-card" style="max-width: 800px; margin: 0 auto;">

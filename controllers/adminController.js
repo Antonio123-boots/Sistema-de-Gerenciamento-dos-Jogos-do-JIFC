@@ -1,5 +1,6 @@
 const adminModel = require('../models/adminModel');
 const campusModel = require('../models/campusModel');
+const db = require('../config/db');
 const { listarCampi, adicionarCampus, atualizarCampus, banCampus, desbanirCampus, removerCampus } = require('../models/campiCatalog');
 
 async function renderConfigurar(req, res) {
@@ -22,14 +23,18 @@ async function renderConfigurar(req, res) {
   }
 }
 
+const { normalizarImagemUpload } = require('../models/profileImageStore');
+
 async function cadastrarModalidade(req, res) {
   try {
     const nome = String(req.body.nome_modalidade || '').trim();
-    const tipoConfronto = String(req.body.tipo_confronto || 'Coletivo').trim();
-    const genero = String(req.body.genero_modalidade || 'Misto').trim();
-    const formatoDisputa = String(req.body.formato_disputa || 'Grupos + Mata-Mata').trim();
+    const tipoConfronto = String(req.body.tipo_confronto || '').trim();
+    const genero = String(req.body.genero_modalidade || '').trim();
+    const formatoDisputa = String(req.body.formato_disputa || '').trim();
+    const iconeData = String(req.body.icone_modalidade_data || '').trim();
 
-    await adminModel.adicionarModalidade({ nome, tipoConfronto, formatoDisputa, genero });
+    const icone = iconeData ? normalizarImagemUpload(iconeData, null, 'modalidades') : null;
+    await adminModel.adicionarModalidade({ nome, tipoConfronto, formatoDisputa, genero, icone });
     res.redirect('/admin/configurar?sucesso=' + encodeURIComponent(`Modalidade "${nome}" adicionada com sucesso.`));
   } catch (error) {
     res.redirect('/admin/configurar?erro=' + encodeURIComponent(error.message));
@@ -210,14 +215,18 @@ async function renderChaveamento(req, res) {
     const fimModalidades = configuracoes.fim_inscricao_modalidades;
     const inicioAtletas = configuracoes.inicio_inscricao_atletas;
     const fimAtletas = configuracoes.fim_inscricao_atletas;
+    const inicioSorteio = configuracoes.inicio_sorteio_chaves;
+    const fimSorteio = configuracoes.fim_sorteio_chaves;
 
     const prazoModalidadesAberto = Boolean(inicioModalidades && fimModalidades && hojeStr >= inicioModalidades && hojeStr <= fimModalidades);
     const prazoAtletasAberto = Boolean(inicioAtletas && fimAtletas && hojeStr >= inicioAtletas && hojeStr <= fimAtletas);
     const inscricoesConfiguradas = Boolean(inicioModalidades && fimModalidades && inicioAtletas && fimAtletas);
     const inscricoesAbertas = inscricoesConfiguradas && (prazoModalidadesAberto || prazoAtletasAberto);
     const inscricoesEncerradas = inscricoesConfiguradas && hojeStr >= fimModalidades && hojeStr >= fimAtletas;
-    const chaveamentoDisponivel = !inscricoesAbertas && inscricoesEncerradas;
-    const resumoDisponivel = chaveamentoDisponivel;
+    const sorteioDisponivelPorData = (!inicioSorteio || hojeStr >= inicioSorteio) && (!fimSorteio || hojeStr <= fimSorteio);
+    const prazoSorteioAberto = Boolean(inscricoesEncerradas && sorteioDisponivelPorData);
+    const sorteioBloqueado = inscricoesAbertas || !prazoSorteioAberto;
+    const resumoDisponivel = inscricoesConfiguradas;
 
     let listaModalidades = [];
     try {
@@ -227,15 +236,19 @@ async function renderChaveamento(req, res) {
       listaModalidades = [];
     }
 
-    const chaveamentoBloqueado = !chaveamentoDisponivel;
+    const chaveamentoBloqueado = false;
 
     let modalidadeAtiva = { id: 0, nome: '—', categoria: '' };
     let modalidadeAtivaNome = '—';
     let categoriaSlug = '';
+    const configuracoesBanco = await adminModel.getConfiguracoesBanco();
+    const datasEventoDisponiveis = adminModel.gerarDatasEventoDisponiveis(configuracoesBanco || configuracoes);
     let modalidadesComIcone = [];
     let modAtivaFormatada = null;
     let subCategoria = 'geral';
     let subProva = '';
+    let modalidadeSorteavel = true;
+    let permitirGerarSorteio = false;
 
     if (listaModalidades.length > 0) {
       modalidadeAtiva = listaModalidades[0];
@@ -260,6 +273,8 @@ async function renderChaveamento(req, res) {
       if (nomeNormalizado.includes("tenis de mesa") || nomeNormalizado.includes("tenis")) categoriaSlug = "tenis-de-mesa";
       modalidadeAtiva.categoriaSlug = categoriaSlug;
       modalidadeAtiva.categoria = categoriaSlug;
+      modalidadeSorteavel = adminModel.isModalidadeSorteavel(modalidadeAtivaNome, modalidadeAtiva.tipo_confronto, subCategoria);
+      permitirGerarSorteio = inscricoesEncerradas && prazoSorteioAberto && modalidadeSorteavel;
 
       modalidadesComIcone = listaModalidades.map((m) => {
         const nome = String(m.nome || '').trim();
@@ -283,7 +298,7 @@ async function renderChaveamento(req, res) {
           categoria: slug,
           imagem,
           slug,
-          icone: '🏆'
+          icone: String(m.icone || '🏆').trim() || '🏆'
         };
       }).sort((a, b) => {
         const nomeCompare = a.nome.localeCompare(b.nome);
@@ -294,8 +309,10 @@ async function renderChaveamento(req, res) {
       modAtivaFormatada = modalidadesComIcone.find(m => m.id === modalidadeAtiva.id) || modalidadeAtiva;
     }
 
-    if (!chaveamentoBloqueado && listaModalidades.length === 0) {
-      return res.send("Nenhuma modalidade cadastrada no banco de dados.");
+    if (listaModalidades.length === 0) {
+      modalidadeAtiva = { id: 0, nome: 'Nenhuma modalidade cadastrada', categoria: '' };
+      modalidadesComIcone = [];
+      modAtivaFormatada = modalidadeAtiva;
     }
 
     let inscritos = [];
@@ -303,7 +320,7 @@ async function renderChaveamento(req, res) {
     let jogos = [];
     let provasAtletismo = [];
 
-    if (chaveamentoDisponivel) {
+    if (listaModalidades.length > 0) {
       inscritos = await adminModel.getInscritosModalidade(modalidadeAtiva.id, subCategoria);
       chaves = await adminModel.getChavesModalidade(modalidadeAtiva.id, subCategoria);
       jogos = await adminModel.getJogosModalidade(modalidadeAtiva.id, subCategoria);
@@ -382,42 +399,44 @@ async function renderChaveamento(req, res) {
       resumoInscricoes = null;
     }
 
-    res.render('adm/chaveamento', {
-      title: 'Chaveamento dos Jogos — JIFC',
-      usuarioLogado: req.session?.usuario || { tipo: 'admin' },
-      mostrarFiltros: false,
-      inscricoesAbertas,
-      chaveamentoBloqueado,
-      listaModalidadesCompleta: modalidadesComIcone,
-      modalidadeAtiva: modAtivaFormatada,
-      subCategoriaAtiva: subCategoria,
-      subProvaAtiva: subProva,
-      inscritosPendentes: inscritos,
-      chavesGeradas: chaves,
-      provasAtletismo: provasAtletismo,
-      jogosProgramados: jogos,
-      resumoDisponivel,
-      resumoInscricoes
-    });
+    const rodadasJogos = adminModel.agruparJogosPorRodadas(jogos);
 
-  } catch (error) {
-    console.error(error);
-    res.status(500).send("Erro ao carregar painel de chaveamento.");
+    const isIndividualModalidade = modalidadeAtiva.tipo_confronto === 'Individual'
+        || categoriaSlug === 'atletismo'
+        || categoriaSlug === 'xadrez'
+        || subCategoria === 'individual';
+
+      res.render('adm/chaveamento', {
+        title: 'Chaveamento dos Jogos — JIFC',
+        usuarioLogado: req.session?.usuario || { tipo: 'admin' },
+        mostrarFiltros: false,
+        inscricoesAbertas,
+        chaveamentoBloqueado: false,
+        sorteioBloqueado,
+        permitirGerarSorteio,
+        modalidadeSorteavel,
+        inicioSorteio,
+        fimSorteio,
+        listaModalidadesCompleta: modalidadesComIcone,
+        modalidadeAtiva: modAtivaFormatada,
+        subCategoriaAtiva: subCategoria,
+        subProvaAtiva: subProva,
+        isIndividualModalidade,
+        inscritosPendentes: inscritos,
+        chavesGeradas: chaves,
+        provasAtletismo: provasAtletismo,
+        jogosProgramados: jogos,
+        rodadasJogos,
+        datasEventoDisponiveis,
+        resumoDisponivel,
+        resumoInscricoes
+      });
+
+    } catch (error) {
+      console.error(error);
+      res.status(500).send("Erro ao carregar painel de chaveamento.");
+    }
   }
-}
-
-function escapeCsv(valor) {
-  if (valor === null || valor === undefined) return '';
-  const texto = String(valor);
-  if (/[",\n\r]/.test(texto)) {
-    return '"' + texto.replace(/"/g, '""') + '"';
-  }
-  return texto;
-}
-
-function construirLinhaCsv(linhas, valores) {
-  linhas.push(valores.map((valor) => escapeCsv(valor)).join(','));
-}
 
 async function exportResumoInscricoes(req, res) {
   try {
@@ -425,12 +444,14 @@ async function exportResumoInscricoes(req, res) {
     const linhas = [];
     construirLinhaCsv(linhas, ['Campus', 'Modalidade', 'Gênero', 'Atleta', 'Matrícula', 'Data de Nascimento', 'Status']);
 
-    (resumo.campi || []).forEach((campus) => {
+    resumo.campi.forEach((campus) => {
       construirLinhaCsv(linhas, ['']);
       construirLinhaCsv(linhas, [campus.nome, '', '', '', '', '', '']);
-      (campus.modalidades || []).forEach((modalidade) => {
+
+      campus.modalidades.forEach((modalidade) => {
         construirLinhaCsv(linhas, ['']);
         construirLinhaCsv(linhas, [modalidade.nome, '', '', '', '', '', '']);
+
         const appendAtletas = (lista, generoLabel) => {
           if (!lista || !lista.length) return;
           lista.forEach((atleta) => {
@@ -465,6 +486,41 @@ async function exportResumoInscricoes(req, res) {
 async function gerarChaveamento(req, res) {
   try {
     const { modalidadeId, subCategoria } = req.body;
+    const configuracoes = adminModel.getConfiguracoes();
+    const hoje = new Date();
+    const hojeStr = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+    const inicioSorteio = configuracoes.inicio_sorteio_chaves;
+    const fimSorteio = configuracoes.fim_sorteio_chaves;
+    const inicioModalidades = configuracoes.inicio_inscricao_modalidades;
+    const fimModalidades = configuracoes.fim_inscricao_modalidades;
+    const inicioAtletas = configuracoes.inicio_inscricao_atletas;
+    const fimAtletas = configuracoes.fim_inscricao_atletas;
+    const prazoModalidadesAberto = Boolean(inicioModalidades && fimModalidades && hojeStr >= inicioModalidades && hojeStr <= fimModalidades);
+    const prazoAtletasAberto = Boolean(inicioAtletas && fimAtletas && hojeStr >= inicioAtletas && hojeStr <= fimAtletas);
+    const inscricoesConfiguradas = Boolean(inicioModalidades && fimModalidades && inicioAtletas && fimAtletas);
+    const inscricoesAbertas = inscricoesConfiguradas && (prazoModalidadesAberto || prazoAtletasAberto);
+    const inscricoesEncerradas = inscricoesConfiguradas && hojeStr >= fimModalidades && hojeStr >= fimAtletas;
+    const sorteioDisponivelPorData = (!inicioSorteio || hojeStr >= inicioSorteio) && (!fimSorteio || hojeStr <= fimSorteio);
+    const permitirGerarSorteio = Boolean(inscricoesEncerradas && sorteioDisponivelPorData);
+
+    if (!permitirGerarSorteio) {
+      const mensagem = inicioSorteio
+        ? `Sorteio ainda não liberado. Somente a partir de ${inicioSorteio}.`
+        : 'Sorteio ainda não liberado. Aguarde o fim das inscrições.';
+      return res.status(403).send(mensagem);
+    }
+
+    const [mod] = await db.query('SELECT tipo_confronto, nome FROM modalidades WHERE id = ?', [modalidadeId]);
+    if (!mod.length) {
+      return res.status(404).send('Modalidade não encontrada.');
+    }
+
+    const modalidade = mod[0];
+    const modalidadeSorteavel = adminModel.isModalidadeSorteavel(modalidade.nome, modalidade.tipo_confronto, subCategoria);
+    if (!modalidadeSorteavel) {
+      return res.status(403).send('Esta modalidade não possui sorteio automático.');
+    }
+
     await adminModel.efetuarChaveamentoMatematico(modalidadeId, subCategoria);
     res.redirect(`/admin/chaveamento?modalidade=${modalidadeId}&sub=${subCategoria || 'geral'}`);
   } catch (error) {
@@ -477,12 +533,35 @@ async function limparChaveamento(req, res) {
   try {
     const { modalidadeId, subCategoria } = req.body;
     const db = require('../config/db');
+    await db.query('UPDATE campus_modalidade SET chave_id = NULL WHERE modalidade_id = ?', [modalidadeId]);
     await db.query('DELETE FROM jogos WHERE modalidade_id = ?', [modalidadeId]);
     await db.query('DELETE FROM chaves WHERE modalidade_id = ?', [modalidadeId]);
     res.redirect(`/admin/chaveamento?modalidade=${modalidadeId}&sub=${subCategoria || 'geral'}`);
   } catch (error) {
     console.error(error);
     res.status(500).send("Erro ao limpar dados do chaveamento.");
+  }
+}
+
+async function cancelarSorteio(req, res) {
+  try {
+    const [modalidades] = await db.query('SELECT id, nome FROM modalidades');
+
+    for (const modalidade of modalidades) {
+      const nome = String(modalidade.nome || '').trim().toLowerCase();
+      if (nome.includes('atletismo') || nome.includes('xadrez')) {
+        continue;
+      }
+
+      await db.query('UPDATE campus_modalidade SET chave_id = NULL WHERE modalidade_id = ?', [modalidade.id]);
+      await db.query('DELETE FROM jogos WHERE modalidade_id = ?', [modalidade.id]);
+      await db.query('DELETE FROM chaves WHERE modalidade_id = ?', [modalidade.id]);
+    }
+
+    res.redirect('/admin/chaveamento');
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Erro ao cancelar o sorteio.');
   }
 }
 
@@ -569,6 +648,16 @@ async function salvarPlacar(req, res) {
   }
 }
 
+async function salvarJogoChaveamento(req, res) {
+  try {
+    await adminModel.atualizarJogoChaveamento(req.params.jogoId, req.body);
+    res.redirect('/admin/chaveamento');
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Erro ao salvar o confronto.');
+  }
+}
+
 module.exports = {
   renderConfigurar,
   cadastrarModalidade,
@@ -584,11 +673,13 @@ module.exports = {
   renderChaveamento,
   gerarChaveamento,
   limparChaveamento,
+  cancelarSorteio,
   exportResumoInscricoes,
   renderAnalise,
   validarAtleta,
   marcarIrregular,
   renderPlacar,
-  salvarPlacar
+  salvarPlacar,
+  salvarJogoChaveamento
 };
 module.exports.renderResumoCampus = renderResumoCampus;

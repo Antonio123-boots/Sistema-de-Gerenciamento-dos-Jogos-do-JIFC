@@ -93,9 +93,9 @@ function startServer(port) {
 
     server.on('error', (error) => {
         if (error.code === 'EADDRINUSE') {
-            const nextPort = Number(port) + 1;
-            console.log(`Porta ${port} em uso. Tentando a porta ${nextPort}...`);
-            startServer(nextPort);
+            console.error(`Erro: porta ${port} já está em uso. Finalizando para evitar comportamento silencioso de fallback.`);
+            console.error(`Use uma porta livre ou defina a variável de ambiente PORT antes de iniciar o app.`);
+            process.exit(1);
             return;
         }
 

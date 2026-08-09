@@ -25,6 +25,8 @@ router.get('/chaveamento', adminController.renderChaveamento);
 router.get('/chaveamento/campus/:id', adminController.renderResumoCampus);
 router.post('/chaveamento/gerar', adminController.gerarChaveamento);
 router.post('/chaveamento/limpar', adminController.limparChaveamento);
+router.post('/chaveamento/cancelar', adminController.cancelarSorteio);
 router.get('/chaveamento/exportar', adminController.exportResumoInscricoes);
+router.post('/chaveamento/jogo/:jogoId/salvar', adminController.salvarJogoChaveamento);
 
 module.exports = router;

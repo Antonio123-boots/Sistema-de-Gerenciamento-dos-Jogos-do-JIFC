@@ -1,16 +1,27 @@
 <section class="profile-shell">
   <article class="profile-card profile-card--wide">
     <% 
-      const catalogoEsportes = [
-        'Atletismo',
-        'Basquete',
-        'Futsal',
-        'Handebol',
-        'Tênis de Mesa',
-        'Voleibol',
-        'Vôlei de Praia',
-        'Xadrez'
-      ];
+      const modalidadesDisponiveisList = Array.isArray(modalidadesDisponiveis) ? modalidadesDisponiveis : [];
+      const modalidadesPorEsporte = {};
+      modalidadesDisponiveisList.forEach((modalidade) => {
+        const nomeOriginal = String(modalidade.nome || '').trim();
+        const nomeBase = nomeOriginal.replace(/\s+(Masculino|Feminino)$/i, '').trim() || nomeOriginal;
+        const genero = String(modalidade.genero || '').trim();
+        const icone = String(modalidade.icone || '').trim();
+        const imagem = modalidade.imagem || '/imagens/atletismo1.svg';
+
+        if (!modalidadesPorEsporte[nomeBase]) {
+          modalidadesPorEsporte[nomeBase] = { nome: nomeBase, icone, imagem, masculino: null, feminino: null };
+        }
+
+        if (/masculino/i.test(genero)) {
+          modalidadesPorEsporte[nomeBase].masculino = `${nomeBase} Masculino`;
+        }
+        if (/feminino/i.test(genero)) {
+          modalidadesPorEsporte[nomeBase].feminino = `${nomeBase} Feminino`;
+        }
+      });
+      const catalogoEsportes = Object.values(modalidadesPorEsporte);
       const modalidadesSalvas = Array.isArray(modalidadesInscritas) ? modalidadesInscritas : [];
       const atletasSalvos = Array.isArray(atletas) ? atletas : [];
       const mostrarModalidades = typeof prazoModalidadesAberto !== 'undefined' && prazoModalidadesAberto;
@@ -43,6 +54,12 @@
       const modalidadesFormulario = isEditandoAtleta
         ? (Array.isArray(atletaEmEdicaoLocal.modalidades) ? atletaEmEdicaoLocal.modalidades : String(atletaEmEdicaoLocal.modalidade || '').split(',').map((item) => item.trim()).filter(Boolean))
         : (typeof atletaFormDraft !== 'undefined' && atletaFormDraft && Array.isArray(atletaFormDraft.modalidades) ? atletaFormDraft.modalidades : []);
+      const provasAtletismoFormulario = isEditandoAtleta
+        ? (Array.isArray(atletaEmEdicaoLocal.atletismoProvas) ? atletaEmEdicaoLocal.atletismoProvas : [])
+        : (typeof atletaFormDraft !== 'undefined' && atletaFormDraft && Array.isArray(atletaFormDraft.atletismoProvas) ? atletaFormDraft.atletismoProvas : []);
+      const participacoesTenisMesaFormulario = isEditandoAtleta
+        ? (Array.isArray(atletaEmEdicaoLocal.tenisMesaParticipacoes) ? atletaEmEdicaoLocal.tenisMesaParticipacoes : [])
+        : (typeof atletaFormDraft !== 'undefined' && atletaFormDraft && Array.isArray(atletaFormDraft.tenisMesaParticipacoes) ? atletaFormDraft.tenisMesaParticipacoes : []);
       const modalidadesPorGenero = {
         Masculino: modalidadesSalvas.filter((modalidade) => /masculino/i.test(modalidade)),
         Feminino: modalidadesSalvas.filter((modalidade) => /feminino/i.test(modalidade))
@@ -114,22 +131,27 @@
           <form action="/campus/inscricoes/salvar" method="POST">
             <div class="game-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
               <% catalogoEsportes.forEach(function(esporte) { 
-                  const masculino = `${esporte} Masculino`;
-                  const feminino = `${esporte} Feminino`;
-                  const selecionadoMasculino = modalidadesSalvas.includes(masculino);
-                  const selecionadoFeminino = modalidadesSalvas.includes(feminino);
+                  const selecionadoMasculino = esporte.masculino && modalidadesSalvas.includes(esporte.masculino);
+                  const selecionadoFeminino = esporte.feminino && modalidadesSalvas.includes(esporte.feminino);
               %>
                 <div class="mini-card" style="display: flex; flex-direction: column; gap: 0.9rem; padding: 1rem 1.1rem;">
-                  <strong style="color: #ffffff; font-size: 1rem;"><%= esporte %></strong>
+                  <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.5rem;">
+                    <img src="<%= esporte.icone && (esporte.icone.startsWith('/') || esporte.icone.startsWith('http')) ? esporte.icone : (esporte.imagem || '/imagens/atletismo1.svg') %>" alt="Ícone <%= esporte.nome %>" style="width: 28px; height: 28px; object-fit: cover; border-radius: 50%;">
+                    <strong style="color: #ffffff; font-size: 1rem;"><%= esporte.nome %></strong>
+                  </div>
                   <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem;">
-                    <label style="display: flex; align-items: center; gap: 0.65rem; cursor: pointer; color: rgba(255,255,255,0.85); font-weight: 600;">
-                      <input type="checkbox" name="modalidades" value="<%= masculino %>" <%= selecionadoMasculino ? 'checked' : '' %> style="width: 18px; height: 18px; accent-color: #ece42d;">
-                      Masculino
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 0.65rem; cursor: pointer; color: rgba(255,255,255,0.85); font-weight: 600;">
-                      <input type="checkbox" name="modalidades" value="<%= feminino %>" <%= selecionadoFeminino ? 'checked' : '' %> style="width: 18px; height: 18px; accent-color: #ece42d;">
-                      Feminino
-                    </label>
+                    <% if (esporte.masculino) { %>
+                      <label style="display: flex; align-items: center; gap: 0.65rem; cursor: pointer; color: rgba(255,255,255,0.85); font-weight: 600;">
+                        <input type="checkbox" name="modalidades" value="<%= esporte.masculino %>" <%= selecionadoMasculino ? 'checked' : '' %> style="width: 18px; height: 18px; accent-color: #ece42d;">
+                        Masculino
+                      </label>
+                    <% } %>
+                    <% if (esporte.feminino) { %>
+                      <label style="display: flex; align-items: center; gap: 0.65rem; cursor: pointer; color: rgba(255,255,255,0.85); font-weight: 600;">
+                        <input type="checkbox" name="modalidades" value="<%= esporte.feminino %>" <%= selecionadoFeminino ? 'checked' : '' %> style="width: 18px; height: 18px; accent-color: #ece42d;">
+                        Feminino
+                      </label>
+                    <% } %>
                   </div>
                 </div>
               <% }); %>
@@ -173,12 +195,12 @@
 
             <label>
               Matrícula
-              <input type="text" name="matricula" placeholder="Ex: 20261102" value="<%= matriculaFormulario %>" required class="premium-text-input">
+              <input type="text" name="matricula" placeholder="Ex: 20261102" value="<%= matriculaFormulario %>" required class="premium-text-input" inputmode="numeric" maxlength="12" pattern="[0-9]{9,12}">
             </label>
 
             <label>
               CPF
-              <input type="text" name="cpf" placeholder="Ex: 123.456.789-00" value="<%= cpfFormulario %>" class="premium-text-input">
+              <input type="text" name="cpf" placeholder="Ex: 123.456.789-00" value="<%= cpfFormulario %>" class="premium-text-input" inputmode="numeric" maxlength="14" autocomplete="off">
             </label>
 
             <label>
@@ -217,6 +239,32 @@
               <small style="display:block; margin-top: 0.55rem; color: rgba(255,255,255,0.6);">Preencha todos os campos e marque no máximo 3 opções.</small>
             </div>
 
+            <div id="detalhes-atleta" style="display: none; grid-column: 1 / -1; margin-top: 0.25rem; padding: 1rem; border-radius: 14px; border: 1px solid rgba(236, 228, 45, 0.16); background: rgba(255,255,255,0.03);">
+              <div id="detalhes-atletismo" style="display: none; margin-bottom: 1rem;">
+                <strong style="display:block; margin-bottom: 0.6rem; color: #ffffff;">Provas de Atletismo</strong>
+                <div class="prova-pills">
+                  <% ['100m rasos', '200m rasos', '400m', '800m', '1500m', '3000m', '5000m', '4x100m', '4x400m', 'Salto em distância', 'Salto em altura', 'Salto Triplo', 'Disco', 'Dardo', 'Peso'].forEach(function(prova) { %>
+                    <label class="prova-pill">
+                      <input type="checkbox" name="atletismoProvas" value="<%= prova %>" <%= provasAtletismoFormulario.includes(prova) ? 'checked' : '' %>>
+                      <span><%= prova %></span>
+                    </label>
+                  <% }); %>
+                </div>
+              </div>
+
+              <div id="detalhes-tenis-mesa" style="display: none;">
+                <strong style="display:block; margin-bottom: 0.6rem; color: #ffffff;">Participação no Tênis de Mesa</strong>
+                <div class="prova-pills">
+                  <% ['Individual', 'Duplas', 'Individual e Duplas'].forEach(function(participacao) { %>
+                    <label class="prova-pill">
+                      <input type="checkbox" name="tenisMesaParticipacoes" value="<%= participacao %>" <%= participacoesTenisMesaFormulario.includes(participacao) ? 'checked' : '' %>>
+                      <span><%= participacao %></span>
+                    </label>
+                  <% }); %>
+                </div>
+              </div>
+            </div>
+
             <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; grid-column: 1 / -1;">
               <label style="display: flex; align-items: center; gap: 0.55rem; color: rgba(255,255,255,0.75); font-size: 0.95rem;">
                 <input type="checkbox" name="validarImediatamente" value="true">
@@ -252,7 +300,15 @@
                       <td style="color: rgba(255,255,255,0.7);"><%= atleta.cpf || '-' %></td>
                       <td>
                         <% const modalidadesAtleta = Array.isArray(atleta.modalidades) ? atleta.modalidades : String(atleta.modalidade || '').split(',').map((item) => item.trim()).filter(Boolean); %>
-                        <span class="status-tag" style="background: rgba(255,255,255,0.05); color: #fff;"><%= modalidadesAtleta.join(', ') %></span>
+                        <div style="display:flex; flex-direction:column; gap:0.35rem;">
+                          <span class="status-tag" style="background: rgba(255,255,255,0.05); color: #fff;"><%= modalidadesAtleta.join(', ') %></span>
+                          <% if (Array.isArray(atleta.atletismoProvas) && atleta.atletismoProvas.length) { %>
+                            <span class="status-tag" style="background: rgba(236, 228, 45, 0.15); color: #ece42d;">Atletismo: <%= atleta.atletismoProvas.join(', ') %></span>
+                          <% } %>
+                          <% if (Array.isArray(atleta.tenisMesaParticipacoes) && atleta.tenisMesaParticipacoes.length) { %>
+                            <span class="status-tag" style="background: rgba(236, 228, 45, 0.15); color: #ece42d;">Tênis de Mesa: <%= atleta.tenisMesaParticipacoes.join(', ') %></span>
+                          <% } %>
+                        </div>
                       </td>
                       <td>
                         <% if (atleta.status === 'Regular') { %>
@@ -275,7 +331,7 @@
                   <% }); %>
                 <% } else { %>
                   <tr>
-                    <td colspan="5" class="feedback-empty">
+                    <td colspan="6" class="feedback-empty">
                       Nenhum atleta inscrito até o momento.
                     </td>
                   </tr>
@@ -287,13 +343,56 @@
       </div>
       <% } %>
 
+      <% if (mostrarAtletas) { %>
+      <script>
+        (function () {
+          const formAtleta = document.querySelector('#atletas form.form-grid');
+          const campoMatricula = formAtleta ? formAtleta.querySelector('input[name="matricula"]') : null;
+          const campoCpf = formAtleta ? formAtleta.querySelector('input[name="cpf"]') : null;
+
+          function aplicarMascaraCpf(valor) {
+            const apenasDigitos = String(valor || '').replace(/\D/g, '').slice(0, 11);
+            if (apenasDigitos.length <= 3) return apenasDigitos;
+            if (apenasDigitos.length <= 6) return `${apenasDigitos.slice(0, 3)}.${apenasDigitos.slice(3)}`;
+            if (apenasDigitos.length <= 9) return `${apenasDigitos.slice(0, 3)}.${apenasDigitos.slice(3, 6)}.${apenasDigitos.slice(6)}`;
+            return `${apenasDigitos.slice(0, 3)}.${apenasDigitos.slice(3, 6)}.${apenasDigitos.slice(6, 9)}-${apenasDigitos.slice(9, 11)}`;
+          }
+
+          function aplicarMascaraMatricula(valor) {
+            return String(valor || '').replace(/\D/g, '').slice(0, 12);
+          }
+
+          if (campoCpf) {
+            campoCpf.addEventListener('input', function () {
+              campoCpf.value = aplicarMascaraCpf(campoCpf.value);
+            });
+            campoCpf.value = aplicarMascaraCpf(campoCpf.value);
+          }
+
+          if (campoMatricula) {
+            campoMatricula.addEventListener('input', function () {
+              campoMatricula.value = aplicarMascaraMatricula(campoMatricula.value);
+            });
+            campoMatricula.value = aplicarMascaraMatricula(campoMatricula.value);
+          }
+        })();
+      </script>
+      <% } %>
+
       <% if (mostrarAtletas && modalidadesSalvas.length > 0) { %>
       <script>
         (function () {
           const formAtletas = document.querySelector('#atletas form[action="/campus/atletas/cadastrar"]');
-          const generoSelect = formAtletas ? formAtletas.querySelector('#genero-atleta') : null;
-          const checkboxGrids = formAtletas ? Array.from(formAtletas.querySelectorAll('[data-gender-grid]')) : [];
-          const checkboxes = formAtletas ? Array.from(formAtletas.querySelectorAll('input[name="modalidades"]')) : [];
+          const formAtletasEdicao = document.querySelector('#atletas form[action^="/campus/atletas/atualizar/"]');
+          const formAtletaAtivo = formAtletasEdicao || formAtletas;
+          const generoSelect = formAtletaAtivo ? formAtletaAtivo.querySelector('#genero-atleta') : null;
+          const checkboxGrids = formAtletaAtivo ? Array.from(formAtletaAtivo.querySelectorAll('[data-gender-grid]')) : [];
+          const checkboxes = formAtletaAtivo ? Array.from(formAtletaAtivo.querySelectorAll('input[name="modalidades"]')) : [];
+          const detalhesAtleta = formAtletaAtivo ? formAtletaAtivo.querySelector('#detalhes-atleta') : null;
+          const detalhesAtletismo = formAtletaAtivo ? formAtletaAtivo.querySelector('#detalhes-atletismo') : null;
+          const detalhesTenisMesa = formAtletaAtivo ? formAtletaAtivo.querySelector('#detalhes-tenis-mesa') : null;
+          const checkboxesAtletismo = formAtletaAtivo ? Array.from(formAtletaAtivo.querySelectorAll('input[name="atletismoProvas"]')) : [];
+          const checkboxesTenisMesa = formAtletaAtivo ? Array.from(formAtletaAtivo.querySelectorAll('input[name="tenisMesaParticipacoes"]')) : [];
           if (!checkboxes.length) {
             return;
           }
@@ -325,6 +424,9 @@
             const visiveis = checkboxes.filter((item) => item.closest('[data-gender-grid]')?.dataset.genderGrid === generoAtual);
             const marcadas = visiveis.filter((item) => item.checked);
             const bloqueadas = marcadas.length >= maxSelecionadas;
+            const modalidadesSelecionadas = visiveis.filter((item) => item.checked).map((item) => item.value);
+            const temAtletismo = modalidadesSelecionadas.some((modalidade) => /atletismo/i.test(modalidade));
+            const temTenisMesa = modalidadesSelecionadas.some((modalidade) => /tênis de mesa|tenis de mesa/i.test(modalidade));
 
             visiveis.forEach((item) => {
               if (!item.checked) {
@@ -339,6 +441,16 @@
                 item.disabled = true;
               }
             });
+
+            if (detalhesAtleta) {
+              detalhesAtleta.style.display = (temAtletismo || temTenisMesa) ? '' : 'none';
+            }
+            if (detalhesAtletismo) {
+              detalhesAtletismo.style.display = temAtletismo ? '' : 'none';
+            }
+            if (detalhesTenisMesa) {
+              detalhesTenisMesa.style.display = temTenisMesa ? '' : 'none';
+            }
           }
 
           checkboxes.forEach((item) => {
@@ -353,11 +465,16 @@
             });
           });
 
+          [...checkboxesAtletismo, ...checkboxesTenisMesa].forEach((item) => {
+            item.addEventListener('change', atualizarEstado);
+          });
+
           if (generoSelect) {
             generoSelect.addEventListener('change', atualizarGradeGenero);
           }
 
           atualizarGradeGenero();
+          atualizarEstado();
         })();
       </script>
       <% } %>

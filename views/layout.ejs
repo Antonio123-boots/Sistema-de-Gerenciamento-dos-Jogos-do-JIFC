@@ -65,14 +65,33 @@
         <div class="menu-modalidades">
             <div class="modalidades-container">
                 <ul class="modalidades-list">
-                    <li class="modalidade-item"><a><img src="/imagens/atletismo1.svg" style="height: 35px;"><span>ATLETISMO</span></a></li>
-                    <li class="modalidade-item"><a><img src="/imagens/basquete1.svg" style="height: 35px;"><span>BASQUETE</span></a></li>
-                    <li class="modalidade-item"><a><img src="/imagens/futsal1.svg" style="height: 35px;"><span>FUTSAL</span></a></li>
-                    <li class="modalidade-item"><a><img src="/imagens/handebol1.svg" style="height: 35px;"><span>HANDEBOL</span></a></li>
-                    <li class="modalidade-item"><a><img src="/imagens/tenisdemesa1.svg" style="height: 35px;"><span>TÊNIS DE MESA</span></a></li>
-                    <li class="modalidade-item"><a><img src="/imagens/volei1.svg" style="height: 35px;"><span>VOLEIBOL</span></a></li>
-                    <li class="modalidade-item"><a><img src="/imagens/areia1.svg" style="height: 35px;"><span>VOLEI DE PRAIA</span></a></li>
-                    <li class="modalidade-item"><a><img src="/imagens/xadrez1.svg" style="height: 35px;"><span>XADREZ</span></a></li>
+                    <% if (Array.isArray(modalidades) && modalidades.length) { %>
+                        <% modalidades.forEach((mod) => {
+                            const nomeBase = String(mod.nomeBase || mod.nome || '').trim();
+                            const imagem = mod.imagem || '/imagens/atletismo1.svg';
+                            const slugBase = String(mod.slugBase || mod.slug || '').trim();
+                            const isActive = typeof modalidadeSelecionada !== 'undefined' && modalidadeSelecionada && modalidadeSelecionada === slugBase;
+                            const query = new URLSearchParams();
+                            if (slugBase) query.set('modalidade', slugBase);
+                            if (typeof diaSelecionado !== 'undefined' && diaSelecionado) query.set('dia', diaSelecionado);
+                        %>
+                            <li class="modalidade-item <%= isActive ? 'is-active' : '' %>">
+                                <a href="/<%= query.toString() ? '?' + query.toString() : '' %>">
+                                    <img src="<%= imagem %>" style="height: 35px;" alt="<%= nomeBase %>">
+                                    <span><%= nomeBase.toUpperCase() %></span>
+                                </a>
+                            </li>
+                        <% }); %>
+                    <% } else { %>
+                        <li class="modalidade-item"><a href="/"><img src="/imagens/atletismo1.svg" style="height: 35px;"><span>ATLETISMO</span></a></li>
+                        <li class="modalidade-item"><a href="/"><img src="/imagens/basquete1.svg" style="height: 35px;"><span>BASQUETE</span></a></li>
+                        <li class="modalidade-item"><a href="/"><img src="/imagens/futsal1.svg" style="height: 35px;"><span>FUTSAL</span></a></li>
+                        <li class="modalidade-item"><a href="/"><img src="/imagens/handebol1.svg" style="height: 35px;"><span>HANDEBOL</span></a></li>
+                        <li class="modalidade-item"><a href="/"><img src="/imagens/tenisdemesa1.svg" style="height: 35px;"><span>TÊNIS DE MESA</span></a></li>
+                        <li class="modalidade-item"><a href="/"><img src="/imagens/volei1.svg" style="height: 35px;"><span>VOLEIBOL</span></a></li>
+                        <li class="modalidade-item"><a href="/"><img src="/imagens/areia1.svg" style="height: 35px;"><span>VOLEI DE PRAIA</span></a></li>
+                        <li class="modalidade-item"><a href="/"><img src="/imagens/xadrez1.svg" style="height: 35px;"><span>XADREZ</span></a></li>
+                    <% } %>
                 </ul>
             </div>
         </div>
@@ -80,9 +99,14 @@
         <div class="menu-dias">
             <div class="dias-container">
                 <ul class="dias-list">
-                    <li class="dia-item"><a>DIA 1</a></li>
-                    <li class="dia-item"><a>DIA 2</a></li>
-                    <li class="dia-item"><a>DIA 3</a></li>
+                    <% const diasAtivos = Array.isArray(diasDisponiveis) && diasDisponiveis.length ? diasDisponiveis : ['24/06', '25/06', '26/06']; %>
+                    <% diasAtivos.forEach((dia) => { %>
+                        <% const queryDia = new URLSearchParams(); %>
+                        <% if (typeof modalidadeSelecionada !== 'undefined' && modalidadeSelecionada) queryDia.set('modalidade', modalidadeSelecionada); %>
+                        <% queryDia.set('dia', dia); %>
+                        <% const isActiveDay = typeof diaSelecionado !== 'undefined' && diaSelecionado === dia; %>
+                        <li class="dia-item <%= isActiveDay ? 'is-active' : '' %>"><a href="/<%= '?' + queryDia.toString() %>">DIA <%= dia %></a></li>
+                    <% }); %>
                 </ul>
             </div>
         </div>
