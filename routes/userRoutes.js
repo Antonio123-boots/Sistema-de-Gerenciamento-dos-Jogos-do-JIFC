@@ -22,9 +22,7 @@ const modalidades = [
 ];
 
 function normalizarNomeBase(nome) {
-    return String(nome || '')
-        .replace(/\s+(Masculino|Feminino)$/i, '')
-        .trim();
+    return String(nome || '').trim();
 }
 
 function gerarSlugBase(nome) {
@@ -32,6 +30,32 @@ function gerarSlugBase(nome) {
         .toLowerCase()
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+}
+
+function normalizarGeneroTexto(valor = '') {
+    return String(valor || '').trim().toLowerCase();
+}
+
+function obterBaseEsporte(valor = '') {
+    const texto = String(valor || '')
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/(^-|-$)/g, '');
+
+    if (!texto) {
+        return '';
+    }
+
+    return texto
+        .replace(/-(masculino|feminino)$/g, '')
+        .replace(/\s+(masculino|feminino)$/g, '')
+        .replace(/(^masculino$|^feminino$)/g, '')
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '');
 }
@@ -51,30 +75,113 @@ function mapearImagemModalidade(nome) {
     return '/imagens/atletismo1.svg';
 }
 
-function formatarModalidadesParaHome(modalidadesBanco = []) {
+function formatarModalidadesParaHome(modalidadesBanco = [], generoAtivo = '', modalidadeAtiva = '') {
+    const generoFiltro = String(generoAtivo || '').trim().toLowerCase();
+    const modalidadeAtivaSlug = String(modalidadeAtiva || '').trim().toLowerCase();
+    
+    // Quando há esporte selecionado, retornar TODAS as modalidades daquele esporte (ambos os gêneros)
+    if (modalidadeAtivaSlug && !generoFiltro) {
+        const baseEsporte = obterBaseEsporte(modalidadeAtivaSlug);
+        return (Array.isArray(modalidadesBanco) ? modalidadesBanco : [])
+            .map((mod, index) => {
+                const nome = String(mod.nome || '').trim() || `Modalidade ${index + 1}`;
+                const nomeBase = normalizarNomeBase(nome);
+                const genero = String(mod.genero || '').trim();
+                const slugBase = gerarSlugBase(nomeBase);
+                const slugMod = String(mod.slug || `${slugBase}-${String(genero || 'geral').trim().toLowerCase()}`).trim();
+                return {
+                    ...mod,
+                    nome: nomeBase,
+                    nomeBase,
+                    slug: slugMod,
+                    slugBase,
+                    dia: String(mod.dia || mod.data || '').trim(),
+                    imagem: String(mod.imagem || mod.icone || mapearImagemModalidade(nome)).trim() || '/imagens/atletismo1.svg',
+                    genero
+                };
+            })
+            .filter(mod => obterBaseEsporte(String(mod.slug || mod.slugBase || '')) === baseEsporte || obterBaseEsporte(String(mod.nome || '')) === baseEsporte)
+            .sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || '')));
+    }
+    
+    // Quando não há filtro nenhum, retornar UMA modalidade por esporte (sem filtro de gênero)
+    if (!generoFiltro && !modalidadeAtivaSlug) {
+        const mapa = new Map();
+        (Array.isArray(modalidadesBanco) ? modalidadesBanco : []).forEach((mod, index) => {
+            const nome = String(mod.nome || '').trim() || `Modalidade ${index + 1}`;
+            const nomeBase = normalizarNomeBase(nome);
+            const genero = String(mod.genero || '').trim();
+            const slugBase = gerarSlugBase(nomeBase);
+            const slugMod = String(mod.slug || `${slugBase}-${String(genero || 'geral').trim().toLowerCase()}`).trim();
+            const chave = slugBase;
+            const item = {
+                ...mod,
+                nome: nomeBase,
+                nomeBase,
+                slug: slugMod,
+                slugBase,
+                dia: String(mod.dia || mod.data || '').trim(),
+                imagem: String(mod.imagem || mod.icone || mapearImagemModalidade(nome)).trim() || '/imagens/atletismo1.svg',
+                genero
+            };
+
+            if (!mapa.has(chave)) {
+                mapa.set(chave, item);
+            }
+        });
+        return Array.from(mapa.values()).sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || '')));
+    }
+    
+    // Com filtro de gênero, usar comportamento original
     const mapa = new Map();
 
     (Array.isArray(modalidadesBanco) ? modalidadesBanco : []).forEach((mod, index) => {
         const nome = String(mod.nome || '').trim() || `Modalidade ${index + 1}`;
         const nomeBase = normalizarNomeBase(nome);
+        const genero = String(mod.genero || '').trim();
         const slugBase = gerarSlugBase(nomeBase);
-
-        if (mapa.has(slugBase)) {
-            return;
-        }
-
-        mapa.set(slugBase, {
+        const slugMod = String(mod.slug || `${slugBase}-${String(genero || 'geral').trim().toLowerCase()}`).trim();
+        const chave = slugBase;
+        const item = {
             ...mod,
             nome: nomeBase,
             nomeBase,
-            slug: String(mod.slug || slugBase).trim(),
+            slug: slugMod,
             slugBase,
             dia: String(mod.dia || mod.data || '').trim(),
-            imagem: String(mod.imagem || mod.icone || mapearImagemModalidade(nome)).trim() || '/imagens/atletismo1.svg'
-        });
+            imagem: String(mod.imagem || mod.icone || mapearImagemModalidade(nome)).trim() || '/imagens/atletismo1.svg',
+            genero
+        };
+
+        const slugComparavel = String(slugMod || slugBase || '').trim().toLowerCase();
+        const baseSemGenero = slugBase.replace(/-(masculino|feminino)$/i, '');
+        const modalidadeAtivaBase = modalidadeAtivaSlug.replace(/-(masculino|feminino)$/i, '');
+        const coincideComAtiva = Boolean(modalidadeAtivaSlug) && (
+            slugComparavel === modalidadeAtivaSlug ||
+            slugBase === modalidadeAtivaSlug ||
+            baseSemGenero === modalidadeAtivaBase
+        );
+
+        if (generoFiltro && String(genero || '').trim().toLowerCase() !== generoFiltro && !coincideComAtiva) {
+            return;
+        }
+
+        if (!mapa.has(chave)) {
+            mapa.set(chave, item);
+            return;
+        }
+
+        const atual = mapa.get(chave);
+        if ((String(atual.genero || '').trim().toLowerCase() === 'masculino' && String(genero || '').trim().toLowerCase() === 'feminino') ||
+            (String(atual.genero || '').trim().toLowerCase() === 'feminino' && String(genero || '').trim().toLowerCase() === 'masculino')) {
+            const itemPreferido = generoFiltro
+                ? (String(genero || '').trim().toLowerCase() === generoFiltro ? item : atual)
+                : atual;
+            mapa.set(chave, itemPreferido);
+        }
     });
 
-    return Array.from(mapa.values());
+    return Array.from(mapa.values()).sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || '')));
 }
 
 function montarDiasDisponiveis(modalidadesParaExibir = []) {
@@ -103,18 +210,19 @@ function agruparJogosPorDia(jogos) {
 }
 
 function gerarDiasDoEvento(configuracoes) {
-    const inicioEvento = configuracoes.inicio_evento;
-    const fimEvento = configuracoes.fim_evento;
+    const config = configuracoes && typeof configuracoes === 'object' ? configuracoes : {};
+    const inicioEvento = String(config.inicio_evento || '').trim();
+    const fimEvento = String(config.fim_evento || '').trim();
 
     if (!inicioEvento || !fimEvento) {
-        return [];
+        return ['24/06', '25/06', '26/06'];
     }
 
     const inicio = new Date(`${inicioEvento}T00:00:00`);
     const fim = new Date(`${fimEvento}T00:00:00`);
 
     if (Number.isNaN(inicio.getTime()) || Number.isNaN(fim.getTime()) || inicio > fim) {
-        return [];
+        return ['24/06', '25/06', '26/06'];
     }
 
     const dias = [];
@@ -127,7 +235,7 @@ function gerarDiasDoEvento(configuracoes) {
         cursor.setDate(cursor.getDate() + 1);
     }
 
-    return dias;
+    return dias.length ? dias : ['24/06', '25/06', '26/06'];
 }
 
 function gerarJogos() {
@@ -174,41 +282,222 @@ router.get('/', async function(req, res, next) {
     try {
         const modalidadeSelecionada = String(req.query.modalidade || '').trim();
         const diaSelecionadoSolicitado = String(req.query.dia || '').trim();
+        const generoSelecionadoSolicitado = String(req.query.genero || '').trim();
         const modalidadesBanco = await adminModel.getModalidadesBanco();
-        const modalidadesDisponiveis = formatarModalidadesParaHome(modalidadesBanco);
-        const diasDisponiveis = montarDiasDisponiveis(modalidadesDisponiveis);
-        const diaSelecionado = diasDisponiveis.includes(diaSelecionadoSolicitado)
-            ? diaSelecionadoSolicitado
-            : (diasDisponiveis[0] || '');
-
-        const lista = filtrarModalidadesParaHome(modalidadesDisponiveis, {
-            modalidade: modalidadeSelecionada,
-            dia: diaSelecionado
+        const configuracoesBanco = await adminModel.getConfiguracoesBanco();
+        const configuracoesAtuais = configuracoesBanco || adminModel.getConfiguracoes();
+        const generosDisponiveis = [...new Set((Array.isArray(modalidadesBanco) ? modalidadesBanco : []).map((mod) => String(mod.genero || '').trim()).filter(Boolean))];
+        const jogosPublicadosBase = await adminModel.getJogosPublicados({});
+        const diasDisponiveisBase = [...new Set((Array.isArray(jogosPublicadosBase) ? jogosPublicadosBase : []).map((jogo) => String(jogo.data || '').trim()).filter(Boolean))].sort((a, b) => {
+            const [diaA, mesA] = a.split('/').map(Number);
+            const [diaB, mesB] = b.split('/').map(Number);
+            return (mesA * 100 + diaA) - (mesB * 100 + diaB);
+        });
+        const diasDisponiveisEvento = gerarDiasDoEvento(configuracoesAtuais);
+        const diasDisponiveis = [...new Set([...(Array.isArray(diasDisponiveisEvento) ? diasDisponiveisEvento : []), ...(Array.isArray(diasDisponiveisBase) ? diasDisponiveisBase : [])])].sort((a, b) => {
+            const [diaA, mesA] = a.split('/').map(Number);
+            const [diaB, mesB] = b.split('/').map(Number);
+            return (mesA * 100 + diaA) - (mesB * 100 + diaB);
         });
 
-        res.locals.modalidades = modalidadesDisponiveis;
+        const hoje = new Date();
+        const hojeFormatado = `${hoje.getDate()}/${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+        let diaPadraoAutomatico = diasDisponiveis.length ? diasDisponiveis[0] : '26/08';
+        if (diasDisponiveis.length >= 3) {
+            const [diaAtual, mesAtual] = hojeFormatado.split('/').map(Number);
+            const [dia26, mes26] = (diasDisponiveis[0] || '26/08').split('/').map(Number);
+            const [dia28, mes28] = (diasDisponiveis[diasDisponiveis.length - 1] || '28/08').split('/').map(Number);
+            const dataAtual = mesAtual * 100 + diaAtual;
+            const dataPrimeira = mes26 * 100 + dia26;
+            const dataUltima = mes28 * 100 + dia28;
+            diaPadraoAutomatico = dataAtual < dataPrimeira ? diasDisponiveis[0] : diasDisponiveis[diasDisponiveis.length - 1];
+        }
+
+        const diaSelecionado = diasDisponiveis.includes(diaSelecionadoSolicitado)
+            ? diaSelecionadoSolicitado
+            : '';
+
+        let generoSelecionado = generosDisponiveis.find((generoDisponivel) =>
+            normalizarGeneroTexto(generoDisponivel) === normalizarGeneroTexto(generoSelecionadoSolicitado)
+        ) || '';
+
+        // Sempre manter TODAS as modalidades para exibir nos filtros
+        const todasAsModalidades = formatarModalidadesParaHome(modalidadesBanco, '', '');
+        
+        // Modalidades para tabela (apenas do esporte selecionado se houver)
+        const modalidadesDisponiveis = formatarModalidadesParaHome(modalidadesBanco, generoSelecionado, modalidadeSelecionada);
+        const modalidadesDoGeneroSelecionado = generoSelecionado
+            ? modalidadesDisponiveis.filter((mod) => normalizarGeneroTexto(mod.genero) === normalizarGeneroTexto(generoSelecionado))
+            : modalidadesDisponiveis;
+
+        const modalidadeBaseSelecionadaSolicitada = obterBaseEsporte(modalidadeSelecionada);
+        let modalidadeSelecionadaValida = modalidadesDisponiveis.some((mod) => {
+            const slugAtual = String(mod.slug || mod.slugBase || '').trim();
+            const slugBaseAtual = String(mod.slugBase || mod.slug || '').trim();
+            const nomeBaseAtual = obterBaseEsporte(String(mod.nome || mod.nomeBase || ''));
+            return slugAtual === modalidadeSelecionada || slugBaseAtual === modalidadeSelecionada || nomeBaseAtual === modalidadeBaseSelecionadaSolicitada;
+        })
+            ? modalidadeSelecionada
+            : '';
+
+        if (!modalidadeSelecionadaValida && modalidadeBaseSelecionadaSolicitada && modalidadesDisponiveis.some((mod) => {
+            const slugAtual = String(mod.slug || mod.slugBase || '').trim();
+            const nomeBaseAtual = obterBaseEsporte(String(mod.nome || mod.nomeBase || ''));
+            return obterBaseEsporte(slugAtual) === modalidadeBaseSelecionadaSolicitada || nomeBaseAtual === modalidadeBaseSelecionadaSolicitada;
+        })) {
+            modalidadeSelecionadaValida = modalidadeSelecionada;
+        }
+
+        if (modalidadeSelecionadaValida && generoSelecionado && !modalidadesDoGeneroSelecionado.some((mod) => {
+            const slugAtual = String(mod.slug || mod.slugBase || '').trim();
+            const slugBaseAtual = String(mod.slugBase || mod.slug || '').trim();
+            return slugAtual === modalidadeSelecionadaValida || slugBaseAtual === modalidadeSelecionadaValida;
+        })) {
+            modalidadeSelecionadaValida = '';
+        }
+
+        const modalidadeSelecionadaObjeto = modalidadesDisponiveis.find((mod) => {
+            const slugAtual = String(mod.slug || mod.slugBase || '').trim();
+            const slugBaseAtual = String(mod.slugBase || mod.slug || '').trim();
+            return slugAtual === modalidadeSelecionadaValida || slugBaseAtual === modalidadeSelecionadaValida;
+        }) || null;
+
+        const modalidadeBaseSelecionada = (() => {
+            const valorBase = modalidadeSelecionadaValida || modalidadeSelecionada || '';
+            if (!valorBase) {
+                return '';
+            }
+
+            const baseDireta = obterBaseEsporte(valorBase);
+            if (baseDireta) {
+                return baseDireta;
+            }
+
+            if (modalidadeSelecionadaObjeto) {
+                return obterBaseEsporte(String(modalidadeSelecionadaObjeto.nome || modalidadeSelecionadaObjeto.nomeBase || modalidadeSelecionadaObjeto.slug || ''));
+            }
+
+            return '';
+        })();
+
+        const modalidadesEmExibicao = (() => {
+            if (modalidadeBaseSelecionada) {
+                const relacionadas = modalidadesDisponiveis.filter((mod) => {
+                    const slugModelo = String(mod.slug || mod.slugBase || '').trim();
+                    const nomeModelo = String(mod.nome || mod.nomeBase || '').trim();
+                    return obterBaseEsporte(slugModelo) === modalidadeBaseSelecionada || obterBaseEsporte(nomeModelo) === modalidadeBaseSelecionada;
+                });
+
+                if (generoSelecionado) {
+                    return relacionadas.filter((mod) => normalizarGeneroTexto(mod.genero) === normalizarGeneroTexto(generoSelecionado));
+                }
+
+                return relacionadas;
+            }
+
+            if (generoSelecionado) {
+                return modalidadesDisponiveis.filter((mod) => normalizarGeneroTexto(mod.genero) === normalizarGeneroTexto(generoSelecionado));
+            }
+
+            return modalidadesDisponiveis;
+        })();
+
+        const modalidadeSlugFiltro = modalidadeBaseSelecionada || modalidadeSelecionadaValida || '';
+
+        const jogos = await adminModel.getJogosPublicados({
+            genero: generoSelecionado || undefined,
+            dia: diaSelecionado || undefined,
+            modalidadeSlug: modalidadeSlugFiltro || undefined
+        });
+
+        let classificacao = [];
+        let grupos = [];
+        const modalidadesParaTabela = modalidadesEmExibicao.length
+            ? modalidadesEmExibicao
+            : (modalidadeSelecionadaObjeto ? [modalidadeSelecionadaObjeto] : []);
+
+        if (modalidadesParaTabela.length) {
+            for (const modalidadeTabela of modalidadesParaTabela) {
+                if (!modalidadeTabela || !modalidadeTabela.id) {
+                    continue;
+                }
+
+                const tabelaClassificacao = await adminModel.getClassificacaoModalidade(modalidadeTabela.id);
+                const tabelaGrupos = await adminModel.getChavesModalidade(modalidadeTabela.id);
+
+                if (Array.isArray(tabelaClassificacao) && tabelaClassificacao.length) {
+                    classificacao.push(...tabelaClassificacao.map((item) => ({
+                        ...item,
+                        genero_modalidade: String(modalidadeTabela.genero || item.genero || '').trim(),
+                        nome_modalidade: String(modalidadeTabela.nome || item.nome_modalidade || '').trim(),
+                        grupo_label: item.numero_chave ? `Grupo ${item.numero_chave}` : (tabelaGrupos?.[0]?.letra || '')
+                    })));
+                }
+
+                if (Array.isArray(tabelaGrupos) && tabelaGrupos.length) {
+                    grupos.push(...tabelaGrupos.map((grupo) => ({
+                        ...grupo,
+                        genero_modalidade: String(modalidadeTabela.genero || '').trim(),
+                        nome_modalidade: String(modalidadeTabela.nome || '').trim()
+                    })));
+                }
+            }
+
+            if (!classificacao.length && grupos.length) {
+                classificacao = grupos.flatMap((grupo) => {
+                    const participantes = Array.isArray(grupo.integrantes) ? grupo.integrantes : [];
+                    return participantes.map((participante, indice) => ({
+                        id: participante.id || `${grupo.id || 'grupo'}-${indice}`,
+                        participante_nome: String(participante.nome || participante.nomeCampus || 'Participante').trim() || `Participante ${indice + 1}`,
+                        pontos: 0,
+                        jogos_jogados: 0,
+                        vitorias: 0,
+                        empates: 0,
+                        derrotas: 0,
+                        pontos_pro: 0,
+                        pontos_contra: 0,
+                        saldo_pontuacao: 0,
+                        chave_id: grupo.id,
+                        numero_chave: grupo.numero_chave || grupo.letra || 1
+                    }));
+                });
+            }
+        }
+
+        res.locals.modalidades = todasAsModalidades;
         res.render('user', {
             title: 'JIFC - Início',
             usuarioLogado: req.session?.usuario || null,
             mostrarFiltros: true,
-            modalidades: lista,
+            modalidades: todasAsModalidades,
             diasDisponiveis,
+            generosDisponiveis,
             diaSelecionado,
-            modalidadeSelecionada: modalidadeSelecionada || null
+            generoSelecionado,
+            modalidadeSelecionada: modalidadeSelecionadaValida || modalidadeSelecionada || null,
+            jogos,
+            classificacao,
+            grupos,
+            esporteAtivo: Boolean(modalidadeSelecionadaValida || modalidadeSelecionada)
         });
     } catch (error) {
         console.error('Erro ao carregar home pública:', error);
         res.locals.modalidades = [];
         const modalidadeSelecionada = String(req.query.modalidade || '').trim();
         const diaSelecionadoSolicitado = String(req.query.dia || '').trim();
+        const generoSelecionadoSolicitado = String(req.query.genero || '').trim();
         const modalidadesDisponiveis = formatarModalidadesParaHome([]);
         const diasDisponiveis = montarDiasDisponiveis(modalidadesDisponiveis);
+        const generosDisponiveis = [];
         const diaSelecionado = diasDisponiveis.includes(diaSelecionadoSolicitado)
             ? diaSelecionadoSolicitado
-            : (diasDisponiveis[0] || '');
+            : '';
+        const generoSelecionado = '';
+        const modalidadeSelecionadaValida = '';
         const lista = filtrarModalidadesParaHome(modalidadesDisponiveis, {
-            modalidade: modalidadeSelecionada,
-            dia: diaSelecionado
+            modalidade: modalidadeSelecionadaValida,
+            dia: diaSelecionado,
+            genero: generoSelecionado
         });
 
         res.render('user', {
@@ -217,8 +506,14 @@ router.get('/', async function(req, res, next) {
             mostrarFiltros: true,
             modalidades: lista,
             diasDisponiveis,
+            generosDisponiveis,
             diaSelecionado,
-            modalidadeSelecionada: modalidadeSelecionada || null
+            generoSelecionado,
+            modalidadeSelecionada: modalidadeSelecionadaValida || null,
+            jogos: [],
+            classificacao: [],
+            grupos: [],
+            esporteAtivo: Boolean(modalidadeSelecionadaValida)
         });
     }
 });

@@ -1,4 +1,275 @@
-<div class="welcome-card">
-    <h1>🏆 JIFC - Jogos Internos do JIFC 🏆</h1>
-    <p>Selecione uma modalidade e um dia para acompanhar os resultados!</p>
-</div>
+<% 
+    const temEsporteAtivo = Boolean(esporteAtivo && esporteAtivo === true);
+    const temClassificacao = Array.isArray(classificacao) && classificacao.length > 0;
+    const filtroAtivo = Boolean((typeof modalidadeSelecionada !== 'undefined' && modalidadeSelecionada) || (typeof generoSelecionado !== 'undefined' && generoSelecionado));
+    const exibirTabelaClassificacao = Boolean(modalidadeSelecionada) && (
+        (Array.isArray(classificacao) && classificacao.length > 0) ||
+        (Array.isArray(grupos) && grupos.length > 0)
+    );
+    const exibirCarrossel = false;
+    const nomeModalidadeAtual = [
+        typeof modalidadeSelecionada !== 'undefined' ? String(modalidadeSelecionada || '') : '',
+        (Array.isArray(jogos) && jogos.length && jogos[0] && jogos[0].modalidade) ? String(jogos[0].modalidade) : '',
+        (Array.isArray(classificacao) && classificacao.length && classificacao[0] && classificacao[0].nome_modalidade) ? String(classificacao[0].nome_modalidade) : '',
+        (Array.isArray(grupos) && grupos.length && grupos[0] && grupos[0].nome_modalidade) ? String(grupos[0].nome_modalidade) : ''
+    ].find((valor) => String(valor || '').trim()) || '';
+    const ehAtletismo = /atletismo/i.test(nomeModalidadeAtual);
+    const ehXadrez = /xadrez/i.test(nomeModalidadeAtual);
+    const mostraPontuacao = ehXadrez || !ehAtletismo;
+    const ehTabelaDireta = ehAtletismo || ehXadrez || !(Array.isArray(grupos) && grupos.length);
+    const labelGrupo = ehAtletismo ? 'Categoria' : (ehXadrez ? 'Classificação' : 'Grupo');
+    const deveAgruparPorGenero = !(ehAtletismo || ehXadrez);
+    const defaultGrupo = {
+        numero_chave: 1,
+        letra: 'Geral',
+        integrantes: [
+            { nome: 'Campus 1', foto: '/imagens/avatar.svg', pontos: 0, jogos_jogados: 0, vitorias: 0, empates: 0, derrotas: 0, pontos_pro: 0, pontos_contra: 0 },
+            { nome: 'Campus 2', foto: '/imagens/avatar.svg', pontos: 0, jogos_jogados: 0, vitorias: 0, empates: 0, derrotas: 0, pontos_pro: 0, pontos_contra: 0 },
+            { nome: 'Campus 3', foto: '/imagens/avatar.svg', pontos: 0, jogos_jogados: 0, vitorias: 0, empates: 0, derrotas: 0, pontos_pro: 0, pontos_contra: 0 },
+            { nome: 'Campus 4', foto: '/imagens/avatar.svg', pontos: 0, jogos_jogados: 0, vitorias: 0, empates: 0, derrotas: 0, pontos_pro: 0, pontos_contra: 0 }
+        ]
+    };
+    
+    // Agrupar grupos por gênero
+    const gruposPorGenero = {};
+    if (Array.isArray(grupos) && grupos.length) {
+        grupos.forEach((grupo) => {
+            const genero = String(grupo.genero_modalidade || 'Geral').trim();
+            if (!gruposPorGenero[genero]) {
+                gruposPorGenero[genero] = [];
+            }
+            gruposPorGenero[genero].push(grupo);
+        });
+    }
+    
+    const gruposExibicao = Array.isArray(grupos) && grupos.length
+        ? grupos.slice().sort((a, b) => {
+            const ordemGenero = (valor) => String(valor || '').toLowerCase().includes('feminino') ? 1 : 0;
+            return ordemGenero(a.genero_modalidade) - ordemGenero(b.genero_modalidade);
+        })
+        : [defaultGrupo];
+%>
+
+<main style="<%= exibirTabelaClassificacao ? 'display:grid; grid-template-columns:minmax(0, 1.2fr) minmax(0, 0.8fr); gap:1.2rem; align-items:stretch; width:100%; max-width:100%;' : 'display:block; width:100%;' %>">
+    <% if (exibirTabelaClassificacao) { %>
+        <aside style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:0.6rem 0.7rem 0.8rem; height:fit-content; position:sticky; top:1.5rem; box-shadow:0 4px 18px rgba(0,0,0,0.18); width:100%; max-width:100%; box-sizing:border-box;">
+            <% if (deveAgruparPorGenero) { %>
+                <% 
+                    const generosOrdenados = ['Masculino', 'Feminino'];
+                    const gruposPorGeneroExibicao = {};
+                    
+                    generosOrdenados.forEach((genero) => {
+                        gruposPorGeneroExibicao[genero] = Array.isArray(grupos) 
+                            ? grupos.filter(g => String(g.genero_modalidade || '').trim().toLowerCase() === genero.toLowerCase())
+                            : [];
+                    });
+                %>
+                <% generosOrdenados.forEach((genero) => { %>
+                    <% const gruposGenero = gruposPorGeneroExibicao[genero] || []; %>
+                    <% if (gruposGenero.length > 0) { %>
+                        <div style="margin-bottom:1.2rem;">
+                            <div style="display:flex; align-items:center; justify-content:space-between; padding:0.45rem 0.3rem 0.35rem; border-bottom:1px solid rgba(255,255,255,0.07); margin-bottom:0.4rem;">
+                                <div style="font-size:0.72rem; color:#dfe3e8; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;">Classificação - <%= genero %></div>
+                                <div style="font-size:0.72rem; color:#fff; font-weight:700;">0</div>
+                            </div>
+
+                            <% gruposGenero.forEach((grupo) => { %>
+                                <div style="margin-bottom:0.7rem;">
+                                    <div style="padding:0.3rem 0.2rem; color:#cfd8dc; font-size:0.62rem; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; border-bottom:1px solid rgba(255,255,255,0.06); margin-bottom:0.3rem;">
+                                        <%= labelGrupo %> <%= grupo.letra || grupo.numero_chave || 'Geral' %>
+                                    </div>
+
+                                    <div style="border:1px solid rgba(255,255,255,0.08); border-radius:10px; overflow:hidden; background:rgba(255,255,255,0.02);">
+                                        <div style="display:grid; grid-template-columns:<%= mostraPontuacao ? '30px minmax(0, 1.9fr) repeat(7, minmax(0, 0.56fr))' : '30px minmax(0, 2.1fr) minmax(0, 1.1fr)' %>; align-items:center; gap:0.12rem; font-size:0.62rem; color:#b8c2cc; padding:0.34rem 0.24rem 0.28rem; border-bottom:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02);">
+                                            <div style="font-weight:700; color:#dfe3e8; text-align:center;">#</div>
+                                            <div style="font-weight:700; color:#dfe3e8; padding-left:0.1rem;">Campus</div>
+                                            <% if (mostraPontuacao) { %>
+                                                <div style="font-weight:700; color:#dfe3e8; text-align:center;">Pts</div>
+                                                <div style="font-weight:700; color:#dfe3e8; text-align:center;">PJ</div>
+                                                <div style="font-weight:700; color:#dfe3e8; text-align:center;">V</div>
+                                                <div style="font-weight:700; color:#dfe3e8; text-align:center;">E</div>
+                                                <div style="font-weight:700; color:#dfe3e8; text-align:center;">D</div>
+                                                <div style="font-weight:700; color:#dfe3e8; text-align:center;">GP</div>
+                                                <div style="font-weight:700; color:#dfe3e8; text-align:center;">GC</div>
+                                            <% } else { %>
+                                                <div style="font-weight:700; color:#dfe3e8; text-align:center;">Resultado</div>
+                                            <% } %>
+                                        </div>
+
+                                        <% const participacoes = Array.isArray(grupo.integrantes) && grupo.integrantes.length
+                                            ? grupo.integrantes
+                                            : (Array.isArray(classificacao) && classificacao.length ? classificacao.filter(c => String(c.genero_modalidade || '').trim().toLowerCase() === genero.toLowerCase()).slice(0, 4).map((item) => ({
+                                                nome: item.participante_nome || item.nome || 'Campus',
+                                                foto: item.participante_foto || item.foto_perfil || item.fotoPerfil || '/imagens/avatar.svg',
+                                                pontos: Number(item.pontos || 0),
+                                                jogos_jogados: Number(item.jogos_jogados || 0),
+                                                vitorias: Number(item.vitorias || 0),
+                                                empates: Number(item.empates || 0),
+                                                derrotas: Number(item.derrotas || 0),
+                                                pontos_pro: Number(item.pontos_pro || 0),
+                                                pontos_contra: Number(item.pontos_contra || 0),
+                                                resultado: String(item.resultado || item.tempo || item.distancia || item.desempenho || item.medida || '').trim()
+                                            })) : defaultGrupo.integrantes);
+                                        %>
+                                        <% participacoes.forEach((integrante, idx) => { %>
+                                            <% const item = Array.isArray(classificacao) && classificacao.filter(c => String(c.genero_modalidade || '').trim().toLowerCase() === genero.toLowerCase())[idx] ? classificacao.filter(c => String(c.genero_modalidade || '').trim().toLowerCase() === genero.toLowerCase())[idx] : null; %>
+                                            <% const nomeCampus = integrante.nome || item?.participante_nome || 'Campus'; %>
+                                            <% const fotoCampus = integrante.foto || item?.participante_foto || item?.foto_perfil || item?.fotoPerfil || '/imagens/avatar.svg'; %>
+                                            <% const pontos = Number(integrante.pontos ?? item?.pontos ?? 0); %>
+                                            <% const jogos = Number(integrante.jogos_jogados ?? item?.jogos_jogados ?? 0); %>
+                                            <% const vitorias = Number(integrante.vitorias ?? item?.vitorias ?? 0); %>
+                                            <% const empates = Number(integrante.empates ?? item?.empates ?? 0); %>
+                                            <% const derrotas = Number(integrante.derrotas ?? item?.derrotas ?? 0); %>
+                                            <% const pro = Number(integrante.pontos_pro ?? item?.pontos_pro ?? 0); %>
+                                            <% const contra = Number(integrante.pontos_contra ?? item?.pontos_contra ?? 0); %>
+                                            <% const resultado = String(integrante.resultado ?? item?.resultado ?? item?.tempo ?? item?.distancia ?? item?.desempenho ?? item?.medida ?? (mostraPontuacao ? '' : '—')).trim() || '—'; %>
+                                            <div style="display:grid; grid-template-columns:<%= mostraPontuacao ? '30px minmax(0, 1.9fr) repeat(7, minmax(0, 0.56fr))' : '30px minmax(0, 2.1fr) minmax(0, 1.1fr)' %>; align-items:center; gap:0.12rem; font-size:0.62rem; color:#b8c2cc; padding:0.32rem 0.24rem; border-top:1px solid rgba(255,255,255,0.06);">
+                                                <div style="font-weight:700; color:#dfe3e8; text-align:center;"><%= idx + 1 %></div>
+                                                <div style="display:flex; align-items:center; gap:0.3rem; min-width:0; overflow:hidden;">
+                                                    <img src="<%= fotoCampus %>" alt="Foto do campus <%= nomeCampus %>" style="width:18px; height:18px; object-fit:cover; border-radius:50%; display:block; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); flex-shrink:0;">
+                                                    <span style="color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:0.62rem;"><%= nomeCampus %></span>
+                                                </div>
+                                                <% if (mostraPontuacao) { %>
+                                                    <div style="text-align:center; color:#fff; font-weight:700;"><%= pontos %></div>
+                                                    <div style="text-align:center; color:#b9c1ca;"><%= jogos %></div>
+                                                    <div style="text-align:center; color:#58d68d;"><%= vitorias %></div>
+                                                    <div style="text-align:center; color:#f5b041;"><%= empates %></div>
+                                                    <div style="text-align:center; color:#f1948a;"><%= derrotas %></div>
+                                                    <div style="text-align:center; color:#dfe3e8;"><%= pro %></div>
+                                                    <div style="text-align:center; color:#dfe3e8;"><%= contra %></div>
+                                                <% } else { %>
+                                                    <div style="text-align:center; color:#dfe3e8; font-weight:700;"><%= resultado %></div>
+                                                <% } %>
+                                            </div>
+                                        <% }); %>
+                                    </div>
+                                </div>
+                            <% }); %>
+                        </div>
+                    <% } %>
+                <% }); %>
+            <% } else { %>
+                <% const gruposRender = Array.isArray(grupos) && grupos.length ? grupos : [defaultGrupo]; %>
+                <div style="margin-bottom:1.2rem;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:0.45rem 0.3rem 0.35rem; border-bottom:1px solid rgba(255,255,255,0.07); margin-bottom:0.4rem;">
+                        <div style="font-size:0.72rem; color:#dfe3e8; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;">
+                            <%= ehXadrez ? 'Classificação Geral' : 'Classificação' %>
+                        </div>
+                        <div style="font-size:0.72rem; color:#fff; font-weight:700;"><%= ehXadrez ? 'Pts' : 'Resultado' %></div>
+                    </div>
+
+                    <% gruposRender.forEach((grupo) => { %>
+                        <div style="margin-bottom:0.7rem;">
+                            <div style="padding:0.3rem 0.2rem; color:#cfd8dc; font-size:0.62rem; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; border-bottom:1px solid rgba(255,255,255,0.06); margin-bottom:0.3rem;">
+                                <%= labelGrupo %> <%= grupo.letra || grupo.numero_chave || 'Geral' %>
+                            </div>
+
+                            <div style="border:1px solid rgba(255,255,255,0.08); border-radius:10px; overflow:hidden; background:rgba(255,255,255,0.02);">
+                                <div style="display:grid; grid-template-columns:<%= mostraPontuacao ? '30px minmax(0, 1.9fr) repeat(7, minmax(0, 0.56fr))' : '30px minmax(0, 2.1fr) minmax(0, 1.1fr)' %>; align-items:center; gap:0.12rem; font-size:0.62rem; color:#b8c2cc; padding:0.34rem 0.24rem 0.28rem; border-bottom:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02);">
+                                    <div style="font-weight:700; color:#dfe3e8; text-align:center;">#</div>
+                                    <div style="font-weight:700; color:#dfe3e8; padding-left:0.1rem;">Campus</div>
+                                    <% if (mostraPontuacao) { %>
+                                        <div style="font-weight:700; color:#dfe3e8; text-align:center;">Pts</div>
+                                        <div style="font-weight:700; color:#dfe3e8; text-align:center;">PJ</div>
+                                        <div style="font-weight:700; color:#dfe3e8; text-align:center;">V</div>
+                                        <div style="font-weight:700; color:#dfe3e8; text-align:center;">E</div>
+                                        <div style="font-weight:700; color:#dfe3e8; text-align:center;">D</div>
+                                        <div style="font-weight:700; color:#dfe3e8; text-align:center;">GP</div>
+                                        <div style="font-weight:700; color:#dfe3e8; text-align:center;">GC</div>
+                                    <% } else { %>
+                                        <div style="font-weight:700; color:#dfe3e8; text-align:center;">Resultado</div>
+                                    <% } %>
+                                </div>
+
+                                <% const participacoes = Array.isArray(grupo.integrantes) && grupo.integrantes.length
+                                    ? grupo.integrantes
+                                    : (Array.isArray(classificacao) && classificacao.length ? classificacao.slice(0, 4).map((item) => ({
+                                        nome: item.participante_nome || item.nome || 'Campus',
+                                        foto: item.participante_foto || item.foto_perfil || item.fotoPerfil || '/imagens/avatar.svg',
+                                        pontos: Number(item.pontos || 0),
+                                        jogos_jogados: Number(item.jogos_jogados || 0),
+                                        vitorias: Number(item.vitorias || 0),
+                                        empates: Number(item.empates || 0),
+                                        derrotas: Number(item.derrotas || 0),
+                                        pontos_pro: Number(item.pontos_pro || 0),
+                                        pontos_contra: Number(item.pontos_contra || 0),
+                                        resultado: String(item.resultado || item.tempo || item.distancia || item.desempenho || item.medida || '').trim()
+                                    })) : defaultGrupo.integrantes);
+                                %>
+                                <% participacoes.forEach((integrante, idx) => { %>
+                                    <% const item = Array.isArray(classificacao) && classificacao[idx] ? classificacao[idx] : null; %>
+                                    <% const nomeCampus = integrante.nome || item?.participante_nome || 'Campus'; %>
+                                    <% const fotoCampus = integrante.foto || item?.participante_foto || item?.foto_perfil || item?.fotoPerfil || '/imagens/avatar.svg'; %>
+                                    <% const pontos = Number(integrante.pontos ?? item?.pontos ?? 0); %>
+                                    <% const jogos = Number(integrante.jogos_jogados ?? item?.jogos_jogados ?? 0); %>
+                                    <% const vitorias = Number(integrante.vitorias ?? item?.vitorias ?? 0); %>
+                                    <% const empates = Number(integrante.empates ?? item?.empates ?? 0); %>
+                                    <% const derrotas = Number(integrante.derrotas ?? item?.derrotas ?? 0); %>
+                                    <% const pro = Number(integrante.pontos_pro ?? item?.pontos_pro ?? 0); %>
+                                    <% const contra = Number(integrante.pontos_contra ?? item?.pontos_contra ?? 0); %>
+                                    <% const resultado = String(integrante.resultado ?? item?.resultado ?? item?.tempo ?? item?.distancia ?? item?.desempenho ?? item?.medida ?? (mostraPontuacao ? '' : '—')).trim() || '—'; %>
+                                    <div style="display:grid; grid-template-columns:<%= mostraPontuacao ? '30px minmax(0, 1.9fr) repeat(7, minmax(0, 0.56fr))' : '30px minmax(0, 2.1fr) minmax(0, 1.1fr)' %>; align-items:center; gap:0.12rem; font-size:0.62rem; color:#b8c2cc; padding:0.32rem 0.24rem; border-top:1px solid rgba(255,255,255,0.06);">
+                                        <div style="font-weight:700; color:#dfe3e8; text-align:center;"><%= idx + 1 %></div>
+                                        <div style="display:flex; align-items:center; gap:0.3rem; min-width:0; overflow:hidden;">
+                                            <img src="<%= fotoCampus %>" alt="Foto do campus <%= nomeCampus %>" style="width:18px; height:18px; object-fit:cover; border-radius:50%; display:block; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); flex-shrink:0;">
+                                            <span style="color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:0.62rem;"><%= nomeCampus %></span>
+                                        </div>
+                                        <% if (mostraPontuacao) { %>
+                                            <div style="text-align:center; color:#fff; font-weight:700;"><%= pontos %></div>
+                                            <div style="text-align:center; color:#b9c1ca;"><%= jogos %></div>
+                                            <div style="text-align:center; color:#58d68d;"><%= vitorias %></div>
+                                            <div style="text-align:center; color:#f5b041;"><%= empates %></div>
+                                            <div style="text-align:center; color:#f1948a;"><%= derrotas %></div>
+                                            <div style="text-align:center; color:#dfe3e8;"><%= pro %></div>
+                                            <div style="text-align:center; color:#dfe3e8;"><%= contra %></div>
+                                        <% } else { %>
+                                            <div style="text-align:center; color:#dfe3e8; font-weight:700;"><%= resultado %></div>
+                                        <% } %>
+                                    </div>
+                                <% }); %>
+                            </div>
+                        </div>
+                    <% }); %>
+                </div>
+            <% } %>
+        </aside>
+    <% } %>
+
+
+    <div style="width:100%;">
+        <% if (!Array.isArray(jogos) || jogos.length === 0) { %>
+            <section class="panel-card" style="padding:2rem; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:18px; text-align:center; width:100%; max-width:100%; box-sizing:border-box;">
+                <h2 style="margin:0;">Nenhum jogo publicado encontrado</h2>
+                <p style="margin:1rem 0 0; color:#cfd8dc;">Aguarde a confirmação do chaveamento ou escolha outro filtro.</p>
+            </section>
+        <% } else { %>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:1rem; width:100%;">
+                <% jogos.forEach((jogo) => { %>
+                    <article class="panel-card" style="padding:1rem; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08); border-radius:18px; display:flex; flex-direction:column; justify-content:space-between; height:100%;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; min-height:1.5rem;">
+                            <div style="font-size:0.75rem; color:#cfd8dc; text-transform:uppercase; letter-spacing:0.08em; line-height:1.3;"><%= jogo.modalidade %> · <%= jogo.genero %></div>
+                        </div>
+
+                        <div style="display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); gap:0.75rem; align-items:center; flex:1;">
+                            <div style="text-align:center; min-width:0;">
+                                <img src="<%= jogo.fotoCasa || '/imagens/avatar.svg' %>" alt="Foto do campus <%= jogo.casa %>" style="width:48px; height:48px; object-fit:cover; border-radius:50%; margin:0 auto 0.55rem; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.08); display:block;">
+                                <div style="font-size:0.75rem; color:#fff; font-weight:600; line-height:1.2; word-break:break-word;"><%= jogo.casa %></div>
+                            </div>
+
+                            <div style="display:flex; flex-direction:column; gap:0.25rem; justify-items:center; text-align:center; align-items:center; flex-shrink:0;">
+                                <div style="font-size:0.95rem; font-weight:700; color:#fff; line-height:1.2;"><%= jogo.horario %></div>
+                                <div style="font-size:0.65rem; color:#cfd8dc; text-transform:uppercase; letter-spacing:0.08em; line-height:1.2;"><%= jogo.local_jogo || 'A def' %></div>
+                                <div style="font-size:0.65rem; color:#cfd8dc; line-height:1.2;"><%= jogo.data %></div>
+                            </div>
+
+                            <div style="text-align:center; min-width:0;">
+                                <img src="<%= jogo.fotoFora || '/imagens/avatar.svg' %>" alt="Foto do campus <%= jogo.fora %>" style="width:48px; height:48px; object-fit:cover; border-radius:50%; margin:0 auto 0.55rem; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.08); display:block;">
+                                <div style="font-size:0.75rem; color:#fff; font-weight:600; line-height:1.2; word-break:break-word;"><%= jogo.fora %></div>
+                            </div>
+                        </div>
+                    </article>
+                <% }); %>
+            </div>
+        <% } %>
+    </div>
+</main>

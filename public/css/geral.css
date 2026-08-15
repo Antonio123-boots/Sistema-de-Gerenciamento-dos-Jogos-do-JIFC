@@ -88,9 +88,14 @@ a {
 
 .modalidade-item a:hover,
 .modalidade-item.is-active a {
-  background: rgba(236, 228, 45, 0.2);
-  color: #fff56b;
-  transform: translateY(-1px);
+  background: rgba(236, 228, 45, 0.14);
+  border: 1px solid rgba(236, 228, 45, 0.36);
+  color: #fff;
+  transform: none;
+}
+
+.modalidade-item.is-active a {
+  box-shadow: 0 0 0 1px rgba(236, 228, 45, 0.35), 0 8px 16px rgba(236, 228, 45, 0.12);
 }
 
 .dia-item {
@@ -107,8 +112,8 @@ a {
 
 .dia-item a:hover,
 .dia-item.is-active a {
-  background: rgba(236, 228, 45, 0.22);
-  color: #fff56b;
+  background: transparent;
+  color: #fff;
 }
 
 .search-box {

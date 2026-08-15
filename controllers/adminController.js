@@ -406,6 +406,16 @@ async function renderChaveamento(req, res) {
         || categoriaSlug === 'xadrez'
         || subCategoria === 'individual';
 
+      const slugModalidadeAtiva = String(`${modalidadeAtivaNome} ${modalidadeAtiva.genero}` || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
+
+      const jogosPublicadosDaModalidade = await adminModel.getJogosPublicados({ modalidadeSlug: slugModalidadeAtiva });
+      const modalidadePublicada = jogosPublicadosDaModalidade.length > 0;
+
       res.render('adm/chaveamento', {
         title: 'Chaveamento dos Jogos — JIFC',
         usuarioLogado: req.session?.usuario || { tipo: 'admin' },
@@ -429,7 +439,10 @@ async function renderChaveamento(req, res) {
         rodadasJogos,
         datasEventoDisponiveis,
         resumoDisponivel,
-        resumoInscricoes
+        resumoInscricoes,
+        mensagemErro: req.query.erro || '',
+        mensagemSucesso: req.query.sucesso || '',
+        modalidadePublicada
       });
 
     } catch (error) {
@@ -486,6 +499,7 @@ async function exportResumoInscricoes(req, res) {
 async function gerarChaveamento(req, res) {
   try {
     const { modalidadeId, subCategoria } = req.body;
+    const modalidadeIdNum = Number(modalidadeId || 0);
     const configuracoes = adminModel.getConfiguracoes();
     const hoje = new Date();
     const hojeStr = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
@@ -510,7 +524,29 @@ async function gerarChaveamento(req, res) {
       return res.status(403).send(mensagem);
     }
 
-    const [mod] = await db.query('SELECT tipo_confronto, nome FROM modalidades WHERE id = ?', [modalidadeId]);
+    if (!modalidadeIdNum) {
+      const [modalidades] = await db.query('SELECT id, nome, tipo_confronto FROM modalidades ORDER BY nome ASC');
+      const elegiveis = modalidades.filter((modalidade) => {
+        const nome = String(modalidade.nome || '').trim().toLowerCase();
+        if (nome.includes('atletismo') || nome.includes('xadrez')) {
+          return false;
+        }
+
+        return adminModel.isModalidadeSorteavel(modalidade.nome, modalidade.tipo_confronto, subCategoria || '');
+      });
+
+      if (!elegiveis.length) {
+        return res.redirect(`/admin/chaveamento?erro=${encodeURIComponent('Nenhuma modalidade elegível para sorteio automático.')}`);
+      }
+
+      for (const modalidade of elegiveis) {
+        await adminModel.efetuarChaveamentoMatematico(modalidade.id, subCategoria || '');
+      }
+
+      return res.redirect(`/admin/chaveamento?sucesso=${encodeURIComponent('Sorteio realizado para todas as modalidades elegíveis, exceto atletismo e xadrez.')}`);
+    }
+
+    const [mod] = await db.query('SELECT tipo_confronto, nome FROM modalidades WHERE id = ?', [modalidadeIdNum]);
     if (!mod.length) {
       return res.status(404).send('Modalidade não encontrada.');
     }
@@ -521,8 +557,8 @@ async function gerarChaveamento(req, res) {
       return res.status(403).send('Esta modalidade não possui sorteio automático.');
     }
 
-    await adminModel.efetuarChaveamentoMatematico(modalidadeId, subCategoria);
-    res.redirect(`/admin/chaveamento?modalidade=${modalidadeId}&sub=${subCategoria || 'geral'}`);
+    await adminModel.efetuarChaveamentoMatematico(modalidadeIdNum, subCategoria);
+    res.redirect(`/admin/chaveamento?modalidade=${modalidadeIdNum}&sub=${subCategoria || 'geral'}`);
   } catch (error) {
     console.error(error);
     res.status(500).send("Erro ao processar sorteio automático.");
@@ -540,6 +576,16 @@ async function limparChaveamento(req, res) {
   } catch (error) {
     console.error(error);
     res.status(500).send("Erro ao limpar dados do chaveamento.");
+  }
+}
+
+async function publicarChaveamento(req, res) {
+  try {
+    await adminModel.publicarTodosJogos();
+    res.redirect(`/admin/chaveamento?sucesso=` + encodeURIComponent('Sorteio confirmado e jogos publicados com sucesso.'));
+  } catch (error) {
+    console.error(error);
+    res.redirect(`/admin/chaveamento?erro=` + encodeURIComponent(error.message || 'Erro ao publicar jogos.'));
   }
 }
 
@@ -673,6 +719,7 @@ module.exports = {
   renderChaveamento,
   gerarChaveamento,
   limparChaveamento,
+  publicarChaveamento,
   cancelarSorteio,
   exportResumoInscricoes,
   renderAnalise,

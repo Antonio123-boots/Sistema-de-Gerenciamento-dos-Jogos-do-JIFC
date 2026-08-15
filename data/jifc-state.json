@@ -1,13 +1,13 @@
 {
   "configuracoes": {
     "ano_evento": 2026,
-    "inicio_evento": "2026-08-25",
-    "fim_evento": "2026-08-27",
+    "inicio_evento": "2026-08-26",
+    "fim_evento": "2026-08-28",
     "inicio_inscricao_modalidades": "2026-08-02",
-    "fim_inscricao_modalidades": "2026-08-04",
+    "fim_inscricao_modalidades": "2026-08-11",
     "inicio_inscricao_atletas": "2026-08-02",
-    "fim_inscricao_atletas": "2026-08-04",
-    "inicio_sorteio_chaves": "2026-08-08",
+    "fim_inscricao_atletas": "2026-08-11",
+    "inicio_sorteio_chaves": "2026-08-14",
     "limite_atletas_total_campus": 15
   },
   "campus": {
@@ -132,8 +132,7 @@
         "Basquete Feminino",
         "Futsal Masculino",
         "Futsal Feminino",
-        "Voleibol Masculino",
-        "Vôlei de Praia Masculino"
+        "Vôlei Masculino"
       ],
       "IFC Campos Novos": [
         "Futsal Masculino",

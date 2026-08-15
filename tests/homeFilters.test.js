@@ -13,6 +13,9 @@ assert.deepStrictEqual(porModalidade.map((item) => item.slug), ['futsal-masculin
 const porDia = filtrarModalidadesParaHome(modalidadesBase, { dia: '24/06' });
 assert.deepStrictEqual(porDia.map((item) => item.slug), ['futsal-masculino']);
 
+const porGenero = filtrarModalidadesParaHome(modalidadesBase, { genero: 'Masculino' });
+assert.deepStrictEqual(porGenero.map((item) => item.slug), ['futsal-masculino', 'volei-masculino', 'basquete-masculino']);
+
 const combinada = filtrarModalidadesParaHome(modalidadesBase, { modalidade: 'volei-masculino', dia: '25/06' });
 assert.deepStrictEqual(combinada.map((item) => item.slug), ['volei-masculino']);
 

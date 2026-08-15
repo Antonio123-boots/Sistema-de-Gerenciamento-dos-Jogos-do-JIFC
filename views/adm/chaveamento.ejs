@@ -1,8 +1,7 @@
 <section class="panel-card">
   <div class="profile-header">
     <div>
-      <h1>Painel de Chaveamento — JIFC <%= typeof anoJifc !== 'undefined' ? anoJifc : '2026' %></h1>
-      <p class="panel-subtitle">Gerencie o sorteio, configure divisões de chaves e publique os cronogramas oficiais.</p>
+      <h1>Painel de Chaveamento JIFC <%= typeof anoJifc !== 'undefined' ? anoJifc : '2026' %></h1>
     </div>
     <div>
       <% if (inscricoesAbertas) { %>
@@ -70,15 +69,33 @@
       <% } else if (!permitirGerarSorteio) { %>
         <button class="btn btn-ghost" disabled title="Sorteio bloqueado até a data definida">Sorteio será liberado em breve</button>
       <% } else { %>
-        <form action="/admin/chaveamento/gerar" method="POST" style="display: inline-block;">
-          <input type="hidden" name="modalidadeId" value="<%= modalidadeAtiva.id %>">
-          <input type="hidden" name="subCategoria" value="<%= subCategoriaAtiva %>">
-          <button type="submit" class="btn btn-success">🎲 Realizar Sorteio Dinâmico</button>
-        </form>
+        <button id="generate-draw-button" type="button" class="btn btn-success">Realizar Sorteio</button>
       <% } %>
-      <form id="cancel-draw-form" action="/admin/chaveamento/cancelar" method="POST" style="display: inline-block;">
-        <button type="submit" class="btn btn-danger">🗑️ Cancelar Sorteio</button>
+      <form id="generate-draw-form" action="/admin/chaveamento/gerar" method="POST" style="display: inline-block;">
+        <input type="hidden" name="subCategoria" value="<%= subCategoriaAtiva %>">
       </form>
+      <% if (rodadasJogos && rodadasJogos.length > 0) { %>
+        <button id="confirm-publish-button" type="button" class="btn btn-primary">Publicar Jogos</button>
+      <% } %>
+      <form id="publish-draw-form" action="/admin/chaveamento/publicar" method="POST" style="display: inline-block;">
+        <input type="hidden" name="modalidadeId" value="<%= modalidadeAtiva.id %>">
+        <input type="hidden" name="subCategoria" value="<%= subCategoriaAtiva %>">
+      </form>
+      <form id="cancel-draw-form" action="/admin/chaveamento/cancelar" method="POST" style="display: inline-block;">
+        <button type="submit" class="btn btn-danger">Cancelar Sorteio</button>
+      </form>
+
+      <div id="generate-draw-modal" class="confirm-modal-overlay" hidden>
+        <div class="confirm-modal-card" role="dialog" aria-modal="true" aria-labelledby="generate-draw-title">
+          <div class="confirm-modal-icon">🎲</div>
+          <h3 id="generate-draw-title">Gerar sorteio para todos?</h3>
+          <p>Essa ação irá gerar o chaveamento para todas as modalidades elegíveis de uma vez, sem precisar repetir o processo por esporte.</p>
+          <div class="confirm-modal-actions">
+            <button type="button" class="btn btn-ghost" data-generate-cancel>Cancelar</button>
+            <button type="button" class="btn btn-success" data-generate-confirm>Confirmar</button>
+          </div>
+        </div>
+      </div>
 
       <div id="cancel-draw-modal" class="confirm-modal-overlay" hidden>
         <div class="confirm-modal-card" role="dialog" aria-modal="true" aria-labelledby="cancel-draw-title">
@@ -92,30 +109,95 @@
         </div>
       </div>
 
+      <div id="publish-draw-modal" class="confirm-modal-overlay" hidden>
+        <div class="confirm-modal-card" role="dialog" aria-modal="true" aria-labelledby="publish-draw-title">
+          <div class="confirm-modal-icon">✅</div>
+          <h3 id="publish-draw-title">Confirmar publicação?</h3>
+          <p>Essa ação publicará todos os jogos gerados e tornará o calendário oficial visível para o público.</p>
+          <div class="confirm-modal-actions">
+            <button type="button" class="btn btn-ghost" data-publish-cancel>Cancelar</button>
+            <button type="button" class="btn btn-primary" data-publish-confirm>Confirmar</button>
+          </div>
+        </div>
+      </div>
+
       <script>
         (function () {
-          const form = document.getElementById('cancel-draw-form');
-          const modal = document.getElementById('cancel-draw-modal');
-          if (!form || !modal) return;
+          const generateButton = document.getElementById('generate-draw-button');
+          const generateForm = document.getElementById('generate-draw-form');
+          const generateModal = document.getElementById('generate-draw-modal');
+          const cancelForm = document.getElementById('cancel-draw-form');
+          const cancelModal = document.getElementById('cancel-draw-modal');
+          const publishButton = document.getElementById('confirm-publish-button');
+          const publishForm = document.getElementById('publish-draw-form');
+          const publishModal = document.getElementById('publish-draw-modal');
 
-          form.addEventListener('submit', function (event) {
-            event.preventDefault();
-            modal.hidden = false;
-            modal.classList.add('active');
-          });
+          if (generateButton && generateForm && generateModal) {
+            generateButton.addEventListener('click', function () {
+              generateModal.hidden = false;
+              generateModal.classList.add('active');
+            });
 
-          modal.querySelector('[data-modal-cancel]')?.addEventListener('click', function () {
-            modal.hidden = true;
-            modal.classList.remove('active');
-          });
+            generateModal.querySelector('[data-generate-cancel]')?.addEventListener('click', function () {
+              generateModal.hidden = true;
+              generateModal.classList.remove('active');
+            });
 
-          modal.querySelector('[data-modal-confirm]')?.addEventListener('click', function () {
-            form.submit();
-          });
+            generateModal.querySelector('[data-generate-confirm]')?.addEventListener('click', function () {
+              generateForm.submit();
+            });
+          }
+
+          if (cancelForm && cancelModal) {
+            cancelForm.addEventListener('submit', function (event) {
+              event.preventDefault();
+              cancelModal.hidden = false;
+              cancelModal.classList.add('active');
+            });
+
+            cancelModal.querySelector('[data-modal-cancel]')?.addEventListener('click', function () {
+              cancelModal.hidden = true;
+              cancelModal.classList.remove('active');
+            });
+
+            cancelModal.querySelector('[data-modal-confirm]')?.addEventListener('click', function () {
+              cancelForm.submit();
+            });
+          }
+
+          if (publishButton && publishForm && publishModal) {
+            publishButton.addEventListener('click', function () {
+              publishModal.hidden = false;
+              publishModal.classList.add('active');
+            });
+
+            publishModal.querySelector('[data-publish-cancel]')?.addEventListener('click', function () {
+              publishModal.hidden = true;
+              publishModal.classList.remove('active');
+            });
+
+            publishModal.querySelector('[data-publish-confirm]')?.addEventListener('click', function () {
+              publishForm.submit();
+            });
+          }
         })();
       </script>
     </div>
   </div>
+  <% if (mensagemErro) { %>
+    <section class="panel-card" style="margin-top:1rem; border:1px solid rgba(255,107,107,0.35); background:rgba(255,107,107,0.08);">
+      <div class="welcome-card" style="padding:1rem; background:transparent; border:none; color:#fff;">
+        <p class="panel-subtitle" style="color:#ffb3b3;"><strong>Erro:</strong> <%= mensagemErro %></p>
+      </div>
+    </section>
+  <% } %>
+  <% if (mensagemSucesso) { %>
+    <section class="panel-card" style="margin-top:1rem; border:1px solid rgba(75,255,135,0.3); background:rgba(75,255,135,0.08);">
+      <div class="welcome-card" style="padding:1rem; background:transparent; border:none; color:#fff;">
+        <p class="panel-subtitle" style="color:#d4ffd4;"><strong>Sucesso:</strong> <%= mensagemSucesso %></p>
+      </div>
+    </section>
+  <% } %>
   <% if (!inscricoesAbertas && !permitirGerarSorteio) { %>
     <section class="panel-card" style="margin-top:1rem; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03);">
       <div class="welcome-card" style="padding:1rem; background:transparent; border:none;">
@@ -145,7 +227,7 @@
 
           <% const provaAtivaAtual = provasAtletismo.find((prova) => prova.ativa) || provasAtletismo[0]; %>
           <div class="chave-card">
-            <div class="chave-title">🏃 <%= provaAtivaAtual.nomeProva %></div>
+            <div class="chave-title"> <%= provaAtivaAtual.nomeProva %></div>
             <p class="panel-subtitle" style="margin: 0 0 1rem; font-size: 0.8rem;"><%= provaAtivaAtual.descricao %></p>
 
             <% if (provaAtivaAtual.subprovas && provaAtivaAtual.subprovas.length) { %>
@@ -279,20 +361,21 @@
                       </h3>
                       <p class="game-result" style="font-size: 0.85rem;">Chave: <%= typeof jogo.chaveLabel !== 'undefined' && jogo.chaveLabel ? jogo.chaveLabel : (jogo.chave_id || '—') %> · Fase: <%= jogo.fase %></p>
                       <p class="game-result">Placar: <strong style="color: #ece42d;"><%= jogo.placar || 'vs' %></strong></p>
-                      <span class="status-pill"><%= jogo.status %></span>
 
                       <form action="/admin/chaveamento/jogo/<%= jogo.id %>/salvar" method="POST" style="margin-top: 1rem; display:grid; gap:0.6rem;">
                         <label style="display:grid; gap:0.25rem; font-size:0.8rem;">
                           <span>Data</span>
                           <% if (Array.isArray(datasEventoDisponiveis) && datasEventoDisponiveis.length) { %>
-                            <select name="dataJogo" style="padding:0.45rem 0.6rem; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.04); color:#fff;">
-                              <option value="" <%= !jogo.dataInput ? 'selected' : '' %>>Selecionar data</option>
+                            <% const dataPadrao = jogo.dataInput && datasEventoDisponiveis.includes(jogo.dataInput)
+                              ? jogo.dataInput
+                              : datasEventoDisponiveis[0]; %>
+                            <select name="dataJogo" style="padding:0.45rem 0.6rem; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:#f5f6fb; color:#10131d; color-scheme: light;">
                               <% datasEventoDisponiveis.forEach((data) => { %>
-                                <option value="<%= data %>" <%= jogo.dataInput === data ? 'selected' : '' %>><%= data.split('-').reverse().join('/') %></option>
+                                <option value="<%= data %>" <%= dataPadrao === data ? 'selected' : '' %> style="color:#10131d; background:#ffffff;"><%= data.split('-').reverse().join('/') %></option>
                               <% }) %>
                             </select>
                           <% } else { %>
-                            <input type="date" name="dataJogo" value="<%= jogo.dataInput || '' %>" style="padding:0.45rem 0.6rem; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.04); color:#fff;">
+                            <input type="date" name="dataJogo" value="<%= jogo.dataInput || '' %>" style="padding:0.45rem 0.6rem; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:#f5f6fb; color:#10131d;">
                           <% } %>
                         </label>
                         <label style="display:grid; gap:0.25rem; font-size:0.8rem;">
@@ -302,14 +385,6 @@
                         <label style="display:grid; gap:0.25rem; font-size:0.8rem;">
                           <span>Local</span>
                           <input type="text" name="localJogo" value="<%= jogo.localJogo || 'A definir' %>" style="padding:0.45rem 0.6rem; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.04); color:#fff;">
-                        </label>
-                        <label style="display:grid; gap:0.25rem; font-size:0.8rem;">
-                          <span>Status</span>
-                          <select name="status" style="padding:0.45rem 0.6rem; border-radius:8px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.04); color:#fff;">
-                            <option value="Agendado" <%= jogo.status === 'Agendado' ? 'selected' : '' %>>Agendado</option>
-                            <option value="Em Andamento" <%= jogo.status === 'Em Andamento' ? 'selected' : '' %>>Em Andamento</option>
-                            <option value="Encerrado" <%= jogo.status === 'Encerrado' ? 'selected' : '' %>>Encerrado</option>
-                          </select>
                         </label>
                         <button class="btn btn-secondary" type="submit" style="font-size:0.8rem; padding:0.5rem;">Salvar confronto</button>
                       </form>

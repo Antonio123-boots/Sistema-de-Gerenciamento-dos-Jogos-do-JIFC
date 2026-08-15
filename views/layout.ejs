@@ -70,13 +70,26 @@
                             const nomeBase = String(mod.nomeBase || mod.nome || '').trim();
                             const imagem = mod.imagem || '/imagens/atletismo1.svg';
                             const slugBase = String(mod.slugBase || mod.slug || '').trim();
-                            const isActive = typeof modalidadeSelecionada !== 'undefined' && modalidadeSelecionada && modalidadeSelecionada === slugBase;
+                            const isActive = typeof modalidadeSelecionada !== 'undefined' && modalidadeSelecionada && (
+                                modalidadeSelecionada === slugBase ||
+                                modalidadeSelecionada === String(mod.slug || '').trim() ||
+                                modalidadeSelecionada === String(mod.nomeBase || '').trim()
+                            );
                             const query = new URLSearchParams();
-                            if (slugBase) query.set('modalidade', slugBase);
                             if (typeof diaSelecionado !== 'undefined' && diaSelecionado) query.set('dia', diaSelecionado);
+                            if (typeof generoSelecionado !== 'undefined' && generoSelecionado && String(generoSelecionado).trim()) query.set('genero', generoSelecionado);
+                            if (!isActive && slugBase) query.set('modalidade', slugBase);
+                            const href = isActive
+                                ? '/' + ((() => {
+                                    const limpar = new URLSearchParams();
+                                    if (typeof diaSelecionado !== 'undefined' && diaSelecionado) limpar.set('dia', diaSelecionado);
+                                    if (typeof generoSelecionado !== 'undefined' && generoSelecionado && String(generoSelecionado).trim()) limpar.set('genero', generoSelecionado);
+                                    return limpar.toString() ? '?' + limpar.toString() : '';
+                                })())
+                                : '/' + (query.toString() ? '?' + query.toString() : '');
                         %>
-                            <li class="modalidade-item <%= isActive ? 'is-active' : '' %>">
-                                <a href="/<%= query.toString() ? '?' + query.toString() : '' %>">
+                            <li class="modalidade-item <%= isActive ? 'is-active active-sport' : '' %>">
+                                <a href="<%= href %>" class="<%= isActive ? 'active-sport' : '' %>">
                                     <img src="<%= imagem %>" style="height: 35px;" alt="<%= nomeBase %>">
                                     <span><%= nomeBase.toUpperCase() %></span>
                                 </a>
@@ -96,20 +109,54 @@
             </div>
         </div>
 
-        <div class="menu-dias">
-            <div class="dias-container">
-                <ul class="dias-list">
-                    <% const diasAtivos = Array.isArray(diasDisponiveis) && diasDisponiveis.length ? diasDisponiveis : ['24/06', '25/06', '26/06']; %>
-                    <% diasAtivos.forEach((dia) => { %>
-                        <% const queryDia = new URLSearchParams(); %>
-                        <% if (typeof modalidadeSelecionada !== 'undefined' && modalidadeSelecionada) queryDia.set('modalidade', modalidadeSelecionada); %>
-                        <% queryDia.set('dia', dia); %>
-                        <% const isActiveDay = typeof diaSelecionado !== 'undefined' && diaSelecionado === dia; %>
-                        <li class="dia-item <%= isActiveDay ? 'is-active' : '' %>"><a href="/<%= '?' + queryDia.toString() %>">DIA <%= dia %></a></li>
+        <div class="menu-generos">
+            <div class="modalidades-container">
+                <ul class="filter-list">
+                    <% ['Masculino', 'Feminino'].forEach((genero) => {
+                        const queryGenero = new URLSearchParams();
+                        if (typeof diaSelecionado !== 'undefined' && diaSelecionado) queryGenero.set('dia', diaSelecionado);
+                        const baseModalidadeSelecionada = typeof modalidadeSelecionada !== 'undefined' && modalidadeSelecionada
+                            ? String(modalidadeSelecionada).replace(/-(masculino|feminino)$/i, '')
+                            : '';
+                        if (baseModalidadeSelecionada) queryGenero.set('modalidade', baseModalidadeSelecionada);
+                        const isActiveGenero = typeof generoSelecionado !== 'undefined' && generoSelecionado === genero;
+                        if (!isActiveGenero) queryGenero.set('genero', genero);
+                        const hrefGenero = isActiveGenero
+                            ? '/' + ((() => {
+                                const limpar = new URLSearchParams();
+                                if (typeof diaSelecionado !== 'undefined' && diaSelecionado) limpar.set('dia', diaSelecionado);
+                                if (baseModalidadeSelecionada) limpar.set('modalidade', baseModalidadeSelecionada);
+                                return limpar.toString() ? '?' + limpar.toString() : '';
+                            })())
+                            : '/' + (queryGenero.toString() ? '?' + queryGenero.toString() : '');
+                    %>
+                        <li class="filter-item <%= isActiveGenero ? 'is-active' : '' %>"><a href="<%= hrefGenero %>"><%= genero.toUpperCase() %></a></li>
                     <% }); %>
                 </ul>
             </div>
         </div>
+        <% const mostrarDiasPublicos = !modalidadeSelecionada && (!generoSelecionado || generoSelecionado === 'Masculino' || generoSelecionado === 'Feminino'); %>
+        <% if (mostrarDiasPublicos) { %>
+        <div class="menu-dias">
+            <div class="dias-container">
+                <ul class="dias-list">
+                    <% const diasAtivos = Array.isArray(diasDisponiveis) && diasDisponiveis.length ? diasDisponiveis : ['24/06', '25/06', '26/06']; %>
+                    <% diasAtivos.filter(Boolean).forEach((dia) => { %>
+                        <% const queryDia = new URLSearchParams(); %>
+                        <% if (typeof generoSelecionado !== 'undefined' && generoSelecionado) queryDia.set('genero', generoSelecionado); %>
+                        <% const isActiveDay = typeof diaSelecionado !== 'undefined' && diaSelecionado === dia; %>
+                        <% if (!isActiveDay) queryDia.set('dia', dia); %>
+                        <% const hrefDia = isActiveDay ? '/' + ((() => {
+                            const limpar = new URLSearchParams();
+                            if (typeof generoSelecionado !== 'undefined' && generoSelecionado) limpar.set('genero', generoSelecionado);
+                            return limpar.toString() ? '?' + limpar.toString() : '';
+                        })()) : '/' + (queryDia.toString() ? '?' + queryDia.toString() : ''); %>
+                        <li class="dia-item <%= isActiveDay ? 'is-active' : '' %>"><a href="<%= hrefDia %>"><%= dia %></a></li>
+                    <% }); %>
+                </ul>
+            </div>
+        </div>
+        <% } %>
     <% } %>
 
     <div class="main-content">
