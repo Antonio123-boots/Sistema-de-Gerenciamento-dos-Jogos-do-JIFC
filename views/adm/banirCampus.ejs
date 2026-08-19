@@ -21,6 +21,7 @@
           <p class="context-subtitle" style="margin-bottom:1rem;">Selecione o campus e o tipo de punição que deseja aplicar.</p>
 
           <form action="/admin/banirCampus/salvar" method="POST" class="management-form-grid punishment-form">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <div class="campus-legend">
               <strong>Selecione o campus</strong>
               <p class="panel-info">Escolha o campus que terá a punição aplicada. Os atletas serão carregados automaticamente.</p>
@@ -117,6 +118,7 @@
                   </div>
                   <div class="management-actions">
                     <form action="/admin/banirCampus/desbanir/<%= campus.slug %>" method="POST">
+                      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                       <button type="submit" class="btn btn-primary">Desbanir</button>
                     </form>
                   </div>
@@ -159,7 +161,7 @@
   const atletaNome = document.getElementById('atletaNome');
   const campusSelect = document.getElementById('campusSlug');
 
-  const atletasPorCampus = JSON.parse('<%- JSON.stringify(atletasPorCampus || {}) %>');
+  const atletasPorCampus = JSON.parse('<%= JSON.stringify(atletasPorCampus || {}).replace(/<\/script>/gi, "<\\/script>") %>');
 
   function atualizarCampos() {
     const tipoSelecionado = tipoPunicaoRadios.find((radio) => radio.checked)?.value;

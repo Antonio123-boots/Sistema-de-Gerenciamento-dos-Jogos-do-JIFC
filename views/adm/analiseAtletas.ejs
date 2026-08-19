@@ -33,9 +33,11 @@
               </span>
               <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
                 <form action="/admin/laudos/validar/<%= atleta.id %>" method="POST">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <button class="btn btn-success" type="submit">Validar</button>
                 </form>
                 <form action="/admin/laudos/reprovar/<%= atleta.id %>" method="POST">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                   <button class="btn btn-danger" type="submit">Reprovar</button>
                 </form>
               </div>

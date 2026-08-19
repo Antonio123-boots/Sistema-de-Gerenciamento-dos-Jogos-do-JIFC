@@ -1,26 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const adminController = require('../controllers/adminController');
-const adminModel = require('../models/adminModel');
+const { body } = require('express-validator');
+const { requireAuth, requireRole } = require('../middleware/auth');
+const juizController = require('../controllers/juizController');
 
-async function renderTabelas(req, res) {
-  try {
-    const jogos = await adminModel.getJogos();
+router.use(requireAuth, requireRole('juiz'));
 
-    res.render('juiz/tabelas', {
-      title: 'Painel do Juiz',
-      usuarioLogado: req.session?.usuario || null,
-      mostrarFiltros: false,
-      jogos
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Erro ao carregar o painel do juiz.');
-  }
-}
-
-router.get('/tabelas', renderTabelas);
-router.get('/jogos/placar/:jogoId', adminController.renderPlacar);
-router.post('/jogos/placar/:jogoId/salvar', adminController.salvarPlacar);
+router.get('/', juizController.renderPerfil);
+router.get('/:esporte', juizController.renderJogos);
+router.get('/jogos/:jogoId/placar', juizController.renderPlacar);
+router.post('/jogos/:jogoId/placar', [
+  body('placar1').isInt({ min: 0 }).withMessage('Placar inválido.'),
+  body('placar2').isInt({ min: 0 }).withMessage('Placar inválido.'),
+  body('status').isIn(['Agendado', 'Em andamento', 'Finalizado', 'Cancelado']).withMessage('Status inválido.')
+], juizController.handleSalvarPlacar);
 
 module.exports = router;

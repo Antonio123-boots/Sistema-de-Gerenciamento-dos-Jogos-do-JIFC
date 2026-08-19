@@ -21,6 +21,7 @@
     <% } %>
 
     <form action="/admin/configurar/salvar" method="POST" class="modern-config-form">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       
       <div class="inner-management-card">
         <div class="card-context-header">
@@ -112,6 +113,7 @@
       </div>
 
       <form action="/admin/modalidades/cadastrar" method="POST" class="clean-register-form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <div class="dynamic-registration-flow">
           <div class="flow-element input-container">
             <span class="field-label-text">Nome do Esporte</span>
@@ -163,6 +165,7 @@
                 </div>
               </div>
               <form action="/admin/modalidades/excluir/<%= modalidade.id %>" method="POST" onsubmit="return confirm('Deseja remover este esporte do catálogo?');">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <button type="submit" class="btn btn-danger" style="padding:0.45rem 0.7rem; font-size:0.82rem;">Excluir</button>
               </form>
             </div>

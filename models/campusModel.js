@@ -35,34 +35,7 @@ function normalizarNomeModalidadeParaBanco(nome) {
     .trim();
 }
 
-function inferirGeneroModalidade(nome) {
-  const nomeNormalizado = String(nome || '').trim().toLowerCase();
-  if (nomeNormalizado.includes('feminino')) {
-    return 'Feminino';
-  }
-
-  if (nomeNormalizado.includes('masculino')) {
-    return 'Masculino';
-  }
-
-  return 'Misto';
-}
-
-function inferirTipoConfrontoModalidade(nome) {
-  const nomeNormalizado = String(nome || '').trim().toLowerCase();
-  if (/(atletismo|natação|natacao|corrida|salto|lançamento|lancamento|esgrima|xadrez|tênis de mesa|tenis de mesa)/i.test(nomeNormalizado)) {
-    return 'Individual';
-  }
-  return 'Coletivo';
-}
-
-function inferirFormatoDisputaModalidade(nome) {
-  const nomeNormalizado = String(nome || '').trim().toLowerCase();
-  if (/(atletismo|natação|natacao|corrida|salto|lançamento|lancamento|esgrima|xadrez|tênis de mesa|tenis de mesa)/i.test(nomeNormalizado)) {
-    return 'Baterias por Tempo';
-  }
-  return 'Grupos + Mata-Mata';
-}
+const { inferirGeneroModalidade, inferirTipoConfrontoModalidade, inferirFormatoDisputaModalidade } = require('../utils/modalidadeHelpers');
 
 async function buscarCampusIdNoBanco(campusNome) {
   const nome = String(campusNome || '').trim();
@@ -77,7 +50,6 @@ async function buscarCampusIdNoBanco(campusNome) {
     );
     return linhas[0]?.id || null;
   } catch (error) {
-    console.error('Erro ao localizar campus no banco:', error);
     return null;
   }
 }
@@ -101,7 +73,6 @@ async function garantirCampusNoBanco(campusNome) {
     );
     return resultado.insertId;
   } catch (error) {
-    console.error('Erro ao criar campus no banco:', error);
     return null;
   }
 }
@@ -134,7 +105,6 @@ async function garantirModalidadeNoBanco(nomeModalidade) {
 
     return resultado.insertId;
   } catch (error) {
-    console.error('Erro ao garantir modalidade no banco:', error);
     return null;
   }
 }
@@ -449,16 +419,7 @@ function persistirEstadoCampus() {
   writeState(estadoAtual);
 }
 
-function gerarSlug(texto) {
-  return String(texto || '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[-]/g, (s) => s)
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '')
-    .slice(0, 30);
-}
+const { gerarSlug } = require('../utils/slug');
 
 function removerCampusDoEstado(campusAtual) {
   const nomesCampus = [campusAtual?.nome, campusAtual?.nomeExibicao, campusAtual?.slug]

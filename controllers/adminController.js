@@ -10,7 +10,7 @@ async function renderConfigurar(req, res) {
 
     res.render('adm/configEvento', {
       title: 'Configurar Prazos',
-      usuarioLogado: req.session?.usuario || null,
+      usuarioLogado: req.user,
       mostrarFiltros: false,
       configuracoes,
       modalidades,
@@ -53,20 +53,25 @@ async function excluirModalidade(req, res) {
 
 
 async function renderCadastroCampus(req, res) {
-  const campi = await listarCampi();
-  const campusEdicao = req.query.editar
-    ? campi.find((campus) => String(campus.slug) === String(req.query.editar) || String(campus.id) === String(req.query.editar)) || null
-    : null;
+  try {
+    const campi = await listarCampi();
+    const campusEdicao = req.query.editar
+      ? campi.find((campus) => String(campus.slug) === String(req.query.editar) || String(campus.id) === String(req.query.editar)) || null
+      : null;
 
-  res.render('adm/cadastroCampus', {
-    title: 'Cadastrar Campus',
-    usuarioLogado: req.session?.usuario || null,
-    mostrarFiltros: false,
-    campi,
-    campusEdicao,
-    mensagemErro: req.query.erro || '',
-    mensagemSucesso: req.query.sucesso || ''
-  });
+    res.render('adm/cadastroCampus', {
+      title: 'Cadastrar Campus',
+      usuarioLogado: req.user,
+      mostrarFiltros: false,
+      campi,
+      campusEdicao,
+      mensagemErro: req.query.erro || '',
+      mensagemSucesso: req.query.sucesso || ''
+    });
+  } catch (error) {
+    console.error('Erro ao renderizar cadastro de campus:', error);
+    res.redirect('/admin/configurar?erro=' + encodeURIComponent('Erro ao carregar cadastro de campus.'));
+  }
 }
 
 async function salvarCadastroCampus(req, res) {
@@ -104,23 +109,28 @@ async function salvarCadastroCampus(req, res) {
 }
 
 async function renderBanirCampus(req, res) {
-  const campi = await listarCampi();
-  const bannedCampi = campi.filter((campus) => campus.banned);
-  const atletasPorCampus = campi.reduce((map, campus) => {
-    map[campus.slug] = campusModel.getAtletas(campus.nome);
-    return map;
-  }, {});
+  try {
+    const campi = await listarCampi();
+    const bannedCampi = campi.filter((campus) => campus.banned);
+    const atletasPorCampus = campi.reduce((map, campus) => {
+      map[campus.slug] = campusModel.getAtletas(campus.nome);
+      return map;
+    }, {});
 
-  res.render('adm/banirCampus', {
-    title: 'Gerenciar punições de campus',
-    usuarioLogado: req.session?.usuario || null,
-    mostrarFiltros: false,
-    campi,
-    bannedCampi,
-    atletasPorCampus,
-    mensagemErro: req.query.erro || '',
-    mensagemSucesso: req.query.sucesso || ''
-  });
+    res.render('adm/banirCampus', {
+      title: 'Gerenciar punições de campus',
+      usuarioLogado: req.user,
+      mostrarFiltros: false,
+      campi,
+      bannedCampi,
+      atletasPorCampus,
+      mensagemErro: req.query.erro || '',
+      mensagemSucesso: req.query.sucesso || ''
+    });
+  } catch (error) {
+    console.error('Erro ao renderizar banir campus:', error);
+    res.redirect('/admin/configurar?erro=' + encodeURIComponent('Erro ao carregar gerenciamento de punições.'));
+  }
 }
 
 async function salvarBanirCampus(req, res) {
@@ -418,7 +428,7 @@ async function renderChaveamento(req, res) {
 
       res.render('adm/chaveamento', {
         title: 'Chaveamento dos Jogos — JIFC',
-        usuarioLogado: req.session?.usuario || { tipo: 'admin' },
+        usuarioLogado: req.user,
         mostrarFiltros: false,
         inscricoesAbertas,
         chaveamentoBloqueado: false,
@@ -617,7 +627,7 @@ async function renderAnalise(req, res) {
 
   res.render('adm/analiseAtletas', {
     title: 'Análise de Atletas',
-    usuarioLogado: req.session?.usuario || null,
+    usuarioLogado: req.user,
     mostrarFiltros: false,
     campi: await listarCampi(),
     campusSelecionado,
@@ -650,7 +660,7 @@ async function renderPlacar(req, res) {
 
     res.render('adm/placares', {
       title: 'Lançar Resultado',
-      usuarioLogado: req.session?.usuario || null,
+      usuarioLogado: req.user,
       mostrarFiltros: false,
       jogoId: req.params.jogoId,
       jogo
@@ -674,7 +684,7 @@ async function renderResumoCampus(req, res) {
 
     res.render('adm/chaveamento_campus', {
       title: `Resumo - ${campus.nome}`,
-      usuarioLogado: req.session?.usuario || { tipo: 'admin' },
+      usuarioLogado: req.user,
       mostrarFiltros: false,
       campus
     });

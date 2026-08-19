@@ -13,6 +13,7 @@
     <% } %>
 
     <form action="/admin/cadastroCampus/salvar" method="POST" class="modern-config-form">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <% if (campusEdicao) { %>
         <input type="hidden" name="campusId" value="<%= campusEdicao.id %>">
       <% } %>
@@ -116,6 +117,7 @@
             <div style="display:flex; gap:0.65rem; flex-wrap:wrap;">
               <a href="/admin/cadastroCampus?editar=<%= campus.slug %>" class="btn btn-secondary">Editar</a>
               <form action="/admin/cadastroCampus/excluir/<%= campus.slug %>" method="POST" style="margin:0;">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <button type="submit" class="btn btn-outline-danger">Excluir</button>
               </form>
             </div>

@@ -50,6 +50,7 @@
             </div>
             <div id="editProfilePanel" style="display:none; margin-bottom:1rem; padding:1rem; border-radius:14px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);">
               <form action="/perfil/editar" method="POST" class="profile-photo-form">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <div class="management-fields-row split-2" style="margin-bottom:0.8rem;">
                   <label class="premium-input-wrapper">
                     <span class="field-label-text">Nome completo</span>
@@ -187,10 +188,9 @@
 
     <% if (!publicMode && viewer.tipo === 'juiz') { %>
       <nav class="admin-actions-zone" aria-label="Painel do Juiz">
-        <h2>Atualização de Placar e Tabelas</h2>
+        <h2>Painel do Juiz</h2>
         <div class="profile-actions">
-          <a class="btn btn-primary" href="/juiz/tabelas">Painel do Juiz</a>
-          <a class="btn btn-secondary" href="/juiz/tabelas">Ver tabelas</a>
+          <a class="btn btn-primary" href="/juiz">Acessar Painel</a>
         </div>
       </nav>
     <% } %>

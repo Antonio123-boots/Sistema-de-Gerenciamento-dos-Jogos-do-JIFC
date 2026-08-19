@@ -30,8 +30,7 @@
                             <a href="/admin/chaveamento" class="nav-btn">CHAVEAMENTO</a>
                         <% } %>
                         <% if (usuarioLogado.tipo === 'juiz') { %>
-                            <a href="/juiz/tabelas" class="nav-btn">PLACARES</a>
-                            <a href="/juiz/tabelas" class="nav-btn">TABELAS</a>
+                            <a href="/juiz" class="nav-btn">MEUS JOGOS</a>
                         <% } %>
                         <% if (usuarioLogado.tipo === 'campus') { %>
                             <a href="/campus/atletas" class="nav-btn">ATLETAS</a>
@@ -48,8 +47,9 @@
                 
                 <% if (typeof usuarioLogado !== 'undefined' && usuarioLogado) { %>
                     <% const avatarLayout = usuarioLogado.fotoPerfil || '/imagens/avatar.svg'; %>
+                    <% const perfilHref = usuarioLogado.tipo === 'juiz' ? '/juiz' : '/perfil'; %>
                     <div class="perfil">
-                        <a href="/perfil"><img src="<%= avatarLayout %>" alt="perfil" class="avatar"></a>
+                        <a href="<%= perfilHref %>"><img src="<%= avatarLayout %>" alt="perfil" class="avatar"></a>
                     </div>
                 <% } else { %>
                     <div class="login-area">

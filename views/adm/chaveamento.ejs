@@ -60,6 +60,7 @@
         <button class="btn btn-ghost" disabled title="Aguarde o encerramento das inscrições">Aguardando Fim das Inscrições</button>
       <% } else if (chavesGeradas && chavesGeradas.length > 0) { %>
         <form action="/admin/chaveamento/limpar" method="POST" style="display: inline-block;">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <input type="hidden" name="modalidadeId" value="<%= modalidadeAtiva.id %>">
           <input type="hidden" name="subCategoria" value="<%= subCategoriaAtiva %>">
           <button type="submit" class="btn btn-danger">Refazer Sorteio</button>
@@ -72,16 +73,19 @@
         <button id="generate-draw-button" type="button" class="btn btn-success">Realizar Sorteio</button>
       <% } %>
       <form id="generate-draw-form" action="/admin/chaveamento/gerar" method="POST" style="display: inline-block;">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <input type="hidden" name="subCategoria" value="<%= subCategoriaAtiva %>">
       </form>
       <% if (rodadasJogos && rodadasJogos.length > 0) { %>
         <button id="confirm-publish-button" type="button" class="btn btn-primary">Publicar Jogos</button>
       <% } %>
       <form id="publish-draw-form" action="/admin/chaveamento/publicar" method="POST" style="display: inline-block;">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <input type="hidden" name="modalidadeId" value="<%= modalidadeAtiva.id %>">
         <input type="hidden" name="subCategoria" value="<%= subCategoriaAtiva %>">
       </form>
       <form id="cancel-draw-form" action="/admin/chaveamento/cancelar" method="POST" style="display: inline-block;">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <button type="submit" class="btn btn-danger">Cancelar Sorteio</button>
       </form>
 
@@ -363,6 +367,7 @@
                       <p class="game-result">Placar: <strong style="color: #ece42d;"><%= jogo.placar || 'vs' %></strong></p>
 
                       <form action="/admin/chaveamento/jogo/<%= jogo.id %>/salvar" method="POST" style="margin-top: 1rem; display:grid; gap:0.6rem;">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                         <label style="display:grid; gap:0.25rem; font-size:0.8rem;">
                           <span>Data</span>
                           <% if (Array.isArray(datasEventoDisponiveis) && datasEventoDisponiveis.length) { %>

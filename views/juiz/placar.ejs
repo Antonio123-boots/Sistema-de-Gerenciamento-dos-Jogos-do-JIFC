@@ -1,0 +1,47 @@
+<section class="panel-card" style="max-width:520px; margin:1rem auto;">
+  <div style="margin-bottom:1rem;">
+    <a href="/juiz/<%= encodeURIComponent(jogo.modalidade.split(' ')[0]) %>" style="color:rgba(255,255,255,0.5); text-decoration:none; font-size:0.85rem;">← Voltar para <%= jogo.modalidade.split(' ')[0] %></a>
+  </div>
+
+  <h1 style="font-size:1.25rem; margin:0 0 0.25rem;">Atualizar Placar</h1>
+  <p class="panel-subtitle" style="margin:0 0 1.25rem;">Registre o resultado e o status do confronto.</p>
+
+  <% if (typeof mensagemErro !== 'undefined' && mensagemErro) { %>
+    <div class="alert alert-error"><%= mensagemErro %></div>
+  <% } %>
+
+  <%- include('../partials/cardJogo', { jogo, isAdmin: false, isJuiz: false }) %>
+
+  <form action="/juiz/jogos/<%= jogo.id %>/placar" method="POST" style="margin-top:1.25rem;">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+    <div class="inner-management-card" style="margin-bottom:0;">
+      <div class="management-fields-row split-2">
+        <label class="premium-input-wrapper">
+          <span class="field-label-text"><%= jogo.casa %></span>
+          <input type="number" name="placar1" class="premium-text-input" min="0" value="<%= jogo.placar_1 != null ? jogo.placar_1 : 0 %>" required style="text-align:center; font-size:1.3rem; font-weight:700;">
+        </label>
+        <label class="premium-input-wrapper">
+          <span class="field-label-text"><%= jogo.fora %></span>
+          <input type="number" name="placar2" class="premium-text-input" min="0" value="<%= jogo.placar_2 != null ? jogo.placar_2 : 0 %>" required style="text-align:center; font-size:1.3rem; font-weight:700;">
+        </label>
+      </div>
+
+      <label class="premium-input-wrapper" style="margin-top:1rem;">
+        <span class="field-label-text">Status</span>
+        <select name="status" class="premium-text-input" style="cursor:pointer;">
+          <option value="Agendado" <%= jogo.status === 'Agendado' ? 'selected' : '' %>>Agendado</option>
+          <option value="Em andamento" <%= jogo.status === 'Em andamento' ? 'selected' : '' %>>Em andamento</option>
+          <option value="Finalizado" <%= jogo.status === 'Finalizado' ? 'selected' : '' %>>Finalizado</option>
+          <option value="Cancelado" <%= jogo.status === 'Cancelado' ? 'selected' : '' %>>Cancelado</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="config-submit-bar" style="margin-top:1.25rem;">
+      <button type="submit" class="premium-action-btn primary-save-btn" style="width:100%;">
+        <span>Salvar resultado</span>
+      </button>
+    </div>
+  </form>
+</section>

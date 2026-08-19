@@ -9,6 +9,7 @@
         <% } %>
 
         <form action="/auth/login" method="POST" class="login-form">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <label for="email">E-mail</label>
             <input id="email" name="email" type="email" placeholder="admin@ifc.edu.br" required>
 
@@ -19,20 +20,7 @@
         </form>
 
         <div class="login-hint">
-            <p><strong>Usuários disponíveis:</strong></p>
-            <ul>
-                <li>Administrador principal — admin@ifc.edu.br / admin123</li>
-                <li>Juiz — juiz@ifc.edu.br / juiz123</li>
-                <li>Instituição — instituicao@ifc.edu.br / instituicao123</li>
-                <li>Campi — senha padrão: <%= typeof senhaPadraoCampus !== 'undefined' ? senhaPadraoCampus : 'jifc2026' %></li>
-            </ul>
-            <% if (typeof credenciaisCampus !== 'undefined' && credenciaisCampus && credenciaisCampus.length) { %>
-                <div class="login-campus-list">
-                    <% credenciaisCampus.forEach((campus) => { %>
-                        <p><strong><%= campus.nomeExibicao %>:</strong> <%= campus.email %> / <%= campus.senha %></p>
-                    <% }) %>
-                </div>
-            <% } %>
+            <p>Se você não possui credenciais, entre em contato com o administrador do sistema.</p>
         </div>
     </article>
 </section>

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const adminModel = require('../models/adminModel');
 const campusModel = require('../models/campusModel');
-const { listarCampi, obterCampusPorSlug, listarCredenciaisCampus, senhaPadraoCampus, atualizarCampus } = require('../models/campiCatalog');
+const { listarCampi, obterCampusPorSlug, atualizarCampus } = require('../models/campiCatalog');
 const { salvarFotoPerfilUsuario } = require('../models/authUsers');
 const { filtrarModalidadesParaHome } = require('../utils/homeFilters');
 
@@ -467,7 +467,7 @@ router.get('/', async function(req, res, next) {
         res.locals.modalidades = todasAsModalidades;
         res.render('user', {
             title: 'JIFC - Início',
-            usuarioLogado: req.session?.usuario || null,
+            usuarioLogado: req.user,
             mostrarFiltros: true,
             modalidades: todasAsModalidades,
             diasDisponiveis,
@@ -502,7 +502,7 @@ router.get('/', async function(req, res, next) {
 
         res.render('user', {
             title: 'JIFC - Início',
-            usuarioLogado: req.session?.usuario || null,
+            usuarioLogado: req.user,
             mostrarFiltros: true,
             modalidades: lista,
             diasDisponiveis,
@@ -520,40 +520,34 @@ router.get('/', async function(req, res, next) {
 
 /* GET login page */
 router.get('/login', async function(req, res, next) {
-    if (req.session && req.session.usuario) {
+    if (req.user) {
         return res.redirect('/perfil');
     }
     res.render('login', {
         title: 'JIFC - Login',
         usuarioLogado: null,
         mostrarFiltros: false,
-        erro: null,
-        credenciaisCampus: await listarCredenciaisCampus(),
-        senhaPadraoCampus
+        erro: null
     });
 });
 
 /* GET profile page */
 router.post('/perfil/foto', async function(req, res, next) {
-    if (!req.session || !req.session.usuario) {
+    if (!req.user) {
         return res.redirect('/login');
     }
 
     const fotoPerfil = String(req.body.fotoPerfil || '').trim() || '/imagens/avatar.svg';
 
     try {
-        if (req.session.usuario.tipo === 'campus' && req.session.usuario.campusSlug) {
-            const campusAtualizado = await atualizarCampus(req.session.usuario.campusSlug, {
+        if (req.user.tipo === 'campus' && req.user.campusSlug) {
+            await atualizarCampus(req.user.campusSlug, {
                 fotoPerfil
             });
-
-            req.session.usuario.fotoPerfil = campusAtualizado.fotoPerfil || fotoPerfil;
         } else {
-            const fotoPersistida = salvarFotoPerfilUsuario(req.session.usuario.email, fotoPerfil);
-            req.session.usuario.fotoPerfil = fotoPersistida || fotoPerfil;
+            salvarFotoPerfilUsuario(req.user.email, fotoPerfil);
         }
 
-        global.sessions.set(req.sessionId, req.session);
         return res.redirect('/perfil');
     } catch (error) {
         console.error('Erro ao salvar foto de perfil:', error);
@@ -562,33 +556,24 @@ router.post('/perfil/foto', async function(req, res, next) {
 });
 
 router.post('/perfil/editar', async function(req, res, next) {
-    if (!req.session || !req.session.usuario) {
+    if (!req.user) {
         return res.redirect('/login');
     }
 
-    if (req.session.usuario.tipo !== 'campus' || !req.session.usuario.campusSlug) {
+    if (req.user.tipo !== 'campus' || !req.user.campusSlug) {
         return res.redirect('/perfil?erro=' + encodeURIComponent('A edição de perfil está disponível apenas para campi.'));
     }
 
     try {
-        const campusAtualizado = await atualizarCampus(req.session.usuario.campusSlug, {
+        await atualizarCampus(req.user.campusSlug, {
             nome: req.body.nome,
             nomeExibicao: req.body.nomeExibicao,
             email: req.body.email,
             senha: req.body.senha,
             cidade: req.body.cidade,
-            fotoPerfil: req.body.fotoPerfil || req.session.usuario.fotoPerfil || '/imagens/avatar.svg'
+            fotoPerfil: req.body.fotoPerfil || '/imagens/avatar.svg'
         });
 
-        req.session.usuario.nome = campusAtualizado.nome || req.session.usuario.nome;
-        req.session.usuario.nomeExibicao = campusAtualizado.nomeExibicao || req.session.usuario.nomeExibicao;
-        req.session.usuario.email = campusAtualizado.email || req.session.usuario.email;
-        req.session.usuario.cidade = campusAtualizado.cidade || req.session.usuario.cidade;
-        req.session.usuario.fotoPerfil = campusAtualizado.fotoPerfil || req.session.usuario.fotoPerfil;
-        req.session.usuario.logoTexto = campusAtualizado.logoTexto || req.session.usuario.logoTexto;
-        req.session.usuario.cor = campusAtualizado.cor || req.session.usuario.cor;
-
-        global.sessions.set(req.sessionId, req.session);
         return res.redirect('/perfil?sucesso=' + encodeURIComponent('Perfil atualizado com sucesso.'));
     } catch (error) {
         console.error('Erro ao editar perfil do campus:', error);
@@ -597,7 +582,7 @@ router.post('/perfil/editar', async function(req, res, next) {
 });
 
 router.get('/perfil', async function(req, res, next) {
-    if (!req.session || !req.session.usuario) {
+    if (!req.user) {
         return res.redirect('/login');
     }
 
@@ -621,7 +606,7 @@ router.get('/perfil', async function(req, res, next) {
     const mostrarAcoesInscricao = prazoModalidadesAberto || prazoAtletasAberto;
     const anoBaseEvento = Number(configuracoes.ano_evento || new Date().getFullYear());
 
-    const campusNome = req.session.usuario.nome || 'IFC Blumenau';
+    const campusNome = req.user.nome;
     const atletasCampus = campusModel.getAtletas(campusNome);
     const modalidadesCampus = campusModel.getInscricoes(campusNome);
     const jogos = await adminModel.getJogos();
@@ -639,7 +624,7 @@ router.get('/perfil', async function(req, res, next) {
 
     res.render('perfil', {
         title: 'JIFC - Perfil',
-        usuarioLogado: req.session.usuario,
+        usuarioLogado: req.user,
         mostrarFiltros: false,
         configuracoes,
         mensagemErro: req.query.erro || '',
@@ -699,7 +684,7 @@ router.get('/chaveamento', async function(req, res, next) {
         res.locals.modalidades = listaModalidadesCompleta;
         res.render('chaveamento', {
             title: 'Chaveamento - JIFC',
-            usuarioLogado: req.session?.usuario || null,
+            usuarioLogado: req.user,
             mostrarFiltros: false,
             listaModalidadesCompleta,
             modalidadeAtiva,
@@ -720,7 +705,7 @@ router.get('/equipes', async function(req, res, next) {
     const campi = (await listarCampi()).slice().sort((a, b) => a.nomeExibicao.localeCompare(b.nomeExibicao));
     res.render('equipes', { 
         title: 'Equipes',
-        usuarioLogado: req.session?.usuario || null,
+        usuarioLogado: req.user,
         mostrarFiltros: false,
         campi
     });
@@ -749,7 +734,7 @@ router.get('/equipes/:slug', async function(req, res, next) {
 
     res.render('perfil', {
         title: `Perfil - ${campus.nomeExibicao}`,
-        usuarioLogado: req.session?.usuario || null,
+        usuarioLogado: req.user,
         mostrarFiltros: false,
         configuracoes,
         statusInscricao: '',

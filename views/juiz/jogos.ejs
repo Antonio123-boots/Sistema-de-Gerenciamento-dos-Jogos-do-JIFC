@@ -1,0 +1,35 @@
+<section class="panel-card" style="max-width:980px; margin:1rem auto;">
+  <div class="profile-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+    <div>
+      <h1 style="font-size:1.3rem; margin:0;">
+        <a href="/juiz" style="color:rgba(255,255,255,0.5); text-decoration:none; font-weight:400;">← </a>
+        <%= esporte %>
+      </h1>
+      <p class="panel-subtitle" style="margin:0.2rem 0 0;"><%= jogos.length %> jogo(s) encontrado(s)</p>
+    </div>
+    <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+      <% esportesDoJuiz.forEach((esp) => { %>
+        <a href="/juiz/<%= encodeURIComponent(esp) %>"
+           style="font-size:0.75rem; padding:0.3rem 0.65rem; border-radius:6px; text-decoration:none; white-space:nowrap;
+                  background:<%= esp === esporte ? 'rgba(236,228,45,0.2)' : 'rgba(255,255,255,0.06)' %>;
+                  color:<%= esp === esporte ? '#ece42d' : 'rgba(255,255,255,0.6)' %>;
+                  border:1px solid <%= esp === esporte ? 'rgba(236,228,45,0.35)' : 'rgba(255,255,255,0.08)' %>;">
+          <%= esp %>
+        </a>
+      <% }) %>
+    </div>
+  </div>
+
+  <% if (jogos && jogos.length) { %>
+    <div class="game-grid" style="margin-top:1.25rem;">
+      <% jogos.forEach((jogo) => { %>
+        <%- include('../partials/cardJogo', { jogo, isAdmin: false, isJuiz: true }) %>
+      <% }) %>
+    </div>
+  <% } else { %>
+    <article class="mini-card" style="text-align:center; margin-top:1.5rem;">
+      <h2 style="font-size:1.1rem;">Nenhum jogo encontrado</h2>
+      <p class="panel-subtitle">Ainda não existem jogos para este esporte.</p>
+    </article>
+  <% } %>
+</section>

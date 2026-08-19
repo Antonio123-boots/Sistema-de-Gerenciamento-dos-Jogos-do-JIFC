@@ -6,6 +6,7 @@
 
   <div class="game-matchup">
     <div class="match-team text-right">
+      <% if (jogo.tipoIndividual || jogo.atletaCasa) { %>
         <img src="<%= jogo.fotoCasa || '/imagens/avatar.svg' %>" alt="Foto do campus <%= jogo.casa %>" class="campus-avatar" style="width:42px; height:42px; object-fit:cover; border-radius:50%; margin:0 auto 0.5rem; display:block; border:1px solid rgba(255,255,255,0.12);">
         <span class="player-sub"><%= jogo.casa %></span>
       <% } else { %>
@@ -35,10 +36,16 @@
       <%= jogo.status %>
     </span>
 
-    <% if (typeof isAdmin !== 'undefined' && isAdmin) { %>
+    <% if (typeof isJuiz !== 'undefined' && isJuiz) { %>
+      <div class="profile-actions" style="margin-top: 0.5rem; width: 100%;">
+        <a class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.4rem; justify-content: center;" href="/juiz/jogos/<%= jogo.id %>/placar">
+          Atualizar Placar
+        </a>
+      </div>
+    <% } else if (typeof isAdmin !== 'undefined' && isAdmin) { %>
       <div class="profile-actions" style="margin-top: 0.5rem; width: 100%;">
         <a class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.4rem; justify-content: center;" href="/admin/jogos/placar/<%= jogo.id %>">
-          📝 Lançar Resultado
+          Lançar Resultado
         </a>
       </div>
     <% } %>

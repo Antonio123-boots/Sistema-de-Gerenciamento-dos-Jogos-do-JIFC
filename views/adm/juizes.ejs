@@ -1,0 +1,56 @@
+<div class="profile-shell">
+  <div class="profile-card--wide configuration-dashboard">
+    <div class="config-dashboard-header">
+      <h1 class="config-main-title">Gerenciar Juízes</h1>
+      <p class="config-main-subtitle">Cadastre, edite ou remova juízes do sistema.</p>
+    </div>
+
+    <% if (mensagemSucesso) { %>
+      <div class="alert alert-success"><%= mensagemSucesso %></div>
+    <% } %>
+    <% if (mensagemErro) { %>
+      <div class="alert alert-error"><%= mensagemErro %></div>
+    <% } %>
+
+    <div style="display:flex; justify-content:flex-end; margin-bottom:1.5rem;">
+      <a href="/admin/juizes/cadastrar" class="btn btn-primary" style="text-decoration:none; font-size:0.9rem;">
+        + Cadastrar Juiz
+      </a>
+    </div>
+
+    <% if (juizes && juizes.length) { %>
+      <div style="display:grid; gap:1rem;">
+        <% juizes.forEach((juiz) => { %>
+          <article class="inner-management-card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+            <div style="display:flex; align-items:center; gap:1rem; min-width:0;">
+              <img src="<%= juiz.foto_perfil || '/imagens/avatar.svg' %>" alt="<%= juiz.nome %>" style="width:48px; height:48px; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,0.12); flex-shrink:0;">
+              <div style="min-width:0;">
+                <h3 style="font-size:1rem; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= juiz.nome %></h3>
+                <p style="margin:0.15rem 0 0; font-size:0.82rem; color:rgba(255,255,255,0.55); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= juiz.email %></p>
+                <% if (juiz.esportes && juiz.esportes.length) { %>
+                  <div style="display:flex; gap:0.35rem; margin-top:0.4rem; flex-wrap:wrap;">
+                    <% juiz.esportes.forEach((esp) => { %>
+                      <span style="font-size:0.72rem; background:rgba(236,228,45,0.15); color:#ece42d; padding:0.2rem 0.55rem; border-radius:6px; white-space:nowrap;"><%= esp %></span>
+                    <% }) %>
+                  </div>
+                <% } %>
+              </div>
+            </div>
+            <div style="display:flex; gap:0.5rem; flex-shrink:0;">
+              <a href="/admin/juizes/editar/<%= juiz.id %>" class="btn btn-secondary" style="font-size:0.8rem; padding:0.45rem 0.75rem; text-decoration:none; border-radius:8px;">Editar</a>
+              <form action="/admin/juizes/excluir/<%= juiz.id %>" method="POST" style="margin:0;" onsubmit="return confirm('Remover este juiz?')">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <button type="submit" class="btn btn-secondary" style="font-size:0.8rem; padding:0.45rem 0.75rem; border-radius:8px; border-color:rgba(255,80,80,0.3); color:#ff8a8a;">Remover</button>
+              </form>
+            </div>
+          </article>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <article class="mini-card" style="text-align:center;">
+        <h2>Nenhum juiz cadastrado</h2>
+        <p class="panel-subtitle">Clique em "Cadastrar Juiz" para adicionar o primeiro.</p>
+      </article>
+    <% } %>
+  </div>
+</div>

@@ -129,6 +129,7 @@
           <p style="margin: 0 0 1.25rem; color: rgba(255,255,255,0.68);">Marque masculino, feminino ou ambos para cada esporte disponível.</p>
 
           <form action="/campus/inscricoes/salvar" method="POST">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <div class="game-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
               <% catalogoEsportes.forEach(function(esporte) { 
                   const selecionadoMasculino = esporte.masculino && modalidadesSalvas.includes(esporte.masculino);
@@ -175,6 +176,7 @@
           <p style="margin: 0 0 0.75rem; color: rgba(255,255,255,0.68);">Escolha o gênero do atleta e veja somente os esportes compatíveis para inscrição.</p>
 
           <form action="<%= rotaFormularioAtleta %>" method="POST" class="form-grid" style="align-items: flex-end; margin-bottom: 1.5rem;">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <label>
               Nome do Atleta
               <input type="text" name="nome" placeholder="Ex: Gabriel Silva" value="<%= nomeFormulario %>" required class="premium-text-input">
@@ -323,6 +325,7 @@
                         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                           <a class="btn btn-secondary" href="/campus/inscricoes?aba=atletas&editar=<%= atleta.id %>#atletas">Editar</a>
                           <form action="/campus/atletas/excluir/<%= atleta.id %>" method="POST" onsubmit="return confirm('Deseja excluir este atleta?');">
+                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                             <button type="submit" class="btn btn-danger">Excluir</button>
                           </form>
                         </div>
