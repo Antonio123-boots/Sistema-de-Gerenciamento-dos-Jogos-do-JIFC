@@ -12,7 +12,11 @@ router.get('/jogos/:jogoId/placar', juizController.renderPlacar);
 router.post('/jogos/:jogoId/placar', [
   body('placar1').isInt({ min: 0 }).withMessage('Placar inválido.'),
   body('placar2').isInt({ min: 0 }).withMessage('Placar inválido.'),
-  body('status').isIn(['Agendado', 'Em andamento', 'Finalizado', 'Cancelado']).withMessage('Status inválido.')
+  body('status').isIn(['Agendado', 'Em Andamento', 'Encerrado', 'Cancelado']).withMessage('Status inválido.')
 ], juizController.handleSalvarPlacar);
+
+router.post('/jogos/:jogoId/wo', [
+  body('campus_vencedor').isInt({ min: 1 }).withMessage('Selecione o campus vencedor.')
+], juizController.handleAplicarWO);
 
 module.exports = router;

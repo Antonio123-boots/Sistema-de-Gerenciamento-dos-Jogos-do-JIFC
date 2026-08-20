@@ -1,10 +1,26 @@
 ﻿const { inferirGeneroModalidade, inferirTipoConfrontoModalidade, inferirFormatoDisputaModalidade } = require('../utils/modalidadeHelpers');
+const { obterRegras, colunasParaExibicao, normalizarNome } = require('../utils/sportClassificationRules');
 
 const configService = require('../services/configService');
 const modalidadeService = require('../services/modalidadeService');
 const chaveamentoService = require('../services/chaveamentoService');
 const jogoService = require('../services/jogoService');
 const classificacaoService = require('../services/classificacaoService');
+
+function getTipoTabelaModalidade(nomeModalidade) {
+  const nome = normalizarNome(nomeModalidade);
+  if (/atletismo/i.test(nome)) return 'atletismo';
+  if (/xadrez/i.test(nome)) return 'xadrez';
+  if (/tenis.*mesa/i.test(nome)) return 'tenis_mesa';
+  return 'equipe';
+}
+
+function getColunasTabelaModalidade(nomeModalidade) {
+  const nome = normalizarNome(nomeModalidade);
+  if (/atletismo/i.test(nome)) return ['Categoria', 'Resultado'];
+  if (/xadrez/i.test(nome)) return ['Atleta', 'Campus', 'PTS', 'V', 'D', 'E', 'SB'];
+  return colunasParaExibicao(nomeModalidade);
+}
 
 module.exports = {
   getConfiguracoes: configService.getConfiguracoes,
@@ -43,5 +59,12 @@ module.exports = {
 
   getResumoInscricoes: classificacaoService.getResumoInscricoes,
   getClassificacaoModalidade: classificacaoService.getClassificacaoModalidade,
-  sincronizarClassificacaoGruposModalidade: classificacaoService.sincronizarClassificacaoGruposModalidade
+  sincronizarClassificacaoGruposModalidade: classificacaoService.sincronizarClassificacaoGruposModalidade,
+  atualizarClassificacaoAposJogo: classificacaoService.atualizarClassificacaoAposJogo,
+  registrarCartoes: classificacaoService.registrarCartoes,
+  recalcularClassificacaoModalidade: classificacaoService.recalcularClassificacaoModalidade,
+  recalcularTodasClassificacoes: classificacaoService.recalcularTodasClassificacoes,
+
+  getTipoTabelaModalidade,
+  getColunasTabelaModalidade
 };

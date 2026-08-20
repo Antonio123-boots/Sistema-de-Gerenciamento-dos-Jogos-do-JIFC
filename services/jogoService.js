@@ -58,6 +58,7 @@ async function getJogosPublicados(filters = {}) {
            COALESCE(rc.placar_2, 0) AS placar_fora,
            DATE_FORMAT(j.data_hora, '%d/%m') AS data,
            DATE_FORMAT(j.data_hora, '%H:%i') AS horario,
+           j.campus_1_id, j.campus_2_id,
            c1.nome AS casa, c2.nome AS fora,
            c1.foto_perfil AS foto_casa,
            c2.foto_perfil AS foto_fora,
@@ -66,7 +67,9 @@ async function getJogosPublicados(filters = {}) {
            m.nome AS modalidade,
            m.genero AS genero,
            m.tipo_confronto,
-           j.publicado
+           j.publicado,
+           j.wo,
+           j.vencedor_campus_id
     FROM jogos j
     JOIN modalidades m ON j.modalidade_id = m.id
     LEFT JOIN campus c1 ON j.campus_1_id = c1.id

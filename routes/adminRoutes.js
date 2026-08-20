@@ -22,7 +22,7 @@ const modalidadeValidation = [
 ];
 
 const jogoValidation = [
-    body('status').optional().isIn(['Agendado', 'Em andamento', 'Finalizado', 'Cancelado']).withMessage('Status inválido.')
+    body('status').optional().isIn(['Agendado', 'Em Andamento', 'Encerrado', 'Cancelado']).withMessage('Status inválido.')
 ];
 
 router.get('/configurar', adminController.renderConfigurar);

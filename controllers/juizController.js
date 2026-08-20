@@ -106,6 +106,9 @@ async function handleExcluir(req, res) {
 
 async function renderPerfil(req, res) {
   const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
+  if (esportes.length === 1) {
+    return res.redirect('/juiz/' + encodeURIComponent(esportes[0]));
+  }
   res.render('juiz/perfil', {
     title: 'Painel do Juiz',
     usuarioLogado: req.user,
@@ -116,6 +119,7 @@ async function renderPerfil(req, res) {
 
 async function renderJogos(req, res) {
   const esporte = req.params.esporte;
+  await juizService.atualizarStatusAutomatico();
   const jogos = await juizService.obterJogosPorEsporte(esporte);
   const esportesDoJuiz = await juizService.obterEsportesDoJuiz(req.user.juizId);
   res.render('juiz/jogos', {
@@ -124,37 +128,105 @@ async function renderJogos(req, res) {
     mostrarFiltros: false,
     esporte,
     jogos,
-    esportesDoJuiz
+    esportesDoJuiz,
+    mensagemSucesso: req.query.ok || null
   });
 }
 
 async function renderPlacar(req, res) {
   const jogo = await juizService.buscarJogoPorId(Number(req.params.jogoId));
-  if (!jogo) return res.redirect('/juiz?erro=Jogo não encontrado');
+  if (!jogo) return res.redirect('/juiz');
+
+  const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
+  const esporteDoJogo = esportes.length === 1 ? esportes[0] : '';
+
   res.render('juiz/placar', {
     title: 'Atualizar Placar',
     usuarioLogado: req.user,
     mostrarFiltros: false,
     jogo,
+    esporteVoltar: esporteDoJogo,
     mensagemErro: null
   });
 }
 
 async function handleSalvarPlacar(req, res) {
   const jogo = await juizService.buscarJogoPorId(Number(req.params.jogoId));
-  if (!jogo) return res.redirect('/juiz?erro=Jogo não encontrado');
+  if (!jogo) return res.redirect('/juiz');
 
   const { placar1, placar2, status } = req.body;
-  await juizService.salvarPlacar(req.params.jogoId, { placar1, placar2, status });
+
+  const erro = extrairErros(req);
+  if (erro) {
+    const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
+    const esporteDoJogo = esportes.length === 1 ? esportes[0] : '';
+    return res.render('juiz/placar', {
+      title: 'Atualizar Placar',
+      usuarioLogado: req.user,
+      mostrarFiltros: false,
+      jogo,
+      esporteVoltar: esporteDoJogo,
+      mensagemErro: erro
+    });
+  }
+
+  try {
+    await juizService.salvarPlacar(req.params.jogoId, { placar1, placar2, status });
+  } catch (e) {
+    const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
+    const esporteDoJogo = esportes.length === 1 ? esportes[0] : '';
+    return res.render('juiz/placar', {
+      title: 'Atualizar Placar',
+      usuarioLogado: req.user,
+      mostrarFiltros: false,
+      jogo,
+      esporteVoltar: esporteDoJogo,
+      mensagemErro: 'Erro ao salvar: ' + e.message
+    });
+  }
 
   const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
-  res.render('juiz/perfil', {
-    title: 'Painel do Juiz',
-    usuarioLogado: req.user,
-    mostrarFiltros: false,
-    esportes,
-    mensagemSucesso: 'Placar atualizado!'
-  });
+  const esporteRedirect = esportes.length === 1 ? encodeURIComponent(esportes[0]) : '';
+  res.redirect('/juiz/' + esporteRedirect + '?ok=Placar+atualizado');
+}
+
+async function handleAplicarWO(req, res) {
+  const jogo = await juizService.buscarJogoPorId(Number(req.params.jogoId));
+  if (!jogo) return res.redirect('/juiz');
+
+  const { campus_vencedor } = req.body;
+
+  if (!campus_vencedor) {
+    const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
+    const esporteDoJogo = esportes.length === 1 ? esportes[0] : '';
+    return res.render('juiz/placar', {
+      title: 'Atualizar Placar',
+      usuarioLogado: req.user,
+      mostrarFiltros: false,
+      jogo,
+      esporteVoltar: esporteDoJogo,
+      mensagemErro: 'Selecione o campus vencedor do W.O.'
+    });
+  }
+
+  try {
+    await juizService.aplicarWO(req.params.jogoId, campus_vencedor);
+  } catch (e) {
+    const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
+    const esporteDoJogo = esportes.length === 1 ? esportes[0] : '';
+    return res.render('juiz/placar', {
+      title: 'Atualizar Placar',
+      usuarioLogado: req.user,
+      mostrarFiltros: false,
+      jogo,
+      esporteVoltar: esporteDoJogo,
+      mensagemErro: 'Erro ao aplicar W.O.: ' + e.message
+    });
+  }
+
+  const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
+  const esporteRedirect = esportes.length === 1 ? encodeURIComponent(esportes[0]) : '';
+  res.redirect('/juiz/' + esporteRedirect + '?ok=W.O.+aplicado+com+sucesso');
 }
 
 module.exports = {
@@ -167,5 +239,6 @@ module.exports = {
   renderPerfil,
   renderJogos,
   renderPlacar,
-  handleSalvarPlacar
+  handleSalvarPlacar,
+  handleAplicarWO
 };

@@ -204,6 +204,8 @@ function editarAtleta(req, res) {
     prazos: { inicio, fim },
     quantidadeRegulares: campusModel.getQuantidadeRegulares(nomeCampus),
     quantidadePendentes: campusModel.getQuantidadePendentes(nomeCampus),
+    quantidadeAnalise: campusModel.getQuantidadeAnalise(nomeCampus),
+    quantidadeReprovados: campusModel.getQuantidadeReprovados(nomeCampus),
     quantidadeTotal: campusModel.getQuantidadeTotal(nomeCampus),
     limiteAtletasTotalCampus: Number(config.limite_atletas_total_campus || 0),
     limiteDisponivelRegulares: campusModel.getQuantidadeDisponivelRegular(nomeCampus, Number(config.limite_atletas_total_campus || 0)),

@@ -21,13 +21,12 @@
                     <a href="/"><img src="/imagens/jifc original-Picsart-AiImageEnhancer.jfif" alt="logo" class="logo-menu"></a>
                 </div>
                 <div class="nav-buttons">
-                    <a href="/about" class="nav-btn">SOBRE</a>
-                    <a href="/ajuda" class="nav-btn">AJUDA</a>
                     <a href="/equipes" class="nav-btn">EQUIPES</a>
                     <% if (typeof usuarioLogado !== 'undefined' && usuarioLogado) { %>
                         <% if (usuarioLogado.tipo === 'admin') { %>
                             <a href="/admin/configurar" class="nav-btn">JIFC <%= typeof anoJifc !== 'undefined' ? anoJifc : '2026' %></a>
                             <a href="/admin/chaveamento" class="nav-btn">CHAVEAMENTO</a>
+                            <a href="/admin/juizes" class="nav-btn">JUIZES</a>
                         <% } %>
                         <% if (usuarioLogado.tipo === 'juiz') { %>
                             <a href="/juiz" class="nav-btn">MEUS JOGOS</a>
@@ -40,16 +39,14 @@
                 </div>
             </div>
             <div class="menu-right">
-                <div class="search-box">
-                    <input type="text" placeholder="Pesquisar...">
-                    <button>🔍</button>
-                </div>
-                
                 <% if (typeof usuarioLogado !== 'undefined' && usuarioLogado) { %>
                     <% const avatarLayout = usuarioLogado.fotoPerfil || '/imagens/avatar.svg'; %>
                     <% const perfilHref = usuarioLogado.tipo === 'juiz' ? '/juiz' : '/perfil'; %>
-                    <div class="perfil">
+                    <div class="perfil" style="display:flex; align-items:center; gap:0.6rem;">
                         <a href="<%= perfilHref %>"><img src="<%= avatarLayout %>" alt="perfil" class="avatar"></a>
+                        <% if (usuarioLogado.tipo === 'juiz') { %>
+                            <a href="/auth/logout" class="nav-btn" style="font-size:0.7rem;">SAIR</a>
+                        <% } %>
                     </div>
                 <% } else { %>
                     <div class="login-area">

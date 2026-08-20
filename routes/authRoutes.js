@@ -47,7 +47,7 @@ router.post('/login', loginValidation, async function(req, res, next) {
 
     res.setHeader('Set-Cookie', `token=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax`);
 
-    if (usuario.tipo === 'admin') return res.redirect('/admin/configurar');
+    if (usuario.tipo === 'admin') return res.redirect('/perfil');
     if (usuario.tipo === 'juiz') return res.redirect('/juiz');
     res.redirect('/perfil');
 });

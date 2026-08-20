@@ -653,24 +653,6 @@ function marcarIrregular(req, res) {
   res.redirect('/admin/laudos?campus=' + encodeURIComponent(atleta.campus) + '&sucesso=' + encodeURIComponent('Atleta reprovado com sucesso.') + '#lista-atletas');
 }
 
-async function renderPlacar(req, res) {
-  try {
-    const jogos = await adminModel.getJogos();
-    const jogo = jogos.find((item) => item.id === Number(req.params.jogoId)) || null;
-
-    res.render('adm/placares', {
-      title: 'Lançar Resultado',
-      usuarioLogado: req.user,
-      mostrarFiltros: false,
-      jogoId: req.params.jogoId,
-      jogo
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Erro ao carregar o placar do jogo.');
-  }
-}
-
 async function renderResumoCampus(req, res) {
   try {
     const campusId = Number(req.params.id);
@@ -694,23 +676,26 @@ async function renderResumoCampus(req, res) {
   }
 }
 
-async function salvarPlacar(req, res) {
-  try {
-    await adminModel.salvarPlacar(req.params.jogoId, req.body);
-    res.redirect('/admin/chaveamento');
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Erro ao salvar o placar.');
-  }
-}
-
 async function salvarJogoChaveamento(req, res) {
   try {
     await adminModel.atualizarJogoChaveamento(req.params.jogoId, req.body);
+    if (req.body.status === 'Encerrado') {
+      await adminModel.atualizarClassificacaoAposJogo(req.params.jogoId);
+    }
     res.redirect('/admin/chaveamento');
   } catch (error) {
     console.error(error);
     res.status(500).send('Erro ao salvar o confronto.');
+  }
+}
+
+async function recalcularClassificacoes(req, res) {
+  try {
+    await adminModel.recalcularTodasClassificacoes();
+    res.redirect('/admin/chaveamento');
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Erro ao recalcular classificações.');
   }
 }
 
@@ -735,8 +720,7 @@ module.exports = {
   renderAnalise,
   validarAtleta,
   marcarIrregular,
-  renderPlacar,
-  salvarPlacar,
-  salvarJogoChaveamento
+  salvarJogoChaveamento,
+  recalcularClassificacoes
 };
 module.exports.renderResumoCampus = renderResumoCampus;

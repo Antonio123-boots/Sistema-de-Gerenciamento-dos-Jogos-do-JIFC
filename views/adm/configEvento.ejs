@@ -78,6 +78,10 @@
             <span class="field-label-text">Início do Sorteio de Chaves</span>
             <input type="date" class="premium-date-input" name="inicioSorteio" value="<%= (typeof configuracoes !== 'undefined' && configuracoes.inicio_sorteio_chaves) ? configuracoes.inicio_sorteio_chaves : '' %>" required>
           </label>
+          <label class="premium-input-wrapper">
+            <span class="field-label-text">Fim do Sorteio de Chaves</span>
+            <input type="date" class="premium-date-input" name="fimSorteio" value="<%= (typeof configuracoes !== 'undefined' && configuracoes.fim_sorteio_chaves) ? configuracoes.fim_sorteio_chaves : '' %>" required>
+          </label>
         </div>
       </div>
 

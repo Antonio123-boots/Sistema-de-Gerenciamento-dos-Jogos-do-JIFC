@@ -134,6 +134,9 @@ CREATE TABLE jogos (
     vencedor_campus_id INT DEFAULT NULL,
     vencedor_atleta_id INT DEFAULT NULL,
     
+    -- Walk Over
+    wo TINYINT(1) DEFAULT 0,
+    
     FOREIGN KEY (modalidade_id) REFERENCES modalidades(id) ON DELETE CASCADE,
     FOREIGN KEY (chave_id) REFERENCES chaves(id) ON DELETE SET NULL,
     FOREIGN KEY (campus_1_id) REFERENCES campus(id) ON DELETE CASCADE,
@@ -240,6 +243,11 @@ CREATE TABLE classificacao_grupos (
     pontos_pro INT DEFAULT 0,
     pontos_contra INT DEFAULT 0,
     saldo_pontuacao INT GENERATED ALWAYS AS (pontos_pro - pontos_contra) STORED,
+    
+    cartoes_amarelos INT DEFAULT 0,
+    cartoes_vermelhos INT DEFAULT 0,
+    sets_ganhos INT DEFAULT 0,
+    sets_perdidos INT DEFAULT 0,
 
     FOREIGN KEY (modalidade_id) REFERENCES modalidades(id) ON DELETE CASCADE,
     FOREIGN KEY (chave_id) REFERENCES chaves(id) ON DELETE CASCADE,
@@ -252,4 +260,19 @@ CREATE TABLE classificacao_grupos (
         (campus_id IS NOT NULL AND atleta_id IS NULL) OR
         (atleta_id IS NOT NULL AND campus_id IS NULL)
     )
+);
+
+-- =========================================================================
+-- 15. TABELA DE CARTÕES (Fair Play)
+-- =========================================================================
+CREATE TABLE cartoes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    jogo_id INT NOT NULL,
+    campus_id INT NOT NULL,
+    tipo ENUM('amarelo', 'vermelho') NOT NULL,
+    jogador_nome VARCHAR(100) DEFAULT NULL,
+    minuto INT DEFAULT NULL,
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (jogo_id) REFERENCES jogos(id) ON DELETE CASCADE,
+    FOREIGN KEY (campus_id) REFERENCES campus(id) ON DELETE CASCADE
 );

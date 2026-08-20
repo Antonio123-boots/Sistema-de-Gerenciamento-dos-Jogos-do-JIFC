@@ -5,6 +5,7 @@ const campusModel = require('../models/campusModel');
 const { listarCampi, obterCampusPorSlug, atualizarCampus } = require('../models/campiCatalog');
 const { salvarFotoPerfilUsuario } = require('../models/authUsers');
 const { filtrarModalidadesParaHome } = require('../utils/homeFilters');
+const juizService = require('../services/juizService');
 
 const IFCS = [
     'IFC Araquari', 'IFC Blumenau', 'IFC Brusque', 'IFC Camboriú', 'IFC Concórdia',
@@ -280,6 +281,7 @@ function filtrarPorDia(dia = '24/06', slug = '') {
 /* GET home page (Usuário Comum) */
 router.get('/', async function(req, res, next) {
     try {
+        await juizService.atualizarStatusAutomatico();
         const modalidadeSelecionada = String(req.query.modalidade || '').trim();
         const diaSelecionadoSolicitado = String(req.query.dia || '').trim();
         const generoSelecionadoSolicitado = String(req.query.genero || '').trim();
@@ -465,6 +467,10 @@ router.get('/', async function(req, res, next) {
         }
 
         res.locals.modalidades = todasAsModalidades;
+        const { obterRegras: obterRegrasClassificacao } = require('../utils/sportClassificationRules');
+        const nomeModalidadeFiltro = modalidadeSelecionadaValida || modalidadeSelecionada || '';
+        const regrasClassificacao = obterRegrasClassificacao(nomeModalidadeFiltro);
+        
         res.render('user', {
             title: 'JIFC - Início',
             usuarioLogado: req.user,
@@ -478,7 +484,8 @@ router.get('/', async function(req, res, next) {
             jogos,
             classificacao,
             grupos,
-            esporteAtivo: Boolean(modalidadeSelecionadaValida || modalidadeSelecionada)
+            esporteAtivo: Boolean(modalidadeSelecionadaValida || modalidadeSelecionada),
+            regrasClassificacao
         });
     } catch (error) {
         console.error('Erro ao carregar home pública:', error);
@@ -513,7 +520,8 @@ router.get('/', async function(req, res, next) {
             jogos: [],
             classificacao: [],
             grupos: [],
-            esporteAtivo: Boolean(modalidadeSelecionadaValida)
+            esporteAtivo: Boolean(modalidadeSelecionadaValida),
+            regrasClassificacao: { temSets: false, temCartoes: false, colunasTabela: ['Pts', 'PJ', 'V', 'E', 'D', 'GP', 'GC', 'SG'] }
         });
     }
 });

@@ -113,7 +113,7 @@
                     headers: {
                       'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
                     },
-                    body: new URLSearchParams({ fotoPerfil: dataUrl }).toString(),
+                    body: new URLSearchParams({ fotoPerfil: dataUrl, _csrf: '<%= csrfToken %>' }).toString(),
                     credentials: 'same-origin'
                   });
 
@@ -154,7 +154,7 @@
                       headers: {
                         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
                       },
-                      body: new URLSearchParams({ fotoPerfil: '' }).toString(),
+                      body: new URLSearchParams({ fotoPerfil: '', _csrf: '<%= csrfToken %>' }).toString(),
                       credentials: 'same-origin'
                     });
 
@@ -265,7 +265,7 @@
           <% if (diasJogosCampus && diasJogosCampus.length) { %>
             <div class="day-chip-row" style="margin-bottom: 1rem;">
               <% diasJogosCampus.forEach((dia) => { %>
-                <a href="/perfil?dia=<%= encodeURIComponent(dia) %>#jogos-campus" class="day-chip <%= diaJogosSelecionado === dia ? 'is-active' : '' %>"><%= dia %></a>
+                <a href="<%= publicMode && campusSelecionado && campusSelecionado.slug ? '/equipes/' + campusSelecionado.slug : '/perfil' %>?dia=<%= encodeURIComponent(dia) %>#jogos-campus" class="day-chip <%= diaJogosSelecionado === dia ? 'is-active' : '' %>"><%= dia %></a>
               <% }) %>
             </div>
 

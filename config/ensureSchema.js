@@ -78,6 +78,16 @@ async function ensureJogoPublicadoColumn() {
   }
 }
 
+async function ensureJogoWoColumn() {
+  try {
+    await pool.query(`ALTER TABLE jogos ADD COLUMN wo TINYINT(1) DEFAULT 0`);
+  } catch (error) {
+    if (!/Duplicate column|already exists/i.test(error.message || '')) {
+      throw error;
+    }
+  }
+}
+
 async function ensureJuizModalidadeTable() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS juiz_modalidade (
@@ -89,10 +99,62 @@ async function ensureJuizModalidadeTable() {
   `);
 }
 
+async function ensureCartoesTable() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS cartoes (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      jogo_id INT NOT NULL,
+      campus_id INT NOT NULL,
+      tipo ENUM('amarelo', 'vermelho') NOT NULL,
+      jogador_nome VARCHAR(100) DEFAULT NULL,
+      minuto INT DEFAULT NULL,
+      criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (jogo_id) REFERENCES jogos(id) ON DELETE CASCADE,
+      FOREIGN KEY (campus_id) REFERENCES campus(id) ON DELETE CASCADE
+    )
+  `);
+}
+
+async function ensureClassificacaoCartoesColumns() {
+  const [columns] = await pool.query(
+    "SELECT COLUMN_NAME AS column_name FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'classificacao_grupos'"
+  );
+  const existing = new Set(columns.map((c) => c.column_name));
+
+  const novasColunas = [
+    ['cartoes_amarelos', 'ALTER TABLE classificacao_grupos ADD COLUMN cartoes_amarelos INT DEFAULT 0'],
+    ['cartoes_vermelhos', 'ALTER TABLE classificacao_grupos ADD COLUMN cartoes_vermelhos INT DEFAULT 0'],
+    ['sets_ganhos', 'ALTER TABLE classificacao_grupos ADD COLUMN sets_ganhos INT DEFAULT 0'],
+    ['sets_perdidos', 'ALTER TABLE classificacao_grupos ADD COLUMN sets_perdidos INT DEFAULT 0']
+  ];
+
+  for (const [name, sql] of novasColunas) {
+    if (!existing.has(name)) {
+      try {
+        await pool.query(sql);
+      } catch (error) {
+        if (error && error.code !== 'ER_DUP_FIELDNAME') {
+          throw error;
+        }
+      }
+    }
+  }
+}
+
 async function ensureSchema() {
   await ensureCampusTable();
   await ensureJogoPublicadoColumn();
+  await ensureJogoWoColumn();
   await ensureJuizModalidadeTable();
+  await ensureCartoesTable();
+  await ensureClassificacaoCartoesColumns();
+
+  try {
+    const { recalcularTodasClassificacoes } = require('../services/classificacaoService');
+    await recalcularTodasClassificacoes();
+  } catch (error) {
+    console.error('Erro ao recalcular classificações no startup:', error.message);
+  }
 }
 
-module.exports = { ensureSchema, ensureCampusTable, ensureJogoPublicadoColumn, ensureJuizModalidadeTable };
+module.exports = { ensureSchema, ensureCampusTable, ensureJogoPublicadoColumn, ensureJogoWoColumn, ensureJuizModalidadeTable, ensureCartoesTable, ensureClassificacaoCartoesColumns };

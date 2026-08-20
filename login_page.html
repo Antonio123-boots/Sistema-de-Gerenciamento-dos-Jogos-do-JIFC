@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JIFC - Jogos Internos</title>
+    <link rel="stylesheet" href="/css/geral.css">
+    <link rel="stylesheet" href="/css/login.css">
+    <link rel="stylesheet" href="/css/perfil.css">
+    <link rel="stylesheet" href="/css/cadastroCampus.css">
+    <link rel="stylesheet" href="/css/banirCampus.css">
+    <link rel="stylesheet" href="/css/responsive.css">
+    <link rel="stylesheet" href="/css/chaveamento.css">
+</head>
+<body>
+
+    <div class="menu-superior">
+        <div class="menu-container">
+            <div class="menu-left">
+                <div class="logo-area">
+                    <a href="/"><img src="/imagens/jifc original-Picsart-AiImageEnhancer.jfif" alt="logo" class="logo-menu"></a>
+                </div>
+                <div class="nav-buttons">
+                    <a href="/about" class="nav-btn">SOBRE</a>
+                    <a href="/ajuda" class="nav-btn">AJUDA</a>
+                    <a href="/equipes" class="nav-btn">EQUIPES</a>
+                    
+                </div>
+            </div>
+            <div class="menu-right">
+                <div class="search-box">
+                    <input type="text" placeholder="Pesquisar...">
+                    <button>🔍</button>
+                </div>
+                
+                
+                    <div class="login-area">
+                        <a href="/login" class="login-btn">LOGIN</a>
+                    </div>
+                
+                
+            </div>
+        </div>
+    </div>
+
+    
+
+    <div class="main-content">
+        <section class="login-shell">
+    <article class="login-card">
+        <div class="login-card__icon">🔐</div>
+        <h1>Acesso do sistema</h1>
+        <p class="login-card__subtitle">Entre com o e-mail e a senha recebidos para acessar o painel da instituição, do campus ou do administrador principal.</p>
+
+        
+
+        <form action="/auth/login" method="POST" class="login-form">
+            <input type="hidden" name="_csrf" value="dHkiXBAf-eL4mHDd6zfZwKOQUEYvfqIJhcGU">
+            <label for="email">E-mail</label>
+            <input id="email" name="email" type="email" placeholder="admin@ifc.edu.br" required>
+
+            <label for="senha">Senha</label>
+            <input id="senha" name="senha" type="password" placeholder="Digite a senha" required>
+
+            <button type="submit" class="btn btn-primary">Entrar</button>
+        </form>
+
+        <div class="login-hint">
+            <p>Se você não possui credenciais, entre em contato com o administrador do sistema.</p>
+        </div>
+    </article>
+</section>
+    </div>
+
+</body>
+</html>

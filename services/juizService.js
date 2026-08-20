@@ -1,8 +1,10 @@
 const db = require('../config/db');
 const argon2 = require('argon2');
+const { atualizarClassificacaoAposJogo } = require('./classificacaoService');
 
 function normalizarEsportes(esportes) {
-  if (!Array.isArray(esportes)) return [];
+  if (!esportes) return [];
+  if (!Array.isArray(esportes)) esportes = [esportes];
   return [...new Set(esportes.map((e) => String(e || '').trim()).filter(Boolean))];
 }
 
@@ -121,6 +123,7 @@ async function obterJogosPorEsporte(esporteNome) {
   const [rows] = await db.query(
     `SELECT j.id, j.fase, j.rodada, j.status, j.data_hora, j.local_jogo,
             j.campus_1_id, j.campus_2_id, j.atleta_1_id, j.atleta_2_id,
+            j.wo, j.vencedor_campus_id,
             m.nome AS modalidade, m.genero, m.tipo_confronto,
             c1.nome AS campus_1_nome, c1.nome_exibicao AS campus_1_exibicao, c1.foto_perfil AS foto_casa,
             c2.nome AS campus_2_nome, c2.nome_exibicao AS campus_2_exibicao, c2.foto_perfil AS foto_fora,
@@ -140,7 +143,8 @@ async function obterJogosPorEsporte(esporteNome) {
        m.nome = CONCAT(?, ' Masculino') OR
        m.nome = CONCAT(?, ' Feminino')
      )
-     ORDER BY j.data_hora ASC, j.id ASC`
+     ORDER BY j.data_hora ASC, j.id ASC`,
+    [esporteNome, esporteNome, esporteNome]
   );
 
   return rows.map((j) => {
@@ -174,7 +178,9 @@ async function obterJogosPorEsporte(esporteNome) {
       placar_1: j.placar_1,
       placar_2: j.placar_2,
       localJogo: j.local_jogo || 'A definir',
-      chaveNumero: j.chave_numero || null
+      chaveNumero: j.chave_numero || null,
+      wo: Boolean(j.wo),
+      vencedor_campus_id: j.vencedor_campus_id || null
     };
   });
 }
@@ -183,6 +189,7 @@ async function buscarJogoPorId(jogoId) {
   const [rows] = await db.query(
     `SELECT j.id, j.fase, j.rodada, j.status, j.data_hora, j.local_jogo,
             j.campus_1_id, j.campus_2_id, j.atleta_1_id, j.atleta_2_id,
+            j.wo, j.vencedor_campus_id,
             m.nome AS modalidade, m.genero, m.tipo_confronto,
             c1.nome AS campus_1_nome, c1.nome_exibicao AS campus_1_exibicao, c1.foto_perfil AS foto_casa,
             c2.nome AS campus_2_nome, c2.nome_exibicao AS campus_2_exibicao, c2.foto_perfil AS foto_fora,
@@ -220,6 +227,8 @@ async function buscarJogoPorId(jogoId) {
     modalidade: j.modalidade,
     genero: j.genero,
     tipo_confronto: j.tipo_confronto,
+    campus_1_id: j.campus_1_id,
+    campus_2_id: j.campus_2_id,
     casa: casaNome,
     fora: foraNome,
     fotoCasa: j.foto_casa || '/imagens/avatar.svg',
@@ -230,7 +239,9 @@ async function buscarJogoPorId(jogoId) {
     placar: (j.placar_1 != null && j.placar_2 != null) ? `${j.placar_1} x ${j.placar_2}` : null,
     placar_1: j.placar_1,
     placar_2: j.placar_2,
-    localJogo: j.local_jogo || 'A definir'
+    localJogo: j.local_jogo || 'A definir',
+    wo: Boolean(j.wo),
+    vencedor_campus_id: j.vencedor_campus_id || null
   };
 }
 
@@ -241,7 +252,7 @@ async function salvarPlacar(jogoId, { placar1, placar2, status }) {
   const p1 = Number(placar1);
   const p2 = Number(placar2);
 
-  const [existe] = await db.query('SELECT id FROM resultados_coletivos WHERE jogo_id = ?', [id]);
+  const [existe] = await db.query('SELECT jogo_id FROM resultados_coletivos WHERE jogo_id = ?', [id]);
   if (existe.length) {
     await db.query(
       'UPDATE resultados_coletivos SET placar_1 = ?, placar_2 = ? WHERE jogo_id = ?',
@@ -257,6 +268,66 @@ async function salvarPlacar(jogoId, { placar1, placar2, status }) {
   if (status) {
     await db.query('UPDATE jogos SET status = ? WHERE id = ?', [status, id]);
   }
+
+  try {
+    await atualizarClassificacaoAposJogo(id);
+  } catch (error) {
+    console.error('Erro ao atualizar classificação:', error.message);
+  }
+}
+
+async function atualizarStatusAutomatico() {
+  await db.query(`
+    UPDATE jogos
+    SET status = 'Em Andamento'
+    WHERE status = 'Agendado'
+      AND data_hora <= NOW()
+      AND publicado = 1
+  `);
+}
+
+async function aplicarWO(jogoId, campusVencedorId) {
+  const id = Number(jogoId || 0);
+  const vencedorId = Number(campusVencedorId || 0);
+  if (!id) throw new Error('ID do jogo inválido.');
+  if (!vencedorId) throw new Error('Selecione o campus vencedor do W.O.');
+
+  const [rows] = await db.query(
+    'SELECT id, campus_1_id, campus_2_id, status FROM jogos WHERE id = ?',
+    [id]
+  );
+  const jogo = rows[0];
+  if (!jogo) throw new Error('Jogo não encontrado.');
+
+  if (vencedorId !== jogo.campus_1_id && vencedorId !== jogo.campus_2_id) {
+    throw new Error('O campus selecionado não participa deste jogo.');
+  }
+
+  const placarWO = vencedorId === jogo.campus_1_id ? { p1: 0, p2: 0 } : { p1: 0, p2: 0 };
+
+  const [existe] = await db.query('SELECT jogo_id FROM resultados_coletivos WHERE jogo_id = ?', [id]);
+  if (existe.length) {
+    await db.query(
+      'UPDATE resultados_coletivos SET placar_1 = ?, placar_2 = ? WHERE jogo_id = ?',
+      [placarWO.p1, placarWO.p2, id]
+    );
+  } else {
+    await db.query(
+      'INSERT INTO resultados_coletivos (jogo_id, placar_1, placar_2) VALUES (?, ?, ?)',
+      [id, placarWO.p1, placarWO.p2]
+    );
+  }
+
+  await db.query(
+    'UPDATE jogos SET status = ?, vencedor_campus_id = ?, wo = 1 WHERE id = ?',
+    ['Encerrado', vencedorId, id]
+  );
+
+  try {
+    await atualizarClassificacaoAposJogo(id);
+  } catch (error) {
+    console.error('Erro ao atualizar classificação (W.O.):', error.message);
+  }
 }
 
 module.exports = {
@@ -270,5 +341,7 @@ module.exports = {
   obterEsportesUnicos,
   obterJogosPorEsporte,
   buscarJogoPorId,
-  salvarPlacar
+  salvarPlacar,
+  aplicarWO,
+  atualizarStatusAutomatico
 };
