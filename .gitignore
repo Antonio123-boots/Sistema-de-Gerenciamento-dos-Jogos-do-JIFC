@@ -1,6 +1,10 @@
 # Environment variables
 .env
 
+# Dados sensíveis e estado de runtime
+cookies.txt
+data/jifc-state.json
+
 # Logs
 logs
 *.log
