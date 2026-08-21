@@ -1,14 +1,19 @@
 {
-  "name": "seu-projeto",
-  "version": "1.0.0",
-  "description": "Sistema de cadastro de usuários.",
+  "name": "sistema-jogos-jifc",
+  "version": "5.7.2",
+  "description": "Sistema de gerenciamento dos jogos do JIFC (Jogos Internos entre Campus do IFC).",
   "main": "app.js",
   "scripts": {
     "dev": "nodemon app.js",
+    "start": "node app.js",
+    "test": "node tests/run-all.js",
     "seed:full": "node scripts/seed_full.js"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "jifc",
+    "esportes",
+    "torneio"
+  ],
   "license": "ISC",
   "dependencies": {
     "argon2": "^0.45.1",
@@ -23,7 +28,6 @@
     "express-validator": "^7.3.2",
     "jsonwebtoken": "^9.0.3",
     "method-override": "^3.0.0",
-    "multer": "^1.4.5-lts.1",
     "mysql2": "^3.11.0"
   },
   "devDependencies": {

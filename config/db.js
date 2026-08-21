@@ -11,24 +11,29 @@ if (dbPassword === '""' || dbPassword === "''" || !dbPassword) {
     dbPassword = '';
 }
 
-const pool = mysql.createPool({
-    host: process.env.DB_HOST || '127.0.0.1',
-    user: process.env.DB_USER || 'root',
-    password: dbPassword,
-    database: process.env.DB_NAME || 'jifc',
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
+let poolReal = null;
+
+function obterPool() {
+    if (!poolReal) {
+        poolReal = mysql.createPool({
+            host: process.env.DB_HOST || '127.0.0.1',
+            user: process.env.DB_USER || 'root',
+            password: dbPassword,
+            database: process.env.DB_NAME || 'jifc',
+            waitForConnections: true,
+            connectionLimit: 10,
+            queueLimit: 0
+        });
+    }
+    return poolReal;
+}
+
+// Pool preguiçoso: só conecta na primeira query, permitindo usar módulos
+// isolados (regras, validadores) em testes sem depender do banco.
+module.exports = new Proxy({}, {
+    get(_alvo, propriedade) {
+        const pool = obterPool();
+        const valor = pool[propriedade];
+        return typeof valor === 'function' ? valor.bind(pool) : valor;
+    }
 });
-
-// Autoteste de conexão ao iniciar o servidor
-pool.getConnection()
-    .then(conn => {
-        console.log('✅ Connected successfully to the MySQL database.');
-        conn.release();
-    })
-    .catch(err => {
-        console.error('❌ Database connection failure:', err.message);
-    });
-
-module.exports = pool;

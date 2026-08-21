@@ -1,74 +1,73 @@
-# User Management System
+# Sistema de Gerenciamento dos Jogos do JIFC
 
-Este é um sistema de gerenciamento de usuários desenvolvido com Node.js, Express e MySQL. Ele permite a criação, leitura, atualização e exclusão (CRUD) de usuários, com uma interface web para administradores e usuários.
+Sistema web para gerenciar os Jogos Internos entre Campus do IFC: inscrições de atletas, sorteio de chaves, registro de placares e resultados, classificação por grupo e acompanhamento público dos jogos.
 
 ## Funcionalidades
 
-- Cadastro e login de usuários
-- Listagem de usuários
-- Criação, edição e exclusão de usuários
-- Diferenciação entre administradores e usuários comuns
+- **Admin**: gerencia modalidades, campi, juízes, prazos de inscrição e sorteio; gera chaves (grupos) automaticamente e publica os jogos
+- **Campus**: inscreve o campus nas modalidades, cadastra atletas e acompanha o status de validação
+- **Juiz**: consulta os jogos do seu esporte e atualiza placares (inclusive sets, no vôlei/praia/tênis de mesa), aplica W.O. com placar padrão por esporte e lança resultados individuais (atletismo e xadrez)
+- **Público**: acompanha jogos publicados, chaves e classificações sem login
+- Cada juiz só pode editar jogos e provas das modalidades atribuídas a ele
 
-## Tecnologias Utilizadas
+## Tecnologias
 
-- **Node.js**: Ambiente de execução para JavaScript no lado do servidor.
-- **Express**: Framework para construção de aplicativos web com Node.js.
-- **MySQL**: Sistema de gerenciamento de banco de dados relacional.
-- **EJS**: Motor de visualização para renderizar páginas HTML.
-- **Bootstrap**: Framework CSS para estilização das páginas.
+- Node.js + Express + EJS
+- MySQL (mysql2/promise) com pool preguiçoso
+- Argon2 para hash de senhas (campi, juízes e admin)
+- JWT em cookie HttpOnly para sessão
+- express-validator + csurf + express-rate-limit
+
+## Requisitos
+
+- Node.js 18+
+- MySQL 8+
 
 ## Instalação
 
-### 1. Fork e Clone este Repositório
+```bash
+npm install
+```
 
-### 2. Instale as Dependências
+1. Crie um banco MySQL (por padrão, `jifc`) — o schema é criado/atualizado automaticamente ao iniciar
+2. Copie `.env.example` para `.env` e preencha:
+   - `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
+   - `JWT_SECRET` (mínimo 32 caracteres — gere com `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`)
+   - `COOKIE_SECURE=true` somente em produção com HTTPS
 
-Certifique-se de que você tem o Node.js e o MySQL instalados. Em seguida, execute o comando para instalar as dependências do projeto:
+## Execução
 
-### 3. Configure o Banco de Dados
+```bash
+npm run dev     # desenvolvimento (nodemon)
+npm start       # produção
+npm test        # roda a suíte de testes
+npm run seed:full  # popula campi, modalidades e dados de exemplo
+```
 
-Crie um banco de dados no MySQL, por exemplo, user_management.
+O servidor sobe em http://localhost:3000.
 
-### 4. Execute o Aplicativo
+## Acessos padrão
 
-Inicie o servidor com o comando:
+- Admin: `admin@ifc.edu.br` / `admin123`
+- Campi: `<campus>@ifc.edu.br` / `jifc2026` (ex.: `araquari@ifc.edu.br`)
+- Juízes: cadastrados pelo admin em `/admin/juizes`
 
-node app.js
+## Estrutura
 
-O servidor estará disponível em http://localhost:3000.
+```
+├── app.js                  # entrada da aplicação
+├── config/                 # conexão MySQL e criação de schema
+├── controllers/            # controllers (admin, campus, juiz, rotas públicas)
+├── services/               # regras de negócio (chaveamento, classificação, W.O., etc.)
+├── models/                 # acesso a dados e catálogos
+├── routes/                 # definição das rotas
+├── middleware/             # autenticação JWT
+├── utils/                  # regras por esporte, filtros e helpers
+├── views/                  # templates EJS
+├── tests/                  # testes (npm test)
+└── scripts/                # scripts utilitários (seed, migrações)
+```
 
-## Estrutura do Projeto
+## Licença
 
-/CRUD
-│
-├── /views
-│   ├── /partials
-│   │   └── navbar.ejs
-│   ├── layout.ejs
-│   ├── create.ejs
-│   ├── edit.ejs
-│   ├── index.ejs
-│   ├── show.ejs
-│
-├── /controllers
-│   └── userController.js
-│
-├── /models
-│   └── userModel.js
-│
-├── /routes
-│   └── userRoutes.js
-│
-├── /config
-│   └── database.js
-│
-├── app.js
-├── package.json
-└── README.md
-
-Contribuição
-
-Sinta-se à vontade para contribuir com melhorias ou correções. Abra uma issue ou envie um pull request para colaborar com o projeto.
-Licença
-
-Este projeto é licenciado sob a MIT License.
+ISC

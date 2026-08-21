@@ -65,6 +65,14 @@ app.use('/juiz', juizRoutes);
 function startServer(port) {
     const server = app.listen(port, () => {
         console.log(`Server is running on port ${port}`);
+        require('./config/db').getConnection()
+            .then((conn) => {
+                console.log('✅ Connected successfully to the MySQL database.');
+                conn.release();
+            })
+            .catch((err) => {
+                console.error('❌ Database connection failure:', err.message);
+            });
     });
 
     server.on('error', (error) => {

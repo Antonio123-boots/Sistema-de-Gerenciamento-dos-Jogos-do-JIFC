@@ -1,5 +1,6 @@
 const argon2 = require('argon2');
 const { readState, writeState } = require('./stateStore');
+const pool = require('../config/db');
 const { listarCampi, senhaPadraoCampus } = require('./campiCatalog');
 const { normalizarFotoPerfil, fotoPadrao } = require('./profileImageStore');
 const juizService = require('../services/juizService');
@@ -132,6 +133,14 @@ async function verificarSenha(usuario, senhaInformada) {
   }
 
   if (hash === senhaInformada) {
+    if (usuario.tipo === 'campus' && usuario.email) {
+      try {
+        const novoHash = await argon2.hash(senhaInformada);
+        await pool.query('UPDATE campus SET senha = ? WHERE email = ?', [novoHash, String(usuario.email).trim().toLowerCase()]);
+      } catch (_) {
+        // migração preguiçosa falhou; login prossegue normalmente
+      }
+    }
     return true;
   }
 

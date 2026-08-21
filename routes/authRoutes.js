@@ -9,6 +9,14 @@ const loginValidation = [
     body('senha').isLength({ min: 1 }).withMessage('Informe a senha.')
 ];
 
+function construirCookieToken(token) {
+    const partes = [`token=${encodeURIComponent(token)}`, 'Path=/', 'HttpOnly', 'SameSite=Lax'];
+    if (String(process.env.COOKIE_SECURE || '').trim().toLowerCase() === 'true') {
+        partes.push('Secure');
+    }
+    return partes.join('; ');
+}
+
 router.post('/login', loginValidation, async function(req, res, next) {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -45,7 +53,7 @@ router.post('/login', loginValidation, async function(req, res, next) {
     const payload = construirPayloadJWT(usuario);
     const token = gerarToken(payload);
 
-    res.setHeader('Set-Cookie', `token=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax`);
+    res.setHeader('Set-Cookie', construirCookieToken(token));
 
     if (usuario.tipo === 'admin') return res.redirect('/perfil');
     if (usuario.tipo === 'juiz') return res.redirect('/juiz');
@@ -53,7 +61,7 @@ router.post('/login', loginValidation, async function(req, res, next) {
 });
 
 router.get('/logout', function(req, res, next) {
-    res.setHeader('Set-Cookie', 'token=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax');
+    res.setHeader('Set-Cookie', construirCookieToken('') + '; Max-Age=0');
     res.redirect('/');
 });
 

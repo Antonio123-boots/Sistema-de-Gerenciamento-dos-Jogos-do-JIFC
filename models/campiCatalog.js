@@ -1,5 +1,6 @@
 const { readState, writeState } = require('./stateStore');
 const pool = require('../config/db');
+const argon2 = require('argon2');
 const { normalizarFotoPerfil, fotoPadrao } = require('./profileImageStore');
 
 let campusModel;
@@ -12,6 +13,14 @@ function getCampusModel() {
 }
 
 const senhaPadraoCampus = 'jifc2026';
+
+async function prepararSenhaParaSalvar(senhaInformada) {
+  const senha = String(senhaInformada || senhaPadraoCampus).trim();
+  if (!senha || senha.startsWith('$argon2')) {
+    return senha;
+  }
+  return argon2.hash(senha);
+}
 
 const campiDefault = [
   { slug: 'abelardo-luz', nome: 'IFC Abelardo Luz', nomeExibicao: 'Abelardo Luz', cor: '#00bcd4' },
@@ -207,6 +216,7 @@ async function seedDefaultCampi() {
     return;
   }
 
+  const senhaPadraoHash = await argon2.hash(senhaPadraoCampus);
   for (const campus of campiDefault) {
     const slug = String(campus.slug || '').trim() || gerarSlug(campus.nomeExibicao || campus.nome || '');
     const nome = String(campus.nome || '').trim();
@@ -214,7 +224,7 @@ async function seedDefaultCampi() {
     const email = `${slug}@ifc.edu.br`;
     await pool.query(
       'INSERT INTO campus (nome, nome_exibicao, cidade, email, senha, slug, cor, banned, ban_motivo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [nome, nomeExibicao, nomeExibicao, email, senhaPadraoCampus, slug, campus.cor || '#2980b9', 0, '']
+      [nome, nomeExibicao, nomeExibicao, email, senhaPadraoHash, slug, campus.cor || '#2980b9', 0, '']
     );
   }
 
@@ -397,7 +407,7 @@ async function atualizarCampus(identificador, dados) {
   const nomeExibicao = String(dados.nomeExibicao || campusAtual.nome_exibicao || campusAtual.nome || '').trim();
   const email = normalizarEmail(dados.email || campusAtual.email);
   const senhaInformada = String(dados.senha || '').trim();
-  const senha = senhaInformada || String(campusAtual.senha || senhaPadraoCampus).trim();
+  const senha = await prepararSenhaParaSalvar(senhaInformada || campusAtual.senha || senhaPadraoCampus);
   const cidade = String(dados.cidade || campusAtual.cidade || '').trim() || 'Não informado';
   const fotoPerfil = normalizarFotoPerfil(dados.fotoPerfil || dados.foto_perfil || campusAtual.foto_perfil || campusAtual.fotoPerfil || fotoPadrao);
 
@@ -464,7 +474,7 @@ async function adicionarCampus(dados) {
   const nome = String(dados.nome || '').trim();
   const nomeExibicao = String(dados.nomeExibicao || '').trim();
   const email = normalizarEmail(dados.email);
-  const senha = String(dados.senha || senhaPadraoCampus).trim();
+  const senha = await prepararSenhaParaSalvar(dados.senha);
   const cidade = String(dados.cidade || '').trim() || 'Não informado';
   const fotoPerfil = normalizarFotoPerfil(dados.fotoPerfil || dados.foto_perfil || fotoPadrao);
 

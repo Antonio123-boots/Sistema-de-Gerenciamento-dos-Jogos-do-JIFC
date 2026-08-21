@@ -1,5 +1,6 @@
 // Base de dados local em memória para modalidades e atletas dos campus.
 const db = require('../config/db');
+const argon2 = require('argon2');
 const { listarCampiSync } = require('./campiCatalog');
 const { readState, writeState } = require('./stateStore');
 
@@ -68,9 +69,10 @@ async function garantirCampusNoBanco(campusNome) {
 
   try {
     const slug = gerarSlug(nome);
+    const senhaHash = await argon2.hash('jifc2026');
     const [resultado] = await db.query(
       'INSERT INTO campus (nome, nome_exibicao, cidade, email, senha, slug, cor, foto_perfil, banned, ban_motivo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [nome, nome, nome, `${slug}@ifc.edu.br`, 'jifc2026', slug, '#2980b9', '/imagens/avatar.svg', 0, '']
+      [nome, nome, nome, `${slug}@ifc.edu.br`, senhaHash, slug, '#2980b9', '/imagens/avatar.svg', 0, '']
     );
     return resultado.insertId;
   } catch (error) {

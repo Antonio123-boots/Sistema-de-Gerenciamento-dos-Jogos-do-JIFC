@@ -1,30 +1,39 @@
 const assert = require('assert');
-const { cadastrarJuiz, listarJuizes, obterUsuarioPorEmail } = require('../models/authUsers');
+const juizService = require('../services/juizService');
+const { obterUsuarioPorEmail } = require('../models/authUsers');
+const db = require('../config/db');
 
 (async () => {
   const email = `juiz${Date.now()}@teste.com`;
-  const nome = 'Juiz Teste Fluxo';
+  let juizId = null;
 
-  const juiz = await cadastrarJuiz({
-    nome,
-    email,
-    senha: 'juiz123',
-    modalidadeId: 1,
-    modalidadeNome: 'Futsal'
-  });
+  try {
+    juizId = await juizService.cadastrarJuiz({
+      nome: 'Juiz Teste Fluxo',
+      email,
+      senha: 'juiz123',
+      esportes: ['Futsal']
+    });
 
-  assert.strictEqual(juiz.tipo, 'juiz');
-  assert.strictEqual(juiz.email, email.toLowerCase());
-  assert.strictEqual(juiz.modalidadeNome, 'Futsal');
+    const usuario = await obterUsuarioPorEmail(email);
+    assert.strictEqual(usuario.tipo, 'juiz');
+    assert.strictEqual(Number(usuario.juizId), Number(juizId));
 
-  const usuario = await obterUsuarioPorEmail(email);
-  assert.strictEqual(usuario.tipo, 'juiz');
-  assert.strictEqual(Number(usuario.modalidadeId), 1);
+    const esportes = await juizService.obterEsportesDoJuiz(usuario.juizId);
+    assert.deepStrictEqual(esportes, ['Futsal']);
 
-  const lista = listarJuizes();
-  assert.ok(lista.some((item) => item.email === email.toLowerCase()));
+    const lista = await juizService.listarJuizes();
+    assert.ok(lista.some((item) => item.email === email.toLowerCase()));
 
-  console.log('Teste de cadastro e recuperação de juiz concluído com sucesso.');
+    console.log('Teste de cadastro e recuperação de juiz concluído com sucesso.');
+  } finally {
+    if (juizId) {
+      try {
+        await juizService.excluirJuiz(juizId);
+      } catch (_) {}
+    }
+    await db.end();
+  }
 })().catch((error) => {
   console.error(error);
   process.exit(1);

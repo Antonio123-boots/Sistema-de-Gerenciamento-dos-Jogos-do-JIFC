@@ -1,7 +1,7 @@
 const db = require('../config/db');
 const argon2 = require('argon2');
 const { atualizarClassificacaoAposJogo } = require('./classificacaoService');
-const { obterRegras } = require('../utils/sportClassificationRules');
+const { obterRegras, obterPlacarWo } = require('../utils/sportClassificationRules');
 
 function normalizarEsportes(esportes) {
   if (!esportes) return [];
@@ -348,7 +348,11 @@ async function aplicarWO(jogoId, campusVencedorId) {
   if (!vencedorId) throw new Error('Selecione o campus vencedor do W.O.');
 
   const [rows] = await db.query(
-    'SELECT id, campus_1_id, campus_2_id, status FROM jogos WHERE id = ?',
+    `SELECT j.id, j.campus_1_id, j.campus_2_id, j.status,
+            m.nome AS modalidade_nome
+     FROM jogos j
+     JOIN modalidades m ON m.id = j.modalidade_id
+     WHERE j.id = ?`,
     [id]
   );
   const jogo = rows[0];
@@ -358,19 +362,40 @@ async function aplicarWO(jogoId, campusVencedorId) {
     throw new Error('O campus selecionado não participa deste jogo.');
   }
 
-  const placarWO = vencedorId === jogo.campus_1_id ? { p1: 0, p2: 0 } : { p1: 0, p2: 0 };
+  const placarWo = obterPlacarWo(jogo.modalidade_nome);
+  const vencedorEhCampus1 = vencedorId === jogo.campus_1_id;
+  const placarFinal = {
+    p1: vencedorEhCampus1 ? placarWo.p1 : placarWo.p2,
+    p2: vencedorEhCampus1 ? placarWo.p2 : placarWo.p1
+  };
 
   const [existe] = await db.query('SELECT jogo_id FROM resultados_coletivos WHERE jogo_id = ?', [id]);
   if (existe.length) {
     await db.query(
       'UPDATE resultados_coletivos SET placar_1 = ?, placar_2 = ? WHERE jogo_id = ?',
-      [placarWO.p1, placarWO.p2, id]
+      [placarFinal.p1, placarFinal.p2, id]
     );
   } else {
     await db.query(
       'INSERT INTO resultados_coletivos (jogo_id, placar_1, placar_2) VALUES (?, ?, ?)',
-      [id, placarWO.p1, placarWO.p2]
+      [id, placarFinal.p1, placarFinal.p2]
     );
+  }
+
+  if (Array.isArray(placarWo.sets) && placarWo.sets.length > 0) {
+    try {
+      await db.query('DELETE FROM resultados_por_sets WHERE jogo_id = ?', [id]);
+      for (const set of placarWo.sets) {
+        const pontos1 = vencedorEhCampus1 ? set.pontos_1 : set.pontos_2;
+        const pontos2 = vencedorEhCampus1 ? set.pontos_2 : set.pontos_1;
+        await db.query(
+          'INSERT INTO resultados_por_sets (jogo_id, numero_set, pontos_1, pontos_2) VALUES (?, ?, ?, ?)',
+          [id, set.numero || placarWo.sets.indexOf(set) + 1, pontos1, pontos2]
+        );
+      }
+    } catch (_) {
+      // tabela de sets pode não existir para esta modalidade
+    }
   }
 
   await db.query(

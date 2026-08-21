@@ -170,6 +170,23 @@ function normalizarNome(nome) {
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
+const PLACAR_WO = {
+  futsal: { p1: 3, p2: 0 },
+  handebol: { p1: 10, p2: 0 },
+  basquete: { p1: 20, p2: 0 },
+  volei: { p1: 2, p2: 0, sets: [{ pontos_1: 21, pontos_2: 0 }, { pontos_1: 21, pontos_2: 0 }] },
+  'volei de praia': { p1: 2, p2: 0, sets: [{ pontos_1: 21, pontos_2: 0 }, { pontos_1: 21, pontos_2: 0 }] },
+  'tenis de mesa': { p1: 2, p2: 0, sets: [{ pontos_1: 11, pontos_2: 0 }, { pontos_1: 11, pontos_2: 0 }] }
+};
+
+function obterPlacarWo(nomeModalidade) {
+  const nome = normalizarNome(nomeModalidade);
+  for (const [chave, placar] of Object.entries(PLACAR_WO)) {
+    if (nome.includes(chave)) return placar;
+  }
+  return { p1: 1, p2: 0 };
+}
+
 function obterRegras(nomeModalidade) {
   const nome = normalizarNome(nomeModalidade);
   for (const [chave, regras] of Object.entries(RULES)) {
@@ -195,5 +212,6 @@ module.exports = {
   obterRegras,
   colunasParaExibicao,
   colunasParaChave,
-  normalizarNome
+  normalizarNome,
+  obterPlacarWo
 };

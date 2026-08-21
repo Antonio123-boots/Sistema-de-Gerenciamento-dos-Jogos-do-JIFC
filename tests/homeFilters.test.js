@@ -2,9 +2,9 @@ const assert = require('assert');
 const { filtrarModalidadesParaHome } = require('../utils/homeFilters');
 
 const modalidadesBase = [
-  { slug: 'futsal-masculino', nome: 'Futsal Masculino', dia: '24/06' },
-  { slug: 'volei-masculino', nome: 'Voleibol Masculino', dia: '25/06' },
-  { slug: 'basquete-masculino', nome: 'Basquete Masculino', dia: '26/06' }
+  { slug: 'futsal-masculino', nome: 'Futsal Masculino', dia: '24/06', genero: 'Masculino' },
+  { slug: 'volei-masculino', nome: 'Voleibol Masculino', dia: '25/06', genero: 'Masculino' },
+  { slug: 'basquete-masculino', nome: 'Basquete Masculino', dia: '26/06', genero: 'Masculino' }
 ];
 
 const porModalidade = filtrarModalidadesParaHome(modalidadesBase, { modalidade: 'futsal-masculino' });
