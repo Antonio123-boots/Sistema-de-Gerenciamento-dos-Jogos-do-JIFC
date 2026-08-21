@@ -1,6 +1,7 @@
 const db = require('../config/db');
 const argon2 = require('argon2');
 const { atualizarClassificacaoAposJogo } = require('./classificacaoService');
+const { obterRegras } = require('../utils/sportClassificationRules');
 
 function normalizarEsportes(esportes) {
   if (!esportes) return [];
@@ -119,7 +120,19 @@ async function obterEsportesUnicos() {
   return rows.map((r) => r.esporte);
 }
 
-async function obterJogosPorEsporte(esporteNome) {
+async function obterJogosPorEsporte(esporteNome, genero = null) {
+  let whereClause = `(
+       m.nome = ? OR
+       m.nome = CONCAT(?, ' Masculino') OR
+       m.nome = CONCAT(?, ' Feminino')
+     )`;
+  const params = [esporteNome, esporteNome, esporteNome];
+
+  if (genero && genero !== 'Todos') {
+    whereClause += ` AND m.genero = ?`;
+    params.push(genero);
+  }
+
   const [rows] = await db.query(
     `SELECT j.id, j.fase, j.rodada, j.status, j.data_hora, j.local_jogo,
             j.campus_1_id, j.campus_2_id, j.atleta_1_id, j.atleta_2_id,
@@ -138,16 +151,12 @@ async function obterJogosPorEsporte(esporteNome) {
      LEFT JOIN atletas a2 ON j.atleta_2_id = a2.id
      LEFT JOIN resultados_coletivos rc ON rc.jogo_id = j.id
      LEFT JOIN chaves chv ON chv.id = j.chave_id
-     WHERE (
-       m.nome = ? OR
-       m.nome = CONCAT(?, ' Masculino') OR
-       m.nome = CONCAT(?, ' Feminino')
-     )
+     WHERE ${whereClause}
      ORDER BY j.data_hora ASC, j.id ASC`,
-    [esporteNome, esporteNome, esporteNome]
+    params
   );
 
-  return rows.map((j) => {
+  const jogosMapeados = await Promise.all(rows.map(async (j) => {
     const dataHora = j.data_hora ? new Date(j.data_hora) : null;
     const tipoIndividual = Boolean(j.atleta_1_id || j.atleta_2_id);
     const casaNome = tipoIndividual
@@ -156,6 +165,17 @@ async function obterJogosPorEsporte(esporteNome) {
     const foraNome = tipoIndividual
       ? (j.atleta_2_nome || 'Atleta não informado')
       : (j.campus_2_exibicao || j.campus_2_nome || 'Campus não informado');
+
+    let sets = [];
+    try {
+      const [setsRows] = await db.query(
+        'SELECT numero_set, pontos_1, pontos_2 FROM resultados_por_sets WHERE jogo_id = ? ORDER BY numero_set ASC',
+        [j.id]
+      );
+      sets = setsRows.map(s => ({ numero: s.numero_set, pontos_1: s.pontos_1, pontos_2: s.pontos_2 }));
+    } catch (_) {
+      sets = [];
+    }
 
     return {
       id: j.id,
@@ -180,9 +200,13 @@ async function obterJogosPorEsporte(esporteNome) {
       localJogo: j.local_jogo || 'A definir',
       chaveNumero: j.chave_numero || null,
       wo: Boolean(j.wo),
-      vencedor_campus_id: j.vencedor_campus_id || null
+      vencedor_campus_id: j.vencedor_campus_id || null,
+      sets,
+      temSets: obterRegras(j.modalidade).temSets
     };
-  });
+  }));
+
+  return jogosMapeados;
 }
 
 async function buscarJogoPorId(jogoId) {
@@ -217,6 +241,17 @@ async function buscarJogoPorId(jogoId) {
     ? (j.atleta_2_nome || 'Atleta não informado')
     : (j.campus_2_exibicao || j.campus_2_nome || 'Campus não informado');
 
+  let setsRows = [];
+  try {
+    const [rows] = await db.query(
+      'SELECT numero_set, pontos_1, pontos_2 FROM resultados_por_sets WHERE jogo_id = ? ORDER BY numero_set ASC',
+      [jogoId]
+    );
+    setsRows = rows;
+  } catch (_) {
+    setsRows = [];
+  }
+
   return {
     id: j.id,
     fase: j.fase,
@@ -241,11 +276,12 @@ async function buscarJogoPorId(jogoId) {
     placar_2: j.placar_2,
     localJogo: j.local_jogo || 'A definir',
     wo: Boolean(j.wo),
-    vencedor_campus_id: j.vencedor_campus_id || null
+    vencedor_campus_id: j.vencedor_campus_id || null,
+    sets: setsRows.map(s => ({ numero: s.numero_set, pontos_1: s.pontos_1, pontos_2: s.pontos_2 }))
   };
 }
 
-async function salvarPlacar(jogoId, { placar1, placar2, status }) {
+async function salvarPlacar(jogoId, { placar1, placar2, status, sets }) {
   const id = Number(jogoId || 0);
   if (!id) throw new Error('ID do jogo inválido.');
 
@@ -263,6 +299,25 @@ async function salvarPlacar(jogoId, { placar1, placar2, status }) {
       'INSERT INTO resultados_coletivos (jogo_id, placar_1, placar_2) VALUES (?, ?, ?)',
       [id, p1, p2]
     );
+  }
+
+  if (Array.isArray(sets) && sets.length > 0) {
+    try {
+      await db.query('DELETE FROM resultados_por_sets WHERE jogo_id = ?', [id]);
+      for (const set of sets) {
+        const num = Number(set.numero);
+        const s1 = Number(set.pontos_1 || 0);
+        const s2 = Number(set.pontos_2 || 0);
+        if (num >= 1) {
+          await db.query(
+            'INSERT INTO resultados_por_sets (jogo_id, numero_set, pontos_1, pontos_2) VALUES (?, ?, ?, ?)',
+            [id, num, s1, s2]
+          );
+        }
+      }
+    } catch (_) {
+      // resultados_por_sets table may not exist yet; sets won't be saved
+    }
   }
 
   if (status) {

@@ -7,8 +7,8 @@ const campusBase = listarCampiSync();
 const modalidadesBase = [
   'Futsal Masculino',
   'Futsal Feminino',
-  'Voleibol Masculino',
-  'Voleibol Feminino',
+  'Vôlei Masculino',
+  'Vôlei Feminino',
   'Basquete Masculino',
   'Basquete Feminino'
 ];
@@ -32,6 +32,7 @@ function normalizarNomeModalidadeParaBanco(nome) {
   return String(nome || '')
     .trim()
     .replace(/^Tênis$/i, 'Tênis de Mesa')
+    .replace(/^V[oô]leibol(\s*(Masculino|Feminino))?$/i, 'Vôlei $2')
     .trim();
 }
 
@@ -155,15 +156,19 @@ async function sincronizarAtletaNoBanco(campusId, atletaDados, modalidadesSeleci
   const [existente] = await db.query('SELECT id FROM atletas WHERE campus_id = ? AND matricula = ? LIMIT 1', [campusId, matricula]);
   let atletaId = existente?.[0]?.id || null;
 
+  const provasAtletismoJson = Array.isArray(atletaDados?.atletismoProvas) && atletaDados.atletismoProvas.length
+    ? JSON.stringify(atletaDados.atletismoProvas)
+    : null;
+
   if (atletaId) {
     await db.query(
-      'UPDATE atletas SET nome = ?, cpf = ?, genero = ?, data_nascimento = ? WHERE id = ?',
-      [nome, cpf, genero, dataNascimento, atletaId]
+      'UPDATE atletas SET nome = ?, cpf = ?, genero = ?, data_nascimento = ?, provas_atletismo = COALESCE(?, provas_atletismo) WHERE id = ?',
+      [nome, cpf, genero, dataNascimento, provasAtletismoJson, atletaId]
     );
   } else {
     const [resultado] = await db.query(
-      'INSERT INTO atletas (campus_id, nome, cpf, matricula, genero, data_nascimento) VALUES (?, ?, ?, ?, ?, ?)',
-      [campusId, nome, cpf, matricula, genero, dataNascimento]
+      'INSERT INTO atletas (campus_id, nome, cpf, matricula, genero, data_nascimento, provas_atletismo) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [campusId, nome, cpf, matricula, genero, dataNascimento, provasAtletismoJson]
     );
     atletaId = resultado.insertId;
   }
@@ -791,6 +796,26 @@ async function substituirAtleta(campusNome, dados) {
   return atleta;
 }
 
+/* Garante que os atletas do estado com provas de atletismo existam no banco
+   (cobre inscrições antigas criadas antes da sincronização automática) */
+async function sincronizarAtletasComProvasNoBanco() {
+  const alvos = atletasCampus.filter((atleta) => Array.isArray(atleta.atletismoProvas) && atleta.atletismoProvas.length);
+  let sincronizados = 0;
+
+  for (const atleta of alvos) {
+    try {
+      const campusId = await garantirCampusNoBanco(atleta.campus);
+      if (!campusId) continue;
+      const atletaId = await sincronizarAtletaNoBanco(campusId, atleta, normalizarModalidades(atleta.modalidades || atleta.modalidade));
+      if (atletaId) sincronizados++;
+    } catch (error) {
+      console.error('Erro ao sincronizar atleta do estado no banco:', error.message);
+    }
+  }
+
+  return sincronizados;
+}
+
 module.exports = {
   normalizarCPF,
   normalizarMatricula,
@@ -811,5 +836,6 @@ module.exports = {
   atualizarAtleta,
   atualizarStatusAtleta,
   excluirAtleta,
-  substituirAtleta
+  substituirAtleta,
+  sincronizarAtletasComProvasNoBanco
 };

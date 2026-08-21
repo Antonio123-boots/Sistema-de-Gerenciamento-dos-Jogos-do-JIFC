@@ -82,11 +82,20 @@ async function getJogosPublicados(filters = {}) {
 
   try {
     const [linhas] = await db.query(query);
-    const jogos = linhas.map((linha) => {
+    const jogos = await Promise.all(linhas.map(async (linha) => {
       const nomeModalidade = String(linha.modalidade || '').trim();
       const generoModalidade = String(linha.genero || '').trim();
       const modalidadeBaseSlug = normalizarSlugParaFiltro(nomeModalidade);
       const modalidadeSlugCompleta = normalizarSlugParaFiltro(`${nomeModalidade} ${generoModalidade}`);
+
+      let sets = [];
+      try {
+        const [setsRows] = await db.query(
+          'SELECT numero_set, pontos_1, pontos_2 FROM resultados_por_sets WHERE jogo_id = ? ORDER BY numero_set ASC',
+          [linha.id]
+        );
+        sets = setsRows.map(s => ({ numero: s.numero_set, pontos_1: s.pontos_1, pontos_2: s.pontos_2 }));
+      } catch (_) { sets = []; }
 
       return {
         ...linha,
@@ -95,9 +104,10 @@ async function getJogosPublicados(filters = {}) {
         casa: linha.casa || linha.atletaCasa || '—',
         fora: linha.fora || linha.atletaFora || '—',
         fotoCasa: linha.foto_casa || '/imagens/avatar.svg',
-        fotoFora: linha.foto_fora || '/imagens/avatar.svg'
+        fotoFora: linha.foto_fora || '/imagens/avatar.svg',
+        sets
       };
-    });
+    }));
 
     return jogos.filter((jogo) => {
       const atendeDia = !diaFiltro || String(jogo.data || '') === diaFiltro;

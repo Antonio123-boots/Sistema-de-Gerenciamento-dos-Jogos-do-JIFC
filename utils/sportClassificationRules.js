@@ -24,21 +24,42 @@ const RULES = {
   },
   handebol: {
     tipo: 'gols',
-    pontuacaoVitoria: 2,
+    pontuacaoVitoria: 3,
     pontuacaoEmpate: 1,
     pontuacaoDerrota: 0,
-    colunasTabela: ['Pts', 'PJ', 'V', 'E', 'D', 'GP', 'GC', 'SG'],
-    colunasChave: ['Pts', 'PJ', 'V', 'E', 'D', 'GP', 'GC', 'SG'],
+    colunasTabela: ['Pts', 'PJ', 'V', 'E', 'D', 'GP', 'GC', 'SG', 'CF'],
+    colunasChave: ['Pts', 'PJ', 'V', 'E', 'D', 'GP', 'GC', 'SG', 'CF'],
+    cartaoAmarelo: -1,
+    cartaoVermelho: -3,
+    excluicao2Min: -1,
     temSets: false,
-    temCartoes: false,
+    temCartoes: true,
+    criteriosDesempate: [
+      'pontos',
+      'confronto_direto',
+      'vitorias',
+      'saldo_gols_empatadas',
+      'saldo_gols',
+      'menor_gols_sofridos',
+      'maior_gols_feitos',
+      'media_gols',
+      'sancoes',
+      'sorteio'
+    ],
     ordenarPor: (a, b) => {
       if (b.pontos !== a.pontos) return b.pontos - a.pontos;
       if (b.vitorias !== a.vitorias) return b.vitorias - a.vitorias;
       const saldoA = a.pontos_pro - a.pontos_contra;
       const saldoB = b.pontos_pro - b.pontos_contra;
       if (saldoB !== saldoA) return saldoB - saldoA;
+      if (a.pontos_contra !== b.pontos_contra) return a.pontos_contra - b.pontos_contra;
       if (b.pontos_pro !== a.pontos_pro) return b.pontos_pro - a.pontos_pro;
-      return 0;
+      const mediaA = a.pontos_contra > 0 ? a.pontos_pro / a.pontos_contra : a.pontos_pro;
+      const mediaB = b.pontos_contra > 0 ? b.pontos_pro / b.pontos_contra : b.pontos_pro;
+      if (mediaB !== mediaA) return mediaB - mediaA;
+      const sancA = (a.cartoes_amarelos || 0) * 1 + (a.cartoes_vermelhos || 0) * 3 + (a.excluicoes_2min || 0) * 1;
+      const sancB = (b.cartoes_amarelos || 0) * 1 + (b.cartoes_vermelhos || 0) * 3 + (b.excluicoes_2min || 0) * 1;
+      return sancA - sancB;
     }
   },
   basquete: {
@@ -60,35 +81,85 @@ const RULES = {
       return 0;
     }
   },
-  voleibol: {
+  volei: {
     tipo: 'sets',
-    pontuacaoVitoria: 3,
+    pontuacaoVitoria3_0_3_1: 3,
+    pontuacaoVitoria3_2: 2,
+    pontuacaoDerrota2_3: 1,
+    pontuacaoDerrota0_3_1_3: 0,
     pontuacaoEmpate: 0,
-    pontuacaoDerrota: 1,
-    colunasTabela: ['Pts', 'PJ', 'V', 'D', 'SG', 'SP', 'Sets+/-'],
-    colunasChave: ['Pts', 'PJ', 'V', 'D', 'Sets+/-'],
+    colunasTabela: ['Pts', 'PJ', 'V', 'D', 'SG', 'SP', 'SA', 'PA'],
+    colunasChave: ['Pts', 'PJ', 'V', 'D', 'SG', 'SP', 'SA', 'PA'],
     temSets: true,
     temCartoes: false,
+    criteriosDesempate: [
+      'vitorias',
+      'sets_average',
+      'pontos_average',
+      'sorteio'
+    ],
     ordenarPor: (a, b) => {
       if (b.pontos !== a.pontos) return b.pontos - a.pontos;
-      if (b.sets_ganhos !== a.sets_ganhos) return b.sets_ganhos - a.sets_ganhos;
-      if (a.sets_perdidos !== b.sets_perdidos) return a.sets_perdidos - b.sets_perdidos;
-      return 0;
+      if (b.vitorias !== a.vitorias) return b.vitorias - a.vitorias;
+      const qsA = a.sets_perdidos > 0 ? a.sets_ganhos / a.sets_perdidos : a.sets_ganhos;
+      const qsB = b.sets_perdidos > 0 ? b.sets_ganhos / b.sets_perdidos : b.sets_ganhos;
+      if (qsB !== qsA) return qsB - qsA;
+      const pqA = a.pontos_contra > 0 ? a.pontos_pro / a.pontos_contra : a.pontos_pro;
+      const pqB = b.pontos_contra > 0 ? b.pontos_pro / b.pontos_contra : b.pontos_pro;
+      return pqB - pqA;
     }
   },
   'volei de praia': {
     tipo: 'sets',
-    pontuacaoVitoria: 3,
+    pontuacaoVitoria3_0_3_1: 3,
+    pontuacaoVitoria3_2: 2,
+    pontuacaoDerrota2_3: 1,
+    pontuacaoDerrota0_3_1_3: 0,
     pontuacaoEmpate: 0,
-    pontuacaoDerrota: 1,
-    colunasTabela: ['Pts', 'PJ', 'V', 'D', 'SG', 'SP', 'Sets+/-'],
-    colunasChave: ['Pts', 'PJ', 'V', 'D', 'Sets+/-'],
+    colunasTabela: ['Pts', 'PJ', 'V', 'D', 'SG', 'SP', 'SA', 'PA'],
+    colunasChave: ['Pts', 'PJ', 'V', 'D', 'SG', 'SP', 'SA', 'PA'],
     temSets: true,
     temCartoes: false,
+    criteriosDesempate: [
+      'vitorias',
+      'sets_average',
+      'pontos_average',
+      'sorteio'
+    ],
     ordenarPor: (a, b) => {
       if (b.pontos !== a.pontos) return b.pontos - a.pontos;
-      if (b.sets_ganhos !== a.sets_ganhos) return b.sets_ganhos - a.sets_ganhos;
-      if (a.sets_perdidos !== b.sets_perdidos) return a.sets_perdidos - b.sets_perdidos;
+      if (b.vitorias !== a.vitorias) return b.vitorias - a.vitorias;
+      const qsA = a.sets_perdidos > 0 ? a.sets_ganhos / a.sets_perdidos : a.sets_ganhos;
+      const qsB = b.sets_perdidos > 0 ? b.sets_ganhos / b.sets_perdidos : b.sets_ganhos;
+      if (qsB !== qsA) return qsB - qsA;
+      const pqA = a.pontos_contra > 0 ? a.pontos_pro / a.pontos_contra : a.pontos_pro;
+      const pqB = b.pontos_contra > 0 ? b.pontos_pro / b.pontos_contra : b.pontos_pro;
+      return pqB - pqA;
+    }
+  },
+  atletismo: {
+    tipo: 'individual_medida',
+    tipo_individual: true,
+    temSets: false,
+    temCartoes: false,
+    colunasTabela: ['Atleta', 'Campus', 'PTS'],
+    colunasChave: ['Atleta', 'Campus', 'PTS'],
+    pontuacoesPosicao: [13, 8, 6, 5, 4, 3, 2, 1],
+    ordenarPor: (a, b) => {
+      if (b.pontos !== a.pontos) return b.pontos - a.pontos;
+      return 0;
+    }
+  },
+  xadrez: {
+    tipo: 'individual_pontos',
+    tipo_individual: true,
+    temSets: false,
+    temCartoes: false,
+    colunasTabela: ['Atleta', 'Campus', 'PTS', 'V', 'D', 'E'],
+    colunasChave: ['Atleta', 'Campus', 'PTS', 'V', 'D', 'E'],
+    ordenarPor: (a, b) => {
+      if (b.pontos !== a.pontos) return b.pontos - a.pontos;
+      if (b.vitorias !== a.vitorias) return b.vitorias - a.vitorias;
       return 0;
     }
   }

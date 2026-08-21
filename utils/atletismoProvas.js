@@ -1,0 +1,239 @@
+const db = require('../config/db');
+const campusModel = require('../models/campusModel');
+
+/* Mapa: slug da prova -> nomes usados na inscrição do atleta */
+const MAPA_PROVAS_INSCRICAO = {
+  '100m': ['100m rasos'],
+  '200m': ['200m rasos'],
+  '400m': ['400m'],
+  '800m': ['800m'],
+  '1500m': ['1500m'],
+  '3000m': ['3000m'],
+  '5000m': ['5000m'],
+  '4x100m': ['4x100m'],
+  '4x400m': ['4x400m'],
+  'salto-em-distancia': ['Salto em distância'],
+  'salto-em-altura': ['Salto em altura'],
+  'salto-triplo': ['Salto Triplo'],
+  'disco': ['Disco'],
+  'dardo': ['Dardo'],
+  'peso': ['Peso']
+};
+
+/* Lista plana de provas para exibição pública */
+const PROVAS_ATLETISMO_EXIBICAO = [
+  { grupo: 'Corrida', slug: '100m', nome: '100m' },
+  { grupo: 'Corrida', slug: '200m', nome: '200m' },
+  { grupo: 'Corrida', slug: '400m', nome: '400m' },
+  { grupo: 'Corrida', slug: '800m', nome: '800m' },
+  { grupo: 'Corrida', slug: '1500m', nome: '1500m' },
+  { grupo: 'Corrida', slug: '3000m', nome: '3000m' },
+  { grupo: 'Corrida', slug: '5000m', nome: '5000m' },
+  { grupo: 'Revezamento', slug: '4x100m', nome: '4x100m' },
+  { grupo: 'Revezamento', slug: '4x400m', nome: '4x400m' },
+  { grupo: 'Saltos', slug: 'salto-em-distancia', nome: 'Salto em Distância' },
+  { grupo: 'Saltos', slug: 'salto-em-altura', nome: 'Salto em Altura' },
+  { grupo: 'Saltos', slug: 'salto-triplo', nome: 'Salto Triplo' },
+  { grupo: 'Arremessos', slug: 'disco', nome: 'Disco' },
+  { grupo: 'Arremessos', slug: 'dardo', nome: 'Dardo' },
+  { grupo: 'Arremessos', slug: 'peso', nome: 'Peso' }
+];
+
+function normalizarTextoProva(valor) {
+  return String(valor || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+function chaveAtletaProvas(nomeAtleta, nomeCampus) {
+  return `${normalizarTextoProva(nomeAtleta)}|${normalizarTextoProva(nomeCampus)}`;
+}
+
+/* Carrega do state store as provas inscritas de cada atleta (chave: nome|campus) */
+function obterMapaProvasAtletismo() {
+  const mapa = new Map();
+  try {
+    const atletasState = campusModel.getAtletasParaAnalise() || [];
+    atletasState.forEach((atleta) => {
+      if (!Array.isArray(atleta.atletismoProvas) || !atleta.atletismoProvas.length) return;
+      const chave = chaveAtletaProvas(atleta.nome, atleta.campus);
+      if (!mapa.has(chave)) mapa.set(chave, new Set());
+      const conjunto = mapa.get(chave);
+      atleta.atletismoProvas.forEach((prova) => conjunto.add(normalizarTextoProva(prova)));
+    });
+  } catch (e) {
+    console.error('Erro ao carregar provas de atletismo inscritas:', e);
+  }
+  return mapa;
+}
+
+/* Filtra a lista de inscritos (banco) mantendo apenas quem se inscreveu na prova.
+   Aceita mapa por id do atleta ou pela chave nome|campus */
+function filtrarInscritosPorProva(inscritos, mapaProvas, slugProva) {
+  const lista = Array.isArray(inscritos) ? inscritos : [];
+  const nomesAceitos = MAPA_PROVAS_INSCRICAO[String(slugProva || '').toLowerCase()];
+  if (!nomesAceitos) return lista;
+  return lista.filter((inscrito) => {
+    let provasRegistradas = null;
+    if (mapaProvas instanceof Map) {
+      provasRegistradas = mapaProvas.get(Number(inscrito.id))
+        || mapaProvas.get(chaveAtletaProvas(inscrito.nomeAtleta || inscrito.nome, inscrito.nomeCampus))
+        || null;
+    }
+    if (!provasRegistradas) return false;
+    return nomesAceitos.some((nomeProva) => provasRegistradas.has(normalizarTextoProva(nomeProva)));
+  });
+}
+
+/* Mapa de provas por inscrito combinando coluna do banco (fonte principal) com fallback do state store */
+async function montarMapaProvasParaInscritos(inscritos) {
+  const lista = Array.isArray(inscritos) ? inscritos : [];
+  const [mapaBanco, mapaState] = await Promise.all([
+    obterMapaProvasDoBanco(lista.map((inscrito) => inscrito.id)),
+    Promise.resolve(obterMapaProvasAtletismo())
+  ]);
+
+  const mapaFinal = new Map();
+  lista.forEach((inscrito) => {
+    const idNum = Number(inscrito.id);
+    let conjunto = mapaBanco.get(idNum) || null;
+    if (!conjunto) {
+      conjunto = mapaState.get(chaveAtletaProvas(inscrito.nomeAtleta || inscrito.nome, inscrito.nomeCampus)) || null;
+    }
+    if (conjunto) mapaFinal.set(idNum, conjunto);
+  });
+  return mapaFinal;
+}
+
+/* Monta a lista de provas com seus atletas a partir dos inscritos já carregados */
+function montarProvasComAtletas(inscritos, mapaProvas) {
+  return PROVAS_ATLETISMO_EXIBICAO.map((prova) => ({
+    slug: prova.slug,
+    nome: prova.nome,
+    grupo: prova.grupo,
+    atletas: filtrarInscritosPorProva(inscritos, mapaProvas, prova.slug)
+      .map((atleta) => ({
+        nome: String(atleta.nomeAtleta || atleta.nome || '').trim(),
+        campus: String(atleta.nomeCampus || atleta.campus || '').trim()
+      }))
+  }));
+}
+
+/* Carrega do banco as provas inscritas (coluna provas_atletismo) por id do atleta */
+async function obterMapaProvasDoBanco(atletaIds) {
+  const mapa = new Map();
+  const ids = [...new Set((Array.isArray(atletaIds) ? atletaIds : []).map(Number).filter(Boolean))];
+  if (!ids.length) return mapa;
+
+  const placeholders = ids.map(() => '?').join(',');
+  const [rows] = await db.query(
+    `SELECT id, provas_atletismo FROM atletas WHERE id IN (${placeholders})`,
+    ids
+  );
+
+  rows.forEach((row) => {
+    if (!row.provas_atletismo) return;
+    let nomes = [];
+    try {
+      nomes = JSON.parse(row.provas_atletismo);
+    } catch (_) {
+      nomes = [];
+    }
+    if (!Array.isArray(nomes) || !nomes.length) return;
+    const conjunto = new Set();
+    nomes.forEach((nome) => conjunto.add(normalizarTextoProva(nome)));
+    mapa.set(Number(row.id), conjunto);
+  });
+  return mapa;
+}
+
+/* Descobre a qual prova de exibição um resultado pertence pelo nome da prova no banco */
+function resolverSlugDaProva(nomeProvaResultado) {
+  const alvo = normalizarTextoProva(nomeProvaResultado);
+  if (!alvo) return '';
+  for (const prova of PROVAS_ATLETISMO_EXIBICAO) {
+    const aceitos = MAPA_PROVAS_INSCRICAO[prova.slug] || [];
+    const combinou = aceitos.some((aceito) => {
+      const normalizado = normalizarTextoProva(aceito);
+      return normalizado === alvo
+        || (alvo.length >= 3 && normalizado.includes(alvo))
+        || (normalizado.length >= 3 && alvo.includes(normalizado));
+    });
+    if (combinou) return prova.slug;
+  }
+  return '';
+}
+
+/* Pontuação acumulada por atleta em cada prova (resultados_atletismo) */
+async function obterPontuacaoPorAtleta() {
+  const mapa = new Map();
+  try {
+    const [rows] = await db.query(
+      `SELECT ra.atleta_id, ra.pontos, ra.posicao_final, p.nome AS prova_nome
+       FROM resultados_atletismo ra
+       JOIN provas p ON p.id = ra.prova_id
+       JOIN modalidades m ON m.id = p.modalidade_id
+       WHERE LOWER(m.nome) LIKE '%atletismo%'`
+    );
+    rows.forEach((row) => {
+      const slug = resolverSlugDaProva(row.prova_nome);
+      if (!slug) return;
+      const atletaId = Number(row.atleta_id);
+      if (!mapa.has(atletaId)) mapa.set(atletaId, new Map());
+      const porProva = mapa.get(atletaId);
+      const atual = porProva.get(slug) || { pontos: 0, posicao: null };
+      atual.pontos += Number(row.pontos || 0);
+      if (row.posicao_final != null && (atual.posicao == null || Number(row.posicao_final) < atual.posicao)) {
+        atual.posicao = Number(row.posicao_final);
+      }
+      porProva.set(slug, atual);
+    });
+  } catch (error) {
+    console.error('Erro ao carregar pontuação do atletismo:', error.message);
+  }
+  return mapa;
+}
+
+/* Versão completa: provas com atletas (banco + fallback state) e pontuação de cada prova */
+async function montarProvasComAtletasEDetalhes(inscritos) {
+  const lista = Array.isArray(inscritos) ? inscritos : [];
+  const [mapaProvas, pontuacao] = await Promise.all([
+    montarMapaProvasParaInscritos(lista),
+    obterPontuacaoPorAtleta()
+  ]);
+
+  return PROVAS_ATLETISMO_EXIBICAO.map((prova) => {
+    const atletas = filtrarInscritosPorProva(lista, mapaProvas, prova.slug)
+      .map((inscrito) => {
+        const resultadoProva = pontuacao.get(Number(inscrito.id));
+        const detalhe = resultadoProva ? resultadoProva.get(prova.slug) : null;
+        return {
+          id: inscrito.id,
+          nome: String(inscrito.nomeAtleta || inscrito.nome || '').trim(),
+          campus: String(inscrito.nomeCampus || inscrito.campus || '').trim(),
+          pontos: detalhe ? detalhe.pontos : 0,
+          posicao: detalhe && detalhe.posicao != null ? detalhe.posicao : null
+        };
+      })
+      .sort((a, b) =>
+        (b.pontos - a.pontos)
+        || ((a.posicao != null ? a.posicao : 999) - (b.posicao != null ? b.posicao : 999))
+        || a.nome.localeCompare(b.nome)
+      );
+
+    return { slug: prova.slug, nome: prova.nome, grupo: prova.grupo, atletas };
+  });
+}
+
+module.exports = {
+  MAPA_PROVAS_INSCRICAO,
+  PROVAS_ATLETISMO_EXIBICAO,
+  normalizarTextoProva,
+  chaveAtletaProvas,
+  obterMapaProvasAtletismo,
+  filtrarInscritosPorProva,
+  montarMapaProvasParaInscritos,
+  montarProvasComAtletas,
+  obterMapaProvasDoBanco,
+  resolverSlugDaProva,
+  obterPontuacaoPorAtleta,
+  montarProvasComAtletasEDetalhes
+};

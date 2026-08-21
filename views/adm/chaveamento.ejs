@@ -234,27 +234,62 @@
             <div class="chave-title"> <%= provaAtivaAtual.nomeProva %></div>
             <p class="panel-subtitle" style="margin: 0 0 1rem; font-size: 0.8rem;"><%= provaAtivaAtual.descricao %></p>
 
+            <% if (provaAtivaAtual.slug === 'geral') { %>
+              <table style="width:100%; border-collapse:collapse;">
+                <thead>
+                  <tr>
+                    <th style="text-align:left; padding:0.5rem 0.75rem; border-bottom:1px solid rgba(255,255,255,0.2); font-size:0.8rem;">Posição</th>
+                    <th style="text-align:left; padding:0.5rem 0.75rem; border-bottom:1px solid rgba(255,255,255,0.2); font-size:0.8rem;">Campus</th>
+                    <th style="text-align:center; padding:0.5rem 0.75rem; border-bottom:1px solid rgba(255,255,255,0.2); font-size:0.8rem;">Provas Pontuadas</th>
+                    <th style="text-align:right; padding:0.5rem 0.75rem; border-bottom:1px solid rgba(255,255,255,0.2); font-size:0.8rem;">Pontos</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% (provaAtivaAtual.campi || []).forEach((campus, index) => { %>
+                    <tr>
+                      <td style="padding:0.55rem 0.75rem; border-bottom:1px solid rgba(255,255,255,0.08);"><span class="chave-equipe-pos"><%= index + 1 %>º</span></td>
+                      <td style="padding:0.55rem 0.75rem; border-bottom:1px solid rgba(255,255,255,0.08);"><strong><%= campus.campus_nome || campus.nome || 'Campus sem nome' %></strong></td>
+                      <td style="padding:0.55rem 0.75rem; border-bottom:1px solid rgba(255,255,255,0.08); text-align:center;"><%= Number(campus.provas_pontuadas || 0) %></td>
+                      <td style="padding:0.55rem 0.75rem; border-bottom:1px solid rgba(255,255,255,0.08); text-align:right;"><span class="chave-equipe-pontos"><%= Number(campus.pontos || 0) %> pts</span></td>
+                    </tr>
+                  <% }) %>
+                  <% if (!provaAtivaAtual.campi || provaAtivaAtual.campi.length === 0) { %>
+                    <tr><td colspan="4" class="feedback-empty">Nenhum campus inscrito no atletismo ainda.</td></tr>
+                  <% } %>
+                </tbody>
+              </table>
+            <% } else { %>
+
             <% if (provaAtivaAtual.subprovas && provaAtivaAtual.subprovas.length) { %>
               <div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom: 1rem;">
                 <% provaAtivaAtual.subprovas.forEach((subprova) => { %>
-                  <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=<%= provaAtivaAtual.slug %>&subProva=<%= subprova.slug %>#modalidade" class="btn <%= (typeof subProvaAtiva !== 'undefined' && subProvaAtiva === subprova.slug) ? 'btn-success' : 'btn-ghost' %>" style="font-size:0.8rem; padding:0.45rem 0.7rem;">
+                  <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=<%= provaAtivaAtual.slug %>&subProva=<%= subprova.slug %>#modalidade" class="btn <%= (provaAtivaAtual.subProvaSelecionada && provaAtivaAtual.subProvaSelecionada.slug === subprova.slug) ? 'btn-success' : 'btn-ghost' %>" style="font-size:0.8rem; padding:0.45rem 0.7rem;">
                     <%= subprova.nomeProva %>
                   </a>
                 <% }) %>
               </div>
             <% } %>
 
+            <% const atletasExibidos = provaAtivaAtual.subProvaSelecionada ? provaAtivaAtual.subProvaSelecionada.atletas : provaAtivaAtual.atletas; %>
+            <% if (provaAtivaAtual.subProvaSelecionada) { %>
+              <p class="panel-subtitle" style="margin: 0 0 0.75rem; font-size: 0.8rem;">Prova selecionada: <strong><%= provaAtivaAtual.subProvaSelecionada.nomeProva %></strong> — <%= provaAtivaAtual.subProvaSelecionada.descricao %></p>
+            <% } %>
+
             <ul class="chave-equipes-list">
-              <% provaAtivaAtual.atletas.forEach((atleta, index) => { %>
+              <% (atletasExibidos || []).forEach((atleta, index) => { %>
                 <li class="chave-equipe-item">
                   <span><span class="chave-equipe-pos">#<%= index + 1 %></span> <%= atleta.nomeAtleta || atleta.nome %></span>
+                  <% if (Number(atleta.pontosAtletismo || 0) > 0) { %>
+                    <span class="chave-equipe-pontos"><%= Number(atleta.pontosAtletismo) %> pts</span>
+                  <% } %>
                   <span class="item-subtext"><%= atleta.nomeCampus || atleta.campus || 'Campus não informado' %></span>
                 </li>
               <% }) %>
-              <% if(provaAtivaAtual.atletas.length === 0) { %>
-                <li class="feedback-empty">Sem atletas nesta prova.</li>
+              <% if(!atletasExibidos || atletasExibidos.length === 0) { %>
+                <li class="feedback-empty">Sem atletas inscritos nesta prova.</li>
               <% } %>
             </ul>
+            <% } %>
           </div>
         </div>
 

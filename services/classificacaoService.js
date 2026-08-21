@@ -1,6 +1,160 @@
 const db = require('../config/db');
 const { obterRegras, normalizarNome } = require('../utils/sportClassificationRules');
 
+async function buscarJogosDoGrupo(modalidadeId, chaveId) {
+  const [jogos] = await db.query(`
+    SELECT j.campus_1_id, j.campus_2_id, j.wo, j.vencedor_campus_id,
+           rc.placar_1, rc.placar_2
+    FROM jogos j
+    LEFT JOIN resultados_coletivos rc ON rc.jogo_id = j.id
+    WHERE j.modalidade_id = ? AND j.chave_id = ?
+      AND j.campus_1_id IS NOT NULL AND j.campus_2_id IS NOT NULL
+      AND rc.jogo_id IS NOT NULL
+  `, [modalidadeId, chaveId]);
+  return jogos || [];
+}
+
+function construirMapaConfrontos(jogos) {
+  const mapa = new Map();
+  for (const jogo of jogos) {
+    const c1 = Number(jogo.campus_1_id);
+    const c2 = Number(jogo.campus_2_id);
+    const p1 = Number(jogo.placar_1 || 0);
+    const p2 = Number(jogo.placar_2 || 0);
+
+    const key1 = `${c1}-${c2}`;
+    const key2 = `${c2}-${c1}`;
+
+    if (!mapa.has(key1)) mapa.set(key1, { vitorias: 0, empates: 0, derrotas: 0, golsPro: 0, golsContra: 0 });
+    if (!mapa.has(key2)) mapa.set(key2, { vitorias: 0, empates: 0, derrotas: 0, golsPro: 0, golsContra: 0 });
+
+    const s1 = mapa.get(key1);
+    const s2 = mapa.get(key2);
+
+    s1.golsPro += p1;
+    s1.golsContra += p2;
+    s2.golsPro += p2;
+    s2.golsContra += p1;
+
+    if (p1 > p2) {
+      s1.vitorias++;
+      s2.derrotas++;
+    } else if (p1 < p2) {
+      s1.derrotas++;
+      s2.vitorias++;
+    } else {
+      s1.empates++;
+      s2.empates++;
+    }
+  }
+  return mapa;
+}
+
+function calcularSaldoGolsEmpatadas(campusIds, jogos) {
+  const saldoMap = new Map();
+  for (const cid of campusIds) {
+    saldoMap.set(Number(cid), { golsPro: 0, golsContra: 0, saldo: 0 });
+  }
+  for (const jogo of jogos) {
+    const c1 = Number(jogo.campus_1_id);
+    const c2 = Number(jogo.campus_2_id);
+    const p1 = Number(jogo.placar_1 || 0);
+    const p2 = Number(jogo.placar_2 || 0);
+    if (saldoMap.has(c1) && saldoMap.has(c2)) {
+      const s1 = saldoMap.get(c1);
+      const s2 = saldoMap.get(c2);
+      s1.golsPro += p1;
+      s1.golsContra += p2;
+      s2.golsPro += p2;
+      s2.golsContra += p1;
+    }
+  }
+  for (const [, s] of saldoMap) {
+    s.saldo = s.golsPro - s.golsContra;
+  }
+  return saldoMap;
+}
+
+function compararComDesempate(a, b, regras, mapaConfrontos, jogos) {
+  const criterios = regras.criteriosDesempate || ['pontos', 'vitorias', 'saldo_gols'];
+
+  for (const criterio of criterios) {
+    const resultado = aplicarCriterio(a, b, criterio, regras, mapaConfrontos, jogos);
+    if (resultado !== 0) return resultado;
+  }
+  return 0;
+}
+
+function aplicarCriterio(a, b, criterio, regras, mapaConfrontos, jogos) {
+  switch (criterio) {
+    case 'pontos':
+      return (b.pontos || 0) - (a.pontos || 0);
+
+    case 'confronto_direto': {
+      const kAB = `${a.campus_id}-${b.campus_id}`;
+      const kBA = `${b.campus_id}-${a.campus_id}`;
+      const sAB = mapaConfrontos.get(kAB);
+      const sBA = mapaConfrontos.get(kBA);
+      if (!sAB || !sBA) return 0;
+      if (sAB.vitorias !== sBA.vitorias) return sAB.vitorias - sBA.vitorias;
+      const saldoAB = sAB.golsPro - sAB.golsContra;
+      const saldoBA = sBA.golsPro - sBA.golsContra;
+      if (saldoAB !== saldoBA) return saldoAB - saldoBA;
+      if (sAB.golsPro !== sBA.golsPro) return sAB.golsPro - sBA.golsPro;
+      return 0;
+    }
+
+    case 'vitorias':
+      return (b.vitorias || 0) - (a.vitorias || 0);
+
+    case 'sets_average': {
+      const qsA = (a.sets_perdidos || 0) > 0 ? (a.sets_ganhos || 0) / a.sets_perdidos : (a.sets_ganhos || 0);
+      const qsB = (b.sets_perdidos || 0) > 0 ? (b.sets_ganhos || 0) / b.sets_perdidos : (b.sets_ganhos || 0);
+      return qsB - qsA;
+    }
+
+    case 'pontos_average': {
+      const pqA = (a.pontos_contra || 0) > 0 ? (a.pontos_pro || 0) / a.pontos_contra : (a.pontos_pro || 0);
+      const pqB = (b.pontos_contra || 0) > 0 ? (b.pontos_pro || 0) / b.pontos_contra : (b.pontos_pro || 0);
+      return pqB - pqA;
+    }
+
+    case 'saldo_gols_empatadas': {
+      const campusIds = [...new Set(jogos.map(j => [Number(j.campus_1_id), Number(j.campus_2_id)]).flat())];
+      const saldoMap = calcularSaldoGolsEmpatadas(campusIds, jogos);
+      const sA = saldoMap.get(a.campus_id) || { saldo: 0 };
+      const sB = saldoMap.get(b.campus_id) || { saldo: 0 };
+      return sB.saldo - sA.saldo;
+    }
+
+    case 'saldo_gols':
+      return ((b.pontos_pro || 0) - (b.pontos_contra || 0)) - ((a.pontos_pro || 0) - (a.pontos_contra || 0));
+
+    case 'menor_gols_sofridos':
+      return (a.pontos_contra || 0) - (b.pontos_contra || 0);
+
+    case 'maior_gols_feitos':
+      return (b.pontos_pro || 0) - (a.pontos_pro || 0);
+
+    case 'media_gols': {
+      const mediaA = (a.pontos_contra || 0) > 0 ? (a.pontos_pro || 0) / a.pontos_contra : (a.pontos_pro || 0);
+      const mediaB = (b.pontos_contra || 0) > 0 ? (b.pontos_pro || 0) / b.pontos_contra : (b.pontos_pro || 0);
+      return mediaB - mediaA;
+    }
+
+    case 'sancoes': {
+      const pontuacaoSancao = (r) => (r.cartoes_amarelos || 0) * 1 + (r.cartoes_vermelhos || 0) * 3;
+      return pontuacaoSancao(a) - pontuacaoSancao(b);
+    }
+
+    case 'sorteio':
+      return 0;
+
+    default:
+      return 0;
+  }
+}
+
 async function sincronizarClassificacaoGruposModalidade(modalidadeId) {
   const id = Number(modalidadeId || 0);
   if (!id) {
@@ -243,8 +397,7 @@ async function getClassificacaoModalidade(modalidadeId, chaveId = null) {
          LEFT JOIN campus c ON c.id = cg.campus_id
          LEFT JOIN atletas a ON a.id = cg.atleta_id
          LEFT JOIN chaves ch ON ch.id = cg.chave_id
-         WHERE cg.modalidade_id = ? AND cg.chave_id = ?
-         ORDER BY cg.pontos DESC, cg.saldo_pontuacao DESC, cg.pontos_pro DESC`
+         WHERE cg.modalidade_id = ? AND cg.chave_id = ?`
       : `SELECT cg.*, 
               COALESCE(c.nome, a.nome) AS participante_nome,
               COALESCE(c.nome_exibicao, a.nome) AS participante_exibicao,
@@ -254,8 +407,7 @@ async function getClassificacaoModalidade(modalidadeId, chaveId = null) {
          LEFT JOIN campus c ON c.id = cg.campus_id
          LEFT JOIN atletas a ON a.id = cg.atleta_id
          LEFT JOIN chaves ch ON ch.id = cg.chave_id
-         WHERE cg.modalidade_id = ?
-         ORDER BY ch.numero_chave ASC, cg.pontos DESC, cg.saldo_pontuacao DESC, cg.pontos_pro DESC`;
+         WHERE cg.modalidade_id = ?`;
 
     const params = chaveId ? [modalidadeId, chaveId] : [modalidadeId];
     const [linhas] = await db.query(query, params);
@@ -278,8 +430,14 @@ async function getClassificacaoModalidade(modalidadeId, chaveId = null) {
     }
 
     const resultadoOrdenado = [];
-    for (const [, grupo] of gruposMap) {
-      grupo.sort(regras.ordenarPor);
+    for (const [chaveIdGrupo, grupo] of gruposMap) {
+      if (regras.criteriosDesempate && regras.criteriosDesempate.includes('confronto_direto')) {
+        const jogos = await buscarJogosDoGrupo(modalidadeId, chaveIdGrupo);
+        const mapaConfrontos = construirMapaConfrontos(jogos);
+        grupo.sort((a, b) => compararComDesempate(a, b, regras, mapaConfrontos, jogos));
+      } else {
+        grupo.sort(regras.ordenarPor);
+      }
       resultadoOrdenado.push(...grupo);
     }
 
@@ -335,27 +493,61 @@ async function _aplicarClassificacaoJogo(jogoId) {
   const ehWO = Boolean(jogo.wo);
   const vencedorId = Number(jogo.vencedor_campus_id || 0);
 
+  function calcularPontosVolei(setsVencidos, setsPerdidos, isVencedor) {
+    if (isVencedor) {
+      if (setsPerdidos <= 1) return regras.pontuacaoVitoria3_0_3_1 || 3;
+      if (setsPerdidos === 2) return regras.pontuacaoVitoria3_2 || 2;
+      return regras.pontuacaoVitoria3_0_3_1 || 3;
+    } else {
+      if (setsVencidos >= 1 && setsPerdidos === 2) return regras.pontuacaoDerrota2_3 || 1;
+      return regras.pontuacaoDerrota0_3_1_3 || 0;
+    }
+  }
+
   let campus1Resultado;
   let campus2Resultado;
 
-  if (ehWO && vencedorId) {
-    const campus1Venceu = vencedorId === jogo.campus_1_id;
-    campus1Resultado = campus1Venceu
-      ? { pontos: regras.pontuacaoVitoria, vitorias: 1, empates: 0, derrotas: 0 }
-      : { pontos: regras.pontuacaoDerrota, vitorias: 0, empates: 0, derrotas: 1 };
-    campus2Resultado = campus1Venceu
-      ? { pontos: regras.pontuacaoDerrota, vitorias: 0, empates: 0, derrotas: 1 }
-      : { pontos: regras.pontuacaoVitoria, vitorias: 1, empates: 0, derrotas: 0 };
-  } else {
-    if (placar1 > placar2) {
-      campus1Resultado = { pontos: regras.pontuacaoVitoria, vitorias: 1, empates: 0, derrotas: 0 };
-      campus2Resultado = { pontos: regras.pontuacaoDerrota, vitorias: 0, empates: 0, derrotas: 1 };
-    } else if (placar1 < placar2) {
-      campus1Resultado = { pontos: regras.pontuacaoDerrota, vitorias: 0, empates: 0, derrotas: 1 };
-      campus2Resultado = { pontos: regras.pontuacaoVitoria, vitorias: 1, empates: 0, derrotas: 0 };
+  if (regras.tipo === 'sets') {
+    if (ehWO && vencedorId) {
+      const campus1Venceu = vencedorId === jogo.campus_1_id;
+      campus1Resultado = campus1Venceu
+        ? { pontos: regras.pontuacaoVitoria3_0_3_1 || 3, vitorias: 1, empates: 0, derrotas: 0 }
+        : { pontos: regras.pontuacaoDerrota0_3_1_3 || 0, vitorias: 0, empates: 0, derrotas: 1 };
+      campus2Resultado = campus1Venceu
+        ? { pontos: regras.pontuacaoDerrota0_3_1_3 || 0, vitorias: 0, empates: 0, derrotas: 1 }
+        : { pontos: regras.pontuacaoVitoria3_0_3_1 || 3, vitorias: 1, empates: 0, derrotas: 0 };
     } else {
-      campus1Resultado = { pontos: regras.pontuacaoEmpate, vitorias: 0, empates: 1, derrotas: 0 };
-      campus2Resultado = { pontos: regras.pontuacaoEmpate, vitorias: 0, empates: 1, derrotas: 0 };
+      if (sets1 > sets2) {
+        campus1Resultado = { pontos: calcularPontosVolei(sets1, sets2, true), vitorias: 1, empates: 0, derrotas: 0 };
+        campus2Resultado = { pontos: calcularPontosVolei(sets2, sets1, false), vitorias: 0, empates: 0, derrotas: 1 };
+      } else if (sets1 < sets2) {
+        campus1Resultado = { pontos: calcularPontosVolei(sets1, sets2, false), vitorias: 0, empates: 0, derrotas: 1 };
+        campus2Resultado = { pontos: calcularPontosVolei(sets2, sets1, true), vitorias: 1, empates: 0, derrotas: 0 };
+      } else {
+        campus1Resultado = { pontos: 0, vitorias: 0, empates: 1, derrotas: 0 };
+        campus2Resultado = { pontos: 0, vitorias: 0, empates: 1, derrotas: 0 };
+      }
+    }
+  } else {
+    if (ehWO && vencedorId) {
+      const campus1Venceu = vencedorId === jogo.campus_1_id;
+      campus1Resultado = campus1Venceu
+        ? { pontos: regras.pontuacaoVitoria, vitorias: 1, empates: 0, derrotas: 0 }
+        : { pontos: regras.pontuacaoDerrota, vitorias: 0, empates: 0, derrotas: 1 };
+      campus2Resultado = campus1Venceu
+        ? { pontos: regras.pontuacaoDerrota, vitorias: 0, empates: 0, derrotas: 1 }
+        : { pontos: regras.pontuacaoVitoria, vitorias: 1, empates: 0, derrotas: 0 };
+    } else {
+      if (placar1 > placar2) {
+        campus1Resultado = { pontos: regras.pontuacaoVitoria, vitorias: 1, empates: 0, derrotas: 0 };
+        campus2Resultado = { pontos: regras.pontuacaoDerrota, vitorias: 0, empates: 0, derrotas: 1 };
+      } else if (placar1 < placar2) {
+        campus1Resultado = { pontos: regras.pontuacaoDerrota, vitorias: 0, empates: 0, derrotas: 1 };
+        campus2Resultado = { pontos: regras.pontuacaoVitoria, vitorias: 1, empates: 0, derrotas: 0 };
+      } else {
+        campus1Resultado = { pontos: regras.pontuacaoEmpate, vitorias: 0, empates: 1, derrotas: 0 };
+        campus2Resultado = { pontos: regras.pontuacaoEmpate, vitorias: 0, empates: 1, derrotas: 0 };
+      }
     }
   }
 

@@ -31,12 +31,16 @@ const regrasVoleibol = obterRegras('Voleibol Feminino');
 assert.equal(regrasVoleibol.tipo, 'sets');
 assert.equal(regrasVoleibol.temSets, true);
 assert.equal(regrasVoleibol.temCartoes, false);
-assert.deepEqual(regrasVoleibol.colunasTabela, ['Pts', 'PJ', 'V', 'D', 'SG', 'SP', 'Sets+/-']);
+assert.deepEqual(regrasVoleibol.colunasTabela, ['Pts', 'PJ', 'V', 'D', 'SG', 'SP', 'SA', 'PA']);
+assert.equal(regrasVoleibol.pontuacaoVitoria3_0_3_1, 3);
+assert.equal(regrasVoleibol.pontuacaoVitoria3_2, 2);
+assert.equal(regrasVoleibol.pontuacaoDerrota2_3, 1);
+assert.equal(regrasVoleibol.pontuacaoDerrota0_3_1_3, 0);
 
 const regrasHandebol = obterRegras('Handebol');
 assert.equal(regrasHandebol.tipo, 'gols');
 assert.equal(regrasHandebol.temSets, false);
-assert.equal(regrasHandebol.pontuacaoVitoria, 2);
+assert.equal(regrasHandebol.pontuacaoVitoria, 3);
 
 const regrasBasquete = obterRegras('Basquete');
 assert.equal(regrasBasquete.tipo, 'pontos');
@@ -46,6 +50,6 @@ const colunasFutsal = colunasParaExibicao('Futsal');
 assert.deepEqual(colunasFutsal, ['Pts', 'PJ', 'V', 'E', 'D', 'GP', 'GC', 'SG', 'CF']);
 
 const colunasVoleibol = colunasParaExibicao('Voleibol');
-assert.deepEqual(colunasVoleibol, ['Pts', 'PJ', 'V', 'D', 'SG', 'SP', 'Sets+/-']);
+assert.deepEqual(colunasVoleibol, ['Pts', 'PJ', 'V', 'D', 'SG', 'SP', 'SA', 'PA']);
 
 console.log('Teste de regras de tabela por esporte concluído com sucesso.');

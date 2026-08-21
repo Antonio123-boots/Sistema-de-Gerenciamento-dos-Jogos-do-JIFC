@@ -1,5 +1,6 @@
 const adminModel = require('../models/adminModel');
 const campusModel = require('../models/campusModel');
+const resultadosIndividuaisService = require('../services/resultadosIndividuaisService');
 const db = require('../config/db');
 const { listarCampi, adicionarCampus, atualizarCampus, banCampus, desbanirCampus, removerCampus } = require('../models/campiCatalog');
 
@@ -214,6 +215,9 @@ function salvarConfiguracoes(req, res) {
   res.redirect('/admin/configurar');
 }
 
+/* ===== Atletismo: provas inscritas por atleta ===== */
+const { MAPA_PROVAS_INSCRICAO, obterMapaProvasAtletismo, filtrarInscritosPorProva, montarMapaProvasParaInscritos, obterPontuacaoPorAtleta } = require('../utils/atletismoProvas');
+
 async function renderChaveamento(req, res) {
   try {
     const modalidadeIdParam = req.query.modalidade;
@@ -336,59 +340,71 @@ async function renderChaveamento(req, res) {
       jogos = await adminModel.getJogosModalidade(modalidadeAtiva.id, subCategoria);
 
       if (categoriaSlug === 'atletismo') {
+        const mapaProvasAtleta = await montarMapaProvasParaInscritos(inscritos);
+        const pontuacaoPorAtleta = await obterPontuacaoPorAtleta();
+        const filtrarPorProva = (slugProva) => filtrarInscritosPorProva(inscritos, mapaProvasAtleta, slugProva).map((atleta) => {
+          const porProva = pontuacaoPorAtleta.get(Number(atleta.id));
+          const detalhe = porProva ? porProva.get(String(slugProva).toLowerCase()) : null;
+          return { ...atleta, pontosAtletismo: detalhe ? detalhe.pontos : 0 };
+        });
+
+        let classificacaoGeralCampi = [];
+        try {
+          classificacaoGeralCampi = await resultadosIndividuaisService.obterClassificacaoGeralCampi();
+        } catch (e) {
+          console.error('Erro ao carregar classificação geral do atletismo:', e);
+          classificacaoGeralCampi = [];
+        }
+
         const provasBase = [
-          { slug: 'geral', nomeProva: 'Geral', descricao: 'Atletas inscritos em atletismo', atletas: inscritos, subprovas: [] },
+          { slug: 'geral', nomeProva: 'Geral', descricao: 'Pontuação total de todos os campi no atletismo, somando todas as provas.', campi: classificacaoGeralCampi, subprovas: [] },
           {
             slug: 'corrida',
             nomeProva: 'Corrida',
             descricao: 'Selecione a prova específica de corrida.',
-            atletas: inscritos,
             subprovas: [
-              { slug: '100m', nomeProva: '100m', descricao: 'Velocidade', atletas: inscritos.slice(0, Math.max(1, Math.ceil(inscritos.length / 4))) },
-              { slug: '200m', nomeProva: '200m', descricao: 'Velocidade', atletas: inscritos.slice(Math.max(0, Math.floor(inscritos.length / 4))) },
-              { slug: '400m', nomeProva: '400m', descricao: 'Velocidade', atletas: inscritos.slice(0, Math.max(1, Math.ceil(inscritos.length / 3))) },
-              { slug: '800m', nomeProva: '800m', descricao: 'Meio-fundo', atletas: inscritos.slice(Math.max(0, Math.floor(inscritos.length / 3))) },
-              { slug: '1500m', nomeProva: '1500m', descricao: 'Fundo', atletas: inscritos.slice(0, Math.max(1, Math.ceil(inscritos.length / 2))) },
-              { slug: '3000m', nomeProva: '3000m', descricao: 'Fundo', atletas: inscritos.slice(Math.max(0, Math.floor(inscritos.length / 2))) },
-              { slug: '5000m', nomeProva: '5000m', descricao: 'Fundo', atletas: inscritos.slice(0, Math.max(1, Math.min(6, inscritos.length))) }
+              { slug: '100m', nomeProva: '100m', descricao: 'Velocidade' },
+              { slug: '200m', nomeProva: '200m', descricao: 'Velocidade' },
+              { slug: '400m', nomeProva: '400m', descricao: 'Velocidade' },
+              { slug: '800m', nomeProva: '800m', descricao: 'Meio-fundo' },
+              { slug: '1500m', nomeProva: '1500m', descricao: 'Fundo' },
+              { slug: '3000m', nomeProva: '3000m', descricao: 'Fundo' },
+              { slug: '5000m', nomeProva: '5000m', descricao: 'Fundo' },
+              { slug: '4x100m', nomeProva: '4x100m', descricao: 'Revezamento' },
+              { slug: '4x400m', nomeProva: '4x400m', descricao: 'Revezamento' }
             ]
           },
           {
             slug: 'salto',
             nomeProva: 'Salto',
             descricao: 'Selecione a prova específica de salto.',
-            atletas: inscritos,
             subprovas: [
-              { slug: 'salto-em-distancia', nomeProva: 'Salto em Distância', descricao: 'Salto em distância', atletas: inscritos.slice(0, Math.max(1, Math.ceil(inscritos.length / 2))) },
-              { slug: 'salto-em-altura', nomeProva: 'Salto em Altura', descricao: 'Salto em altura', atletas: inscritos.slice(Math.max(0, Math.floor(inscritos.length / 2))) },
-              { slug: 'salto-triplo', nomeProva: 'Salto Triplo', descricao: 'Salto triplo', atletas: inscritos.slice(0, Math.max(1, Math.min(5, inscritos.length))) }
+              { slug: 'salto-em-distancia', nomeProva: 'Salto em Distância', descricao: 'Salto em distância' },
+              { slug: 'salto-em-altura', nomeProva: 'Salto em Altura', descricao: 'Salto em altura' },
+              { slug: 'salto-triplo', nomeProva: 'Salto Triplo', descricao: 'Salto triplo' }
             ]
           },
           {
             slug: 'arremesso',
             nomeProva: 'Arremesso',
             descricao: 'Selecione a prova específica de arremesso.',
-            atletas: inscritos,
             subprovas: [
-              { slug: 'disco', nomeProva: 'Disco', descricao: 'Disco', atletas: inscritos.slice(0, Math.max(1, Math.ceil(inscritos.length / 2))) },
-              { slug: 'dardo', nomeProva: 'Dardo', descricao: 'Dardo', atletas: inscritos.slice(Math.max(0, Math.floor(inscritos.length / 2))) },
-              { slug: 'peso', nomeProva: 'Peso', descricao: 'Peso', atletas: inscritos.slice(0, Math.max(1, Math.min(5, inscritos.length))) }
+              { slug: 'disco', nomeProva: 'Disco', descricao: 'Disco' },
+              { slug: 'dardo', nomeProva: 'Dardo', descricao: 'Dardo' },
+              { slug: 'peso', nomeProva: 'Peso', descricao: 'Peso' }
             ]
           }
         ];
 
         const provaAtiva = provasBase.find((prova) => String(prova.slug).toLowerCase() === String(subCategoria).toLowerCase()) || provasBase[0];
         provasAtletismo = provasBase.map((prova) => {
-          let atletas = prova.atletas || [];
+          let atletas = [];
           let subProvaSelecionada = null;
-          if (prova.slug === provaAtiva.slug && prova.subprovas && prova.subprovas.length) {
-            const subProvaAtiva = prova.subprovas.find((item) => String(item.slug).toLowerCase() === String(subProva).toLowerCase());
-            if (subProvaAtiva) {
-              atletas = subProvaAtiva.atletas;
-              subProvaSelecionada = subProvaAtiva;
-            } else if (prova.subprovas[0]) {
-              atletas = prova.subprovas[0].atletas;
-              subProvaSelecionada = prova.subprovas[0];
+          if (prova.slug !== 'geral') {
+            prova.subprovas.forEach((sub) => { sub.atletas = filtrarPorProva(sub.slug); });
+            if (prova.slug === provaAtiva.slug) {
+              subProvaSelecionada = prova.subprovas.find((item) => String(item.slug).toLowerCase() === String(subProva).toLowerCase()) || prova.subprovas[0] || null;
+              atletas = subProvaSelecionada ? subProvaSelecionada.atletas : [];
             }
           }
           return {

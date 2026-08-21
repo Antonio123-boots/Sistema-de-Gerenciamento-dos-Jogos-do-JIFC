@@ -15,7 +15,7 @@
       "IFC Abelardo Luz": [
         "Futsal Masculino",
         "Handebol Masculino",
-        "Voleibol Masculino",
+        "Vôlei Masculino",
         "Vôlei de Praia Masculino",
         "Vôlei de Praia Feminino",
         "Xadrez Feminino"
@@ -24,19 +24,19 @@
         "Basquete Masculino",
         "Futsal Feminino",
         "Handebol Feminino",
-        "Voleibol Masculino",
+        "Vôlei Masculino",
         "Vôlei de Praia Masculino",
         "Vôlei de Praia Feminino"
       ],
       "IFC Blumenau": [
         "Futsal Masculino",
-        "Voleibol Masculino"
+        "Vôlei Masculino"
       ],
       "IFC Brusque": [
         "Futsal Masculino",
         "Futsal Feminino",
-        "Voleibol Masculino",
-        "Voleibol Feminino",
+        "Vôlei Masculino",
+        "Vôlei Feminino",
         "Vôlei de Praia Masculino",
         "Vôlei de Praia Feminino"
       ],
@@ -44,7 +44,7 @@
         "Basquete Feminino",
         "Futsal Feminino",
         "Handebol Masculino",
-        "Voleibol Feminino",
+        "Vôlei Feminino",
         "Vôlei de Praia Masculino",
         "Vôlei de Praia Feminino",
         "Xadrez Masculino"
@@ -71,15 +71,15 @@
         "Futsal Feminino",
         "Tênis de Mesa Masculino",
         "Tênis de Mesa Feminino",
-        "Voleibol Masculino",
-        "Voleibol Feminino",
+        "Vôlei Masculino",
+        "Vôlei Feminino",
         "Vôlei de Praia Masculino"
       ],
       "IFC Luzerna": [
         "Futsal Masculino",
         "Futsal Feminino",
         "Handebol Masculino",
-        "Voleibol Masculino",
+        "Vôlei Masculino",
         "Vôlei de Praia Masculino",
         "Vôlei de Praia Feminino",
         "Xadrez Masculino",
@@ -90,8 +90,8 @@
         "Basquete Feminino",
         "Futsal Masculino",
         "Handebol Masculino",
-        "Voleibol Masculino",
-        "Voleibol Feminino",
+        "Vôlei Masculino",
+        "Vôlei Feminino",
         "Xadrez Feminino"
       ],
       "IFC Santa Rosa do Sul": [
@@ -100,7 +100,7 @@
         "Futsal Masculino",
         "Futsal Feminino",
         "Tênis de Mesa Masculino",
-        "Voleibol Feminino",
+        "Vôlei Feminino",
         "Xadrez Masculino"
       ],
       "IFC São Bento do Sul": [
@@ -109,12 +109,12 @@
         "Handebol Masculino",
         "Handebol Feminino",
         "Tênis de Mesa Masculino",
-        "Voleibol Feminino",
+        "Vôlei Feminino",
         "Vôlei de Praia Masculino"
       ],
       "IFC São Francisco do Sul": [
         "Futsal Masculino",
-        "Voleibol Masculino"
+        "Vôlei Masculino"
       ],
       "IFC Sombrio": [
         "Atletismo Masculino",
@@ -122,8 +122,8 @@
         "Futsal Masculino",
         "Handebol Masculino",
         "Handebol Feminino",
-        "Voleibol Masculino",
-        "Voleibol Feminino",
+        "Vôlei Masculino",
+        "Vôlei Feminino",
         "Vôlei de Praia Masculino",
         "Vôlei de Praia Feminino"
       ],
@@ -251,10 +251,10 @@
         "id": 1785719580536,
         "nome": "Ana Laura Pereira Silva",
         "matricula": "20286465",
-        "modalidade": "Basquete Feminino, Voleibol Feminino, Vôlei de Praia Feminino",
+        "modalidade": "Basquete Feminino, Vôlei Feminino, Vôlei de Praia Feminino",
         "modalidades": [
           "Basquete Feminino",
-          "Voleibol Feminino",
+          "Vôlei Feminino",
           "Vôlei de Praia Feminino"
         ],
         "dataNascimento": "2008-03-03",
@@ -285,9 +285,9 @@
         "id": 1785719712953,
         "nome": "Andressa Lima",
         "matricula": "29853425",
-        "modalidade": "Voleibol Feminino, Vôlei de Praia Feminino",
+        "modalidade": "Vôlei Feminino, Vôlei de Praia Feminino",
         "modalidades": [
-          "Voleibol Feminino",
+          "Vôlei Feminino",
           "Vôlei de Praia Feminino"
         ],
         "dataNascimento": "2008-12-09",
@@ -302,10 +302,10 @@
         "id": 1785719784541,
         "nome": "Gabriela Barreto de Quadros",
         "matricula": "20987578",
-        "modalidade": "Basquete Feminino, Voleibol Feminino",
+        "modalidade": "Basquete Feminino, Vôlei Feminino",
         "modalidades": [
           "Basquete Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2009-08-07",
         "cpf": "209.122.765-23",
@@ -319,10 +319,10 @@
         "id": 1785719883536,
         "nome": "Daiana Santos Lucas",
         "matricula": "20299887",
-        "modalidade": "Basquete Feminino, Voleibol Feminino",
+        "modalidade": "Basquete Feminino, Vôlei Feminino",
         "modalidades": [
           "Basquete Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2008-09-09",
         "cpf": "232.876.898-12",
@@ -336,10 +336,10 @@
         "id": 1785719936463,
         "nome": "Fernanda Ferreira Felisberto",
         "matricula": "2989750",
-        "modalidade": "Basquete Feminino, Voleibol Feminino",
+        "modalidade": "Basquete Feminino, Vôlei Feminino",
         "modalidades": [
           "Basquete Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2008-09-13",
         "cpf": "109.789.945-65",
@@ -353,10 +353,10 @@
         "id": 1785719992715,
         "nome": "Isabelle Shumerts",
         "matricula": "20875543",
-        "modalidade": "Basquete Feminino, Voleibol Feminino",
+        "modalidade": "Basquete Feminino, Vôlei Feminino",
         "modalidades": [
           "Basquete Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2010-05-24",
         "cpf": "569.345.098-19",
@@ -370,10 +370,10 @@
         "id": 1785720048457,
         "nome": "Luzia Souza",
         "matricula": "20856564",
-        "modalidade": "Basquete Feminino, Voleibol Feminino",
+        "modalidade": "Basquete Feminino, Vôlei Feminino",
         "modalidades": [
           "Basquete Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2008-07-09",
         "cpf": "124.734.554-99",
@@ -387,10 +387,10 @@
         "id": 1785720088312,
         "nome": "Antonia Matos",
         "matricula": "20987763",
-        "modalidade": "Basquete Feminino, Voleibol Feminino",
+        "modalidade": "Basquete Feminino, Vôlei Feminino",
         "modalidades": [
           "Basquete Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2010-04-04",
         "cpf": "129.543.333-12",
@@ -452,9 +452,9 @@
         "id": 1785720441951,
         "nome": "Antonio Felipe Souza",
         "matricula": "28786576",
-        "modalidade": "Voleibol Masculino, Vôlei de Praia Masculino",
+        "modalidade": "Vôlei Masculino, Vôlei de Praia Masculino",
         "modalidades": [
-          "Voleibol Masculino",
+          "Vôlei Masculino",
           "Vôlei de Praia Masculino"
         ],
         "dataNascimento": "2008-09-23",
@@ -469,9 +469,9 @@
         "id": 1785720487813,
         "nome": "Theo Silva",
         "matricula": "22121323",
-        "modalidade": "Voleibol Masculino, Vôlei de Praia Masculino",
+        "modalidade": "Vôlei Masculino, Vôlei de Praia Masculino",
         "modalidades": [
-          "Voleibol Masculino",
+          "Vôlei Masculino",
           "Vôlei de Praia Masculino"
         ],
         "dataNascimento": "2010-09-30",
@@ -486,11 +486,11 @@
         "id": 1785720553903,
         "nome": "Gael Tarsilla dos Santos",
         "matricula": "20656182",
-        "modalidade": "Futsal Masculino, Handebol Masculino, Voleibol Masculino",
+        "modalidade": "Futsal Masculino, Handebol Masculino, Vôlei Masculino",
         "modalidades": [
           "Futsal Masculino",
           "Handebol Masculino",
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2010-10-03",
         "cpf": "220.987.776-12",
@@ -504,10 +504,10 @@
         "id": 1785720624870,
         "nome": "João Antonio do Rosa Santos",
         "matricula": "20875359",
-        "modalidade": "Handebol Masculino, Voleibol Masculino",
+        "modalidade": "Handebol Masculino, Vôlei Masculino",
         "modalidades": [
           "Handebol Masculino",
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2008-05-04",
         "cpf": "222.945.872-22",
@@ -521,10 +521,10 @@
         "id": 1785720664572,
         "nome": "Felipe Augusto Santos",
         "matricula": "20864768",
-        "modalidade": "Futsal Masculino, Voleibol Masculino",
+        "modalidade": "Futsal Masculino, Vôlei Masculino",
         "modalidades": [
           "Futsal Masculino",
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2008-09-23",
         "cpf": "329.888.098.-99",
@@ -538,10 +538,10 @@
         "id": 1785720729276,
         "nome": "Andersson Silva Mendes",
         "matricula": "20876563",
-        "modalidade": "Handebol Masculino, Voleibol Masculino",
+        "modalidade": "Handebol Masculino, Vôlei Masculino",
         "modalidades": [
           "Handebol Masculino",
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2009-09-20",
         "cpf": "121.988.909-23",
@@ -652,9 +652,9 @@
         "id": 1785721175093,
         "nome": "Souza Vasconselos",
         "matricula": "24672539",
-        "modalidade": "Voleibol Masculino, Vôlei de Praia Masculino",
+        "modalidade": "Vôlei Masculino, Vôlei de Praia Masculino",
         "modalidades": [
-          "Voleibol Masculino",
+          "Vôlei Masculino",
           "Vôlei de Praia Masculino"
         ],
         "dataNascimento": "2008-08-22",
@@ -669,9 +669,9 @@
         "id": 1785721220411,
         "nome": "Gabriel Lucas da Silva",
         "matricula": "20676536",
-        "modalidade": "Voleibol Masculino, Vôlei de Praia Masculino",
+        "modalidade": "Vôlei Masculino, Vôlei de Praia Masculino",
         "modalidades": [
-          "Voleibol Masculino",
+          "Vôlei Masculino",
           "Vôlei de Praia Masculino"
         ],
         "dataNascimento": "2009-03-21",
@@ -686,10 +686,10 @@
         "id": 1785721277972,
         "nome": "Luiz Negrute",
         "matricula": "20875462",
-        "modalidade": "Basquete Masculino, Voleibol Masculino",
+        "modalidade": "Basquete Masculino, Vôlei Masculino",
         "modalidades": [
           "Basquete Masculino",
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2010-05-04",
         "cpf": "476.006.221-99",
@@ -719,10 +719,10 @@
         "id": 1785721405093,
         "nome": "Ronaldo Vieira",
         "matricula": "20775786",
-        "modalidade": "Basquete Masculino, Voleibol Masculino",
+        "modalidade": "Basquete Masculino, Vôlei Masculino",
         "modalidades": [
           "Basquete Masculino",
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2009-05-03",
         "cpf": "409.876.090-65",
@@ -736,10 +736,10 @@
         "id": 1785721518466,
         "nome": "Diogo Guedes Silva",
         "matricula": "20677893",
-        "modalidade": "Basquete Masculino, Voleibol Masculino",
+        "modalidade": "Basquete Masculino, Vôlei Masculino",
         "modalidades": [
           "Basquete Masculino",
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2008-03-21",
         "cpf": "623.987.888-98",
@@ -753,10 +753,10 @@
         "id": 1785721556664,
         "nome": "Gustavo Silva",
         "matricula": "20889762",
-        "modalidade": "Basquete Masculino, Voleibol Masculino",
+        "modalidade": "Basquete Masculino, Vôlei Masculino",
         "modalidades": [
           "Basquete Masculino",
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2008-12-31",
         "cpf": "687.987.243-76",
@@ -855,10 +855,10 @@
         "id": 1785721853481,
         "nome": "Sofia Santana Selau",
         "matricula": "20674437",
-        "modalidade": "Basquete Masculino, Voleibol Masculino",
+        "modalidade": "Basquete Masculino, Vôlei Masculino",
         "modalidades": [
           "Basquete Masculino",
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2008-07-31",
         "cpf": "123.787.090-87",
@@ -906,9 +906,9 @@
         "id": 1785722135146,
         "nome": "Artur Cabral",
         "matricula": "20674756",
-        "modalidade": "Voleibol Masculino, Vôlei de Praia Masculino",
+        "modalidade": "Vôlei Masculino, Vôlei de Praia Masculino",
         "modalidades": [
-          "Voleibol Masculino",
+          "Vôlei Masculino",
           "Vôlei de Praia Masculino"
         ],
         "dataNascimento": "2010-04-22",
@@ -923,9 +923,9 @@
         "id": 1785722177548,
         "nome": "Carlos Felipe Souza Moreno",
         "matricula": "20877652",
-        "modalidade": "Voleibol Masculino, Vôlei de Praia Masculino",
+        "modalidade": "Vôlei Masculino, Vôlei de Praia Masculino",
         "modalidades": [
-          "Voleibol Masculino",
+          "Vôlei Masculino",
           "Vôlei de Praia Masculino"
         ],
         "dataNascimento": "2009-01-31",
@@ -956,10 +956,10 @@
         "id": 1785722335336,
         "nome": "Antonio Luiz Silva",
         "matricula": "20746358",
-        "modalidade": "Futsal Masculino, Voleibol Masculino",
+        "modalidade": "Futsal Masculino, Vôlei Masculino",
         "modalidades": [
           "Futsal Masculino",
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2008-04-30",
         "cpf": "234.098.000-65",
@@ -973,10 +973,10 @@
         "id": 1785757843263,
         "nome": "Cassio Braga Silva",
         "matricula": "20888556",
-        "modalidade": "Futsal Masculino, Voleibol Masculino",
+        "modalidade": "Futsal Masculino, Vôlei Masculino",
         "modalidades": [
           "Futsal Masculino",
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2008-08-31",
         "cpf": "677.876.566-98",
@@ -990,10 +990,10 @@
         "id": 1785757885797,
         "nome": "Arthur José Silva e Lucas",
         "matricula": "20765659",
-        "modalidade": "Futsal Masculino, Voleibol Masculino",
+        "modalidade": "Futsal Masculino, Vôlei Masculino",
         "modalidades": [
           "Futsal Masculino",
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2008-02-02",
         "cpf": "549.876.009-09",
@@ -1007,10 +1007,10 @@
         "id": 1785757938322,
         "nome": "José Fernandes",
         "matricula": "20889366",
-        "modalidade": "Futsal Masculino, Voleibol Masculino",
+        "modalidade": "Futsal Masculino, Vôlei Masculino",
         "modalidades": [
           "Futsal Masculino",
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2008-07-05",
         "cpf": "667.986.359-65",
@@ -1024,10 +1024,10 @@
         "id": 1785757990629,
         "nome": "Josiele Souza",
         "matricula": "20778357",
-        "modalidade": "Futsal Feminino, Voleibol Feminino, Vôlei de Praia Feminino",
+        "modalidade": "Futsal Feminino, Vôlei Feminino, Vôlei de Praia Feminino",
         "modalidades": [
           "Futsal Feminino",
-          "Voleibol Feminino",
+          "Vôlei Feminino",
           "Vôlei de Praia Feminino"
         ],
         "dataNascimento": "2008-10-22",
@@ -1042,10 +1042,10 @@
         "id": 1785758023974,
         "nome": "Kerline Messer",
         "matricula": "28773778",
-        "modalidade": "Futsal Feminino, Voleibol Feminino, Vôlei de Praia Feminino",
+        "modalidade": "Futsal Feminino, Vôlei Feminino, Vôlei de Praia Feminino",
         "modalidades": [
           "Futsal Feminino",
-          "Voleibol Feminino",
+          "Vôlei Feminino",
           "Vôlei de Praia Feminino"
         ],
         "dataNascimento": "2009-09-09",
@@ -1060,10 +1060,10 @@
         "id": 1785758088740,
         "nome": "Suzane Marçal",
         "matricula": "20274526",
-        "modalidade": "Futsal Feminino, Voleibol Feminino, Vôlei de Praia Feminino",
+        "modalidade": "Futsal Feminino, Vôlei Feminino, Vôlei de Praia Feminino",
         "modalidades": [
           "Futsal Feminino",
-          "Voleibol Feminino",
+          "Vôlei Feminino",
           "Vôlei de Praia Feminino"
         ],
         "dataNascimento": "2010-01-31",
@@ -1078,10 +1078,10 @@
         "id": 1785758137779,
         "nome": "Graciele Silva",
         "matricula": "20848757",
-        "modalidade": "Futsal Feminino, Voleibol Feminino",
+        "modalidade": "Futsal Feminino, Vôlei Feminino",
         "modalidades": [
           "Futsal Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2010-03-04",
         "cpf": "876.397.998-34",
@@ -1095,10 +1095,10 @@
         "id": 1785758207290,
         "nome": "Laura Scandolara Souza",
         "matricula": "20778624",
-        "modalidade": "Futsal Feminino, Voleibol Feminino",
+        "modalidade": "Futsal Feminino, Vôlei Feminino",
         "modalidades": [
           "Futsal Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2010-04-09",
         "cpf": "762.988.365-26",
@@ -1229,9 +1229,9 @@
         "id": 1785758878028,
         "nome": "Thawana Silveira",
         "matricula": "20866853",
-        "modalidade": "Voleibol Feminino, Vôlei de Praia Feminino",
+        "modalidade": "Vôlei Feminino, Vôlei de Praia Feminino",
         "modalidades": [
-          "Voleibol Feminino",
+          "Vôlei Feminino",
           "Vôlei de Praia Feminino"
         ],
         "dataNascimento": "2010-03-09",
@@ -1246,11 +1246,11 @@
         "id": 1785758944063,
         "nome": "Ana Laura Lumert",
         "matricula": "20864375",
-        "modalidade": "Basquete Feminino, Futsal Feminino, Voleibol Feminino",
+        "modalidade": "Basquete Feminino, Futsal Feminino, Vôlei Feminino",
         "modalidades": [
           "Basquete Feminino",
           "Futsal Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2008-12-09",
         "cpf": "729.365-36",
@@ -1264,10 +1264,10 @@
         "id": 1785759944911,
         "nome": "Valentina da Costa",
         "matricula": "2064537663",
-        "modalidade": "Futsal Feminino, Voleibol Feminino, Vôlei de Praia Feminino",
+        "modalidade": "Futsal Feminino, Vôlei Feminino, Vôlei de Praia Feminino",
         "modalidades": [
           "Futsal Feminino",
-          "Voleibol Feminino",
+          "Vôlei Feminino",
           "Vôlei de Praia Feminino"
         ],
         "dataNascimento": "2009-03-20",
@@ -1282,11 +1282,11 @@
         "id": 1785759981640,
         "nome": "Lívia Souza Peres",
         "matricula": "20208738287",
-        "modalidade": "Basquete Feminino, Futsal Feminino, Voleibol Feminino",
+        "modalidade": "Basquete Feminino, Futsal Feminino, Vôlei Feminino",
         "modalidades": [
           "Basquete Feminino",
           "Futsal Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2009-07-05",
         "cpf": "023.218.312-88",
@@ -1300,11 +1300,11 @@
         "id": 1785760027774,
         "nome": "Lívia dos Santos Bitencourt",
         "matricula": "2036266766",
-        "modalidade": "Basquete Feminino, Futsal Feminino, Voleibol Feminino",
+        "modalidade": "Basquete Feminino, Futsal Feminino, Vôlei Feminino",
         "modalidades": [
           "Basquete Feminino",
           "Futsal Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2008-08-08",
         "cpf": "964.835.498-32",
@@ -1318,11 +1318,11 @@
         "id": 1785761739391,
         "nome": "Lorena Santos",
         "matricula": "20286382633",
-        "modalidade": "Basquete Feminino, Futsal Feminino, Voleibol Feminino",
+        "modalidade": "Basquete Feminino, Futsal Feminino, Vôlei Feminino",
         "modalidades": [
           "Basquete Feminino",
           "Futsal Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2009-03-05",
         "cpf": "437.864.736-46",
@@ -1336,11 +1336,11 @@
         "id": 1785761776399,
         "nome": "Gabriela Santana Silva",
         "matricula": "2086376367",
-        "modalidade": "Basquete Feminino, Futsal Feminino, Voleibol Feminino",
+        "modalidade": "Basquete Feminino, Futsal Feminino, Vôlei Feminino",
         "modalidades": [
           "Basquete Feminino",
           "Futsal Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2008-08-22",
         "cpf": "109.384.347-83",
@@ -1354,11 +1354,11 @@
         "id": 1785761812847,
         "nome": "Nathaly Silva",
         "matricula": "20882783962",
-        "modalidade": "Basquete Feminino, Futsal Feminino, Voleibol Feminino",
+        "modalidade": "Basquete Feminino, Futsal Feminino, Vôlei Feminino",
         "modalidades": [
           "Basquete Feminino",
           "Futsal Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2009-06-07",
         "cpf": "120.971.373-43",
@@ -2101,9 +2101,9 @@
         "id": 1785765048589,
         "nome": "Lorenzo Mendes Neto Almeida",
         "matricula": "209276871364",
-        "modalidade": "Voleibol Masculino, Vôlei de Praia Masculino",
+        "modalidade": "Vôlei Masculino, Vôlei de Praia Masculino",
         "modalidades": [
-          "Voleibol Masculino",
+          "Vôlei Masculino",
           "Vôlei de Praia Masculino"
         ],
         "dataNascimento": "2010-03-12",
@@ -2118,10 +2118,10 @@
         "id": 1785765147835,
         "nome": "Felipe Dutra Silva",
         "matricula": "202718473289",
-        "modalidade": "Atletismo Masculino, Voleibol Masculino",
+        "modalidade": "Atletismo Masculino, Vôlei Masculino",
         "modalidades": [
           "Atletismo Masculino",
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2009-03-04",
         "cpf": "337.489.317-48",
@@ -2139,10 +2139,10 @@
         "id": 1785765183142,
         "nome": "Diogo Souto",
         "matricula": "202832723847",
-        "modalidade": "Atletismo Masculino, Voleibol Masculino",
+        "modalidade": "Atletismo Masculino, Vôlei Masculino",
         "modalidades": [
           "Atletismo Masculino",
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2008-09-12",
         "cpf": "379.473.246-42",
@@ -2160,10 +2160,10 @@
         "id": 1785765231563,
         "nome": "Felipe Portugal Cunha",
         "matricula": "220272948364",
-        "modalidade": "Atletismo Masculino, Voleibol Masculino",
+        "modalidade": "Atletismo Masculino, Vôlei Masculino",
         "modalidades": [
           "Atletismo Masculino",
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2008-09-05",
         "cpf": "837.498.326-42",
@@ -2181,10 +2181,10 @@
         "id": 1785765295976,
         "nome": "Antonhy Medeiros",
         "matricula": "202971284738",
-        "modalidade": "Atletismo Masculino, Voleibol Masculino",
+        "modalidade": "Atletismo Masculino, Vôlei Masculino",
         "modalidades": [
           "Atletismo Masculino",
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2009-10-09",
         "cpf": "834.832.249-72",
@@ -2203,10 +2203,10 @@
         "id": 1785765344284,
         "nome": "Marcela Dutra Mendes",
         "matricula": "202387462764",
-        "modalidade": "Tênis de Mesa Feminino, Voleibol Feminino",
+        "modalidade": "Tênis de Mesa Feminino, Vôlei Feminino",
         "modalidades": [
           "Tênis de Mesa Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2009-09-23",
         "cpf": "998.308.726-92",
@@ -2222,11 +2222,11 @@
         "id": 1785765381222,
         "nome": "Antonia Lamark",
         "matricula": "202637463826",
-        "modalidade": "Atletismo Feminino, Futsal Feminino, Voleibol Feminino",
+        "modalidade": "Atletismo Feminino, Futsal Feminino, Vôlei Feminino",
         "modalidades": [
           "Atletismo Feminino",
           "Futsal Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2008-02-04",
         "cpf": "390.843.074-71",
@@ -2244,11 +2244,11 @@
         "id": 1785765441114,
         "nome": "Sofia Luz da Silva",
         "matricula": "202364538746",
-        "modalidade": "Futsal Feminino, Tênis de Mesa Feminino, Voleibol Feminino",
+        "modalidade": "Futsal Feminino, Tênis de Mesa Feminino, Vôlei Feminino",
         "modalidades": [
           "Futsal Feminino",
           "Tênis de Mesa Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2010-09-21",
         "cpf": "575.364.780-98",
@@ -2264,11 +2264,11 @@
         "id": 1785765501240,
         "nome": "Gabriela Sofia Santos",
         "matricula": "202923747326",
-        "modalidade": "Atletismo Feminino, Futsal Feminino, Voleibol Feminino",
+        "modalidade": "Atletismo Feminino, Futsal Feminino, Vôlei Feminino",
         "modalidades": [
           "Atletismo Feminino",
           "Futsal Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2010-02-09",
         "cpf": "937.483.624-74",
@@ -2286,11 +2286,11 @@
         "id": 1785765538673,
         "nome": "Ana Luiza Santos Lima",
         "matricula": "202364732476",
-        "modalidade": "Atletismo Feminino, Futsal Feminino, Voleibol Feminino",
+        "modalidade": "Atletismo Feminino, Futsal Feminino, Vôlei Feminino",
         "modalidades": [
           "Atletismo Feminino",
           "Futsal Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2010-04-08",
         "cpf": "092.743.473-28",
@@ -2308,11 +2308,11 @@
         "id": 1785765569040,
         "nome": "Euclides Cunha Fontana",
         "matricula": "202637432647",
-        "modalidade": "Atletismo Feminino, Futsal Feminino, Voleibol Feminino",
+        "modalidade": "Atletismo Feminino, Futsal Feminino, Vôlei Feminino",
         "modalidades": [
           "Atletismo Feminino",
           "Futsal Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2010-09-23",
         "cpf": "831.437.264-72",
@@ -2330,10 +2330,10 @@
         "id": 1785765604394,
         "nome": "Julia Santos Firma",
         "matricula": "202737642376",
-        "modalidade": "Futsal Feminino, Voleibol Feminino",
+        "modalidade": "Futsal Feminino, Vôlei Feminino",
         "modalidades": [
           "Futsal Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2009-07-06",
         "cpf": "379.827.849-72",
@@ -2347,10 +2347,10 @@
         "id": 1785765653480,
         "nome": "Poliana Scandolara Sputinik",
         "matricula": "202438463287",
-        "modalidade": "Atletismo Masculino, Voleibol Masculino, Vôlei de Praia Masculino",
+        "modalidade": "Atletismo Masculino, Vôlei Masculino, Vôlei de Praia Masculino",
         "modalidades": [
           "Atletismo Masculino",
-          "Voleibol Masculino",
+          "Vôlei Masculino",
           "Vôlei de Praia Masculino"
         ],
         "dataNascimento": "2008-02-09",
@@ -2430,9 +2430,9 @@
         "id": 1785765865022,
         "nome": "Sergio Fontana Neto",
         "matricula": "202743847239",
-        "modalidade": "Voleibol Masculino",
+        "modalidade": "Vôlei Masculino",
         "modalidades": [
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2009-12-09",
         "cpf": "378.998.789-78",
@@ -2446,9 +2446,9 @@
         "id": 1785765893737,
         "nome": "Antonio Silva Goulart",
         "matricula": "202236483546",
-        "modalidade": "Voleibol Masculino",
+        "modalidade": "Vôlei Masculino",
         "modalidades": [
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2010-09-07",
         "cpf": "973.463.874-67",
@@ -2462,9 +2462,9 @@
         "id": 1785765926024,
         "nome": "Miguel Mendes Dutra",
         "matricula": "202836473642",
-        "modalidade": "Voleibol Masculino",
+        "modalidade": "Vôlei Masculino",
         "modalidades": [
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2009-03-21",
         "cpf": "487.428.974-89",
@@ -2478,9 +2478,9 @@
         "id": 1785765957054,
         "nome": "Diego Lucas Santos",
         "matricula": "202863248932",
-        "modalidade": "Voleibol Masculino",
+        "modalidade": "Vôlei Masculino",
         "modalidades": [
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2010-12-12",
         "cpf": "374.983.179-82",
@@ -2494,9 +2494,9 @@
         "id": 1785765984054,
         "nome": "Luiz Rosa Silva",
         "matricula": "202964983264",
-        "modalidade": "Voleibol Masculino",
+        "modalidade": "Vôlei Masculino",
         "modalidades": [
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2010-02-09",
         "cpf": "874.389.749-23",
@@ -2510,9 +2510,9 @@
         "id": 1785766014658,
         "nome": "Felipe Souza Lima",
         "matricula": "202738492739",
-        "modalidade": "Voleibol Masculino",
+        "modalidade": "Vôlei Masculino",
         "modalidades": [
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2009-09-23",
         "cpf": "827.483.784-72",
@@ -2526,9 +2526,9 @@
         "id": 1785779003159,
         "nome": "Matheus Santana",
         "matricula": "202837297367",
-        "modalidade": "Voleibol Masculino, Vôlei de Praia Masculino, Xadrez Masculino",
+        "modalidade": "Vôlei Masculino, Vôlei de Praia Masculino, Xadrez Masculino",
         "modalidades": [
-          "Voleibol Masculino",
+          "Vôlei Masculino",
           "Vôlei de Praia Masculino",
           "Xadrez Masculino"
         ],
@@ -2562,10 +2562,10 @@
         "id": 1785779117761,
         "nome": "Lucas Abreu Sergio",
         "matricula": "290324732749",
-        "modalidade": "Futsal Masculino, Voleibol Masculino, Vôlei de Praia Masculino",
+        "modalidade": "Futsal Masculino, Vôlei Masculino, Vôlei de Praia Masculino",
         "modalidades": [
           "Futsal Masculino",
-          "Voleibol Masculino",
+          "Vôlei Masculino",
           "Vôlei de Praia Masculino"
         ],
         "dataNascimento": "2008-04-08",
@@ -2597,10 +2597,10 @@
         "id": 1785779201854,
         "nome": "Derick Souza",
         "matricula": "202646376493",
-        "modalidade": "Futsal Masculino, Voleibol Masculino, Xadrez Masculino",
+        "modalidade": "Futsal Masculino, Vôlei Masculino, Xadrez Masculino",
         "modalidades": [
           "Futsal Masculino",
-          "Voleibol Masculino",
+          "Vôlei Masculino",
           "Xadrez Masculino"
         ],
         "dataNascimento": "2009-09-23",
@@ -2632,10 +2632,10 @@
         "id": 1785779298196,
         "nome": "Erick Vargas Inácio",
         "matricula": "202973289372",
-        "modalidade": "Handebol Masculino, Voleibol Masculino",
+        "modalidade": "Handebol Masculino, Vôlei Masculino",
         "modalidades": [
           "Handebol Masculino",
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2010-02-09",
         "cpf": "387.746.387-46",
@@ -2649,10 +2649,10 @@
         "id": 1785779333900,
         "nome": "Lucas da Rosa Scaralinistck",
         "matricula": "202846374362",
-        "modalidade": "Handebol Masculino, Voleibol Masculino",
+        "modalidade": "Handebol Masculino, Vôlei Masculino",
         "modalidades": [
           "Handebol Masculino",
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2008-03-21",
         "cpf": "438.403.284-90",
@@ -2783,10 +2783,10 @@
         "id": 1785779807460,
         "nome": "Pedro Sarmento",
         "matricula": "202864389483",
-        "modalidade": "Atletismo Masculino, Voleibol Masculino",
+        "modalidade": "Atletismo Masculino, Vôlei Masculino",
         "modalidades": [
           "Atletismo Masculino",
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2008-09-10",
         "cpf": "034.394.809-47",
@@ -2804,11 +2804,11 @@
         "id": 1785779838667,
         "nome": "Pedro Dutra",
         "matricula": "202362493498",
-        "modalidade": "Futsal Masculino, Handebol Masculino, Voleibol Masculino",
+        "modalidade": "Futsal Masculino, Handebol Masculino, Vôlei Masculino",
         "modalidades": [
           "Futsal Masculino",
           "Handebol Masculino",
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2010-09-09",
         "cpf": "837.743.543-24",
@@ -2861,10 +2861,10 @@
         "id": 1785779965530,
         "nome": "Robson LIma",
         "matricula": "202374932642",
-        "modalidade": "Futsal Masculino, Voleibol Masculino",
+        "modalidade": "Futsal Masculino, Vôlei Masculino",
         "modalidades": [
           "Futsal Masculino",
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2010-08-21",
         "cpf": "891.641.012-74",
@@ -2895,10 +2895,10 @@
         "id": 1785780049885,
         "nome": "Italo Santos Borger",
         "matricula": "20284637432",
-        "modalidade": "Handebol Masculino, Voleibol Masculino",
+        "modalidade": "Handebol Masculino, Vôlei Masculino",
         "modalidades": [
           "Handebol Masculino",
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2008-02-10",
         "cpf": "459.438.034-38",
@@ -2912,10 +2912,10 @@
         "id": 1785780103876,
         "nome": "Sergio Paradiolli",
         "matricula": "202864899324",
-        "modalidade": "Handebol Masculino, Voleibol Masculino",
+        "modalidade": "Handebol Masculino, Vôlei Masculino",
         "modalidades": [
           "Handebol Masculino",
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2008-03-09",
         "cpf": "453.432.749-62",
@@ -2929,11 +2929,11 @@
         "id": 1785780168089,
         "nome": "Gustavo Schimit",
         "matricula": "209237442498",
-        "modalidade": "Atletismo Masculino, Handebol Masculino, Voleibol Masculino",
+        "modalidade": "Atletismo Masculino, Handebol Masculino, Vôlei Masculino",
         "modalidades": [
           "Atletismo Masculino",
           "Handebol Masculino",
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2010-12-30",
         "cpf": "465.929.858-20",
@@ -2951,10 +2951,10 @@
         "id": 1785780211174,
         "nome": "Antonela Bragança",
         "matricula": "2029473847",
-        "modalidade": "Basquete Feminino, Voleibol Feminino, Xadrez Feminino",
+        "modalidade": "Basquete Feminino, Vôlei Feminino, Xadrez Feminino",
         "modalidades": [
           "Basquete Feminino",
-          "Voleibol Feminino",
+          "Vôlei Feminino",
           "Xadrez Feminino"
         ],
         "dataNascimento": "2008-10-21",
@@ -2969,10 +2969,10 @@
         "id": 1785780258256,
         "nome": "Eduarda Souza Lima",
         "matricula": "202787438478",
-        "modalidade": "Basquete Feminino, Voleibol Feminino",
+        "modalidade": "Basquete Feminino, Vôlei Feminino",
         "modalidades": [
           "Basquete Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2008-04-07",
         "cpf": "374.983.274-03",
@@ -2986,10 +2986,10 @@
         "id": 1785780296508,
         "nome": "Franciny Begger",
         "matricula": "202473847387",
-        "modalidade": "Basquete Feminino, Voleibol Feminino",
+        "modalidade": "Basquete Feminino, Vôlei Feminino",
         "modalidades": [
           "Basquete Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2007-04-09",
         "cpf": "234.973.228-93",
@@ -3003,10 +3003,10 @@
         "id": 1785780332924,
         "nome": "Natalia Dultan",
         "matricula": "202963493879",
-        "modalidade": "Basquete Feminino, Voleibol Feminino",
+        "modalidade": "Basquete Feminino, Vôlei Feminino",
         "modalidades": [
           "Basquete Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2010-08-09",
         "cpf": "392.634.184-14",
@@ -3020,10 +3020,10 @@
         "id": 1785780364403,
         "nome": "Graciely Lima",
         "matricula": "293846327043",
-        "modalidade": "Basquete Feminino, Voleibol Feminino",
+        "modalidade": "Basquete Feminino, Vôlei Feminino",
         "modalidades": [
           "Basquete Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2009-09-08",
         "cpf": "209.374.839-74",
@@ -3037,10 +3037,10 @@
         "id": 1785780392994,
         "nome": "Francisca Barreto",
         "matricula": "202643843298",
-        "modalidade": "Basquete Feminino, Voleibol Feminino",
+        "modalidade": "Basquete Feminino, Vôlei Feminino",
         "modalidades": [
           "Basquete Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2008-11-22",
         "cpf": "466.328.012-74",
@@ -3188,10 +3188,10 @@
         "id": 1785894974498,
         "nome": "Luiza Mendes Roma",
         "matricula": "202517861977",
-        "modalidade": "Futsal Feminino, Voleibol Feminino",
+        "modalidade": "Futsal Feminino, Vôlei Feminino",
         "modalidades": [
           "Futsal Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2008-09-23",
         "cpf": "265.187.821-70",
@@ -3227,10 +3227,10 @@
         "id": 1785895064127,
         "nome": "Gabriela Lima Rosa",
         "matricula": "202828167619",
-        "modalidade": "Futsal Feminino, Voleibol Feminino",
+        "modalidade": "Futsal Feminino, Vôlei Feminino",
         "modalidades": [
           "Futsal Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2009-09-09",
         "cpf": "362.712.072-91",
@@ -3244,10 +3244,10 @@
         "id": 1785895116762,
         "nome": "Lorena Cardoso",
         "matricula": "202973289738",
-        "modalidade": "Atletismo Feminino, Voleibol Feminino",
+        "modalidade": "Atletismo Feminino, Vôlei Feminino",
         "modalidades": [
           "Atletismo Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2010-01-23",
         "cpf": "329.937.208-70",
@@ -3265,10 +3265,10 @@
         "id": 1785895161470,
         "nome": "Kaillane Souza",
         "matricula": "202178917280",
-        "modalidade": "Futsal Feminino, Voleibol Feminino",
+        "modalidade": "Futsal Feminino, Vôlei Feminino",
         "modalidades": [
           "Futsal Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2010-03-07",
         "cpf": "278.217.801-70",
@@ -3282,10 +3282,10 @@
         "id": 1785895191967,
         "nome": "Poliana Lima",
         "matricula": "202732893788",
-        "modalidade": "Futsal Feminino, Voleibol Feminino",
+        "modalidade": "Futsal Feminino, Vôlei Feminino",
         "modalidades": [
           "Futsal Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2010-10-20",
         "cpf": "382.900.819-02",
@@ -3299,11 +3299,11 @@
         "id": 1785895232591,
         "nome": "Andressa Souza kurts",
         "matricula": "202189289080",
-        "modalidade": "Atletismo Feminino, Futsal Feminino, Voleibol Feminino",
+        "modalidade": "Atletismo Feminino, Futsal Feminino, Vôlei Feminino",
         "modalidades": [
           "Atletismo Feminino",
           "Futsal Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2009-10-23",
         "cpf": "290.328.138-12",
@@ -3321,11 +3321,11 @@
         "id": 1785895274032,
         "nome": "Koraline Santos",
         "matricula": "202937287381",
-        "modalidade": "Atletismo Feminino, Futsal Feminino, Voleibol Feminino",
+        "modalidade": "Atletismo Feminino, Futsal Feminino, Vôlei Feminino",
         "modalidades": [
           "Atletismo Feminino",
           "Futsal Feminino",
-          "Voleibol Feminino"
+          "Vôlei Feminino"
         ],
         "dataNascimento": "2010-02-09",
         "cpf": "290.273.829-81",
@@ -3375,9 +3375,9 @@
         "id": 1785979334617,
         "nome": "Persistencia Final",
         "matricula": "202699992",
-        "modalidade": "Voleibol Masculino",
+        "modalidade": "Vôlei Masculino",
         "modalidades": [
-          "Voleibol Masculino"
+          "Vôlei Masculino"
         ],
         "dataNascimento": "2008-01-01",
         "cpf": "123.456.789-02",

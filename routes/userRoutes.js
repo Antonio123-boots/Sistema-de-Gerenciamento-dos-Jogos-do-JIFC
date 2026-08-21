@@ -466,6 +466,88 @@ router.get('/', async function(req, res, next) {
             }
         }
 
+        let classificacaoIndividual = [];
+        let tipoClassificacaoIndividual = null;
+        let provasAtletismo = [];
+        let provaFiltroSelecionada = '';
+        let provasPorGenero = {};
+        let classificacaoAtletismoPorGenero = null;
+        if (modalidadesParaTabela.length) {
+            const resultadosIndividuaisService = require('../services/resultadosIndividuaisService');
+            const temAtletismo = modalidadesParaTabela.some((modalidadeTabela) => resultadosIndividuaisService.ehAtletismo(String(modalidadeTabela.nome || '')));
+            if (temAtletismo) {
+                try {
+                    const generosAlvo = generoSelecionado ? [generoSelecionado] : ['Masculino', 'Feminino'];
+                    classificacaoAtletismoPorGenero = {};
+                    for (const generoAlvo of generosAlvo) {
+                        classificacaoAtletismoPorGenero[generoAlvo] = await resultadosIndividuaisService.obterClassificacaoGeralCampi(generoAlvo);
+                    }
+                } catch (e) {
+                    console.error('Erro ao carregar classificação geral do atletismo:', e);
+                    classificacaoAtletismoPorGenero = null;
+                }
+                tipoClassificacaoIndividual = 'atletismo';
+
+                const { montarProvasComAtletasEDetalhes, PROVAS_ATLETISMO_EXIBICAO } = require('../utils/atletismoProvas');
+
+                // Inscritos separados por gênero da modalidade de origem
+                const inscritosPorGeneroAtletismo = {};
+                for (const modalidadeTabela of modalidadesParaTabela) {
+                    if (!modalidadeTabela || !modalidadeTabela.id) continue;
+                    if (!resultadosIndividuaisService.ehAtletismo(String(modalidadeTabela.nome || ''))) continue;
+                    const chaveGeneroInscritos = String(modalidadeTabela.genero || '').trim() || 'Geral';
+                    const listaModalidade = await adminModel.getInscritosModalidade(modalidadeTabela.id);
+                    inscritosPorGeneroAtletismo[chaveGeneroInscritos] = inscritosPorGeneroAtletismo[chaveGeneroInscritos] || [];
+                    const idsJaVistos = new Set(inscritosPorGeneroAtletismo[chaveGeneroInscritos].map((i) => String(i.id || `${i.nomeAtleta}-${i.nomeCampus}`)));
+                    (Array.isArray(listaModalidade) ? listaModalidade : []).forEach((inscrito) => {
+                        const chaveId = String(inscrito.id || `${inscrito.nomeAtleta}-${inscrito.nomeCampus}`);
+                        if (idsJaVistos.has(chaveId)) return;
+                        idsJaVistos.add(chaveId);
+                        inscritosPorGeneroAtletismo[chaveGeneroInscritos].push(inscrito);
+                    });
+                }
+
+                provasPorGenero = {};
+                for (const [generoChave, listaGenero] of Object.entries(inscritosPorGeneroAtletismo)) {
+                    provasPorGenero[generoChave] = (await montarProvasComAtletasEDetalhes(listaGenero))
+                        .filter((prova) => prova.atletas.length > 0);
+                }
+
+                // União das provas dos dois gêneros (uma única linha de filtros na home)
+                const ordemSlugsProvas = PROVAS_ATLETISMO_EXIBICAO.map((provaBase) => provaBase.slug);
+                const mapaProvasUniao = new Map();
+                Object.values(provasPorGenero).flat().forEach((prova) => {
+                    if (prova && prova.slug && !mapaProvasUniao.has(prova.slug)) {
+                        mapaProvasUniao.set(prova.slug, { slug: prova.slug, nome: prova.nome });
+                    }
+                });
+                provasAtletismo = [
+                    ...ordemSlugsProvas.filter((slugOrdem) => mapaProvasUniao.has(slugOrdem)).map((slugOrdem) => mapaProvasUniao.get(slugOrdem)),
+                    ...[...mapaProvasUniao.values()].filter((prova) => !ordemSlugsProvas.includes(prova.slug))
+                ];
+
+                const provaSolicitada = String(req.query.prova || '').trim().toLowerCase();
+                if (provaSolicitada && provasAtletismo.some((prova) => prova.slug === provaSolicitada)) {
+                    provaFiltroSelecionada = provaSolicitada;
+                } else if (provasAtletismo.length > 0) {
+                    provaFiltroSelecionada = provasAtletismo[0].slug;
+                }
+
+                classificacaoIndividual = Object.values(classificacaoAtletismoPorGenero || {}).flat();
+            } else {
+                for (const modalidadeTabela of modalidadesParaTabela) {
+                    if (!modalidadeTabela || !modalidadeTabela.id) continue;
+                    if (resultadosIndividuaisService.ehXadrez(String(modalidadeTabela.nome || ''))) {
+                        const classif = await resultadosIndividuaisService.obterClassificacaoXadrez(modalidadeTabela.id);
+                        if (classif.length) {
+                            classificacaoIndividual = classif;
+                            tipoClassificacaoIndividual = 'xadrez';
+                        }
+                    }
+                }
+            }
+        }
+
         res.locals.modalidades = todasAsModalidades;
         const { obterRegras: obterRegrasClassificacao } = require('../utils/sportClassificationRules');
         const nomeModalidadeFiltro = modalidadeSelecionadaValida || modalidadeSelecionada || '';
@@ -484,6 +566,12 @@ router.get('/', async function(req, res, next) {
             jogos,
             classificacao,
             grupos,
+            classificacaoIndividual,
+            tipoClassificacaoIndividual,
+            provasAtletismo,
+            provaFiltroSelecionada,
+            provasPorGenero,
+            classificacaoAtletismoPorGenero,
             esporteAtivo: Boolean(modalidadeSelecionadaValida || modalidadeSelecionada),
             regrasClassificacao
         });
@@ -520,6 +608,12 @@ router.get('/', async function(req, res, next) {
             jogos: [],
             classificacao: [],
             grupos: [],
+            classificacaoIndividual: [],
+            tipoClassificacaoIndividual: null,
+            provasAtletismo: [],
+            provaFiltroSelecionada: '',
+            provasPorGenero: {},
+            classificacaoAtletismoPorGenero: null,
             esporteAtivo: Boolean(modalidadeSelecionadaValida),
             regrasClassificacao: { temSets: false, temCartoes: false, colunasTabela: ['Pts', 'PJ', 'V', 'E', 'D', 'GP', 'GC', 'SG'] }
         });

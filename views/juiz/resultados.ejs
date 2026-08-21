@@ -1,0 +1,183 @@
+<section class="panel-card" style="max-width:980px; margin:1rem auto;">
+  <div class="profile-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+    <div>
+      <h1 style="font-size:1.3rem; margin:0;"><%= esporte %></h1>
+      <p class="panel-subtitle" style="margin:0.2rem 0 0;"><%= tipoEsporte === 'atletismo' ? 'Resultados por Prova' : 'Pontuação dos Atletas' %></p>
+    </div>
+    <a href="/juiz/<%= encodeURIComponent(esporte) %>" style="font-size:0.8rem; padding:0.4rem 0.8rem; border-radius:999px; text-decoration:none; background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.7); border:1px solid rgba(255,255,255,0.1);">← Voltar</a>
+  </div>
+
+  <% if (typeof mensagemSucesso !== 'undefined' && mensagemSucesso) { %>
+    <div class="alert alert-success" style="margin-top:1rem;"><%= mensagemSucesso %></div>
+  <% } %>
+  <% if (typeof mensagemErro !== 'undefined' && mensagemErro) { %>
+    <div class="alert alert-danger" style="margin-top:1rem;"><%= mensagemErro %></div>
+  <% } %>
+
+  <div style="display:flex; gap:0.5rem; margin-top:1rem; flex-wrap:wrap;">
+    <% const filtros = [
+      { label: 'Todos', valor: null },
+      { label: 'Masculino', valor: 'Masculino' },
+      { label: 'Feminino', valor: 'Feminino' }
+    ]; %>
+    <% filtros.forEach((f) => { %>
+      <% const ativo = generoFiltro === f.valor; %>
+      <a href="/juiz/<%= encodeURIComponent(esporte) %>/resultados<%= f.valor ? '?genero=' + encodeURIComponent(f.valor) : '' %>"
+         style="font-size:0.8rem; padding:0.4rem 0.9rem; border-radius:999px; font-weight:600; text-decoration:none;
+                <%= ativo
+                  ? 'background:rgba(88,214,141,0.25); color:#58d68d; border:1px solid rgba(88,214,141,0.4);'
+                  : 'background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.6); border:1px solid rgba(255,255,255,0.1);' %>
+                transition:all 0.2s;">
+        <%= f.label %>
+      </a>
+    <% }) %>
+  </div>
+
+  <% if (tipoEsporte === 'atletismo') { %>
+
+    <!-- ATLETISMO -->
+    <div style="margin-top:1.5rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+      <h2 style="font-size:1.05rem; margin:0;">Provas</h2>
+      <button onclick="document.getElementById('formCriarProva').style.display = document.getElementById('formCriarProva').style.display === 'none' ? 'block' : 'none'"
+              style="font-size:0.8rem; padding:0.4rem 0.9rem; border-radius:999px; font-weight:600; background:rgba(88,214,141,0.25); color:#58d68d; border:1px solid rgba(88,214,141,0.4); cursor:pointer;">
+        + Nova Prova
+      </button>
+    </div>
+
+    <div id="formCriarProva" style="display:none; margin-top:0.75rem;">
+      <form method="POST" action="/juiz/<%= encodeURIComponent(esporte) %>/resultados/criar-prova" style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:flex-end;">
+        <input type="hidden" name="modalidade_id" value="<%= modalidade.id %>">
+        <div style="flex:1; min-width:150px;">
+          <label style="font-size:0.7rem; color:rgba(255,255,255,0.6); display:block; margin-bottom:0.2rem;">Nome da Prova</label>
+          <input name="nome" required placeholder="Ex: 100m Rasos"
+                 style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#fff; font-size:0.85rem; box-sizing:border-box;">
+        </div>
+        <div style="min-width:120px;">
+          <label style="font-size:0.7rem; color:rgba(255,255,255,0.6); display:block; margin-bottom:0.2rem;">Tipo</label>
+          <select name="tipo_resultado" style="padding:0.5rem; border-radius:8px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#fff; font-size:0.85rem;">
+            <option value="medida">Distância/Altura</option>
+            <option value="tempo">Tempo</option>
+          </select>
+        </div>
+        <div style="min-width:80px;">
+          <label style="font-size:0.7rem; color:rgba(255,255,255,0.6); display:block; margin-bottom:0.2rem;">Ordem</label>
+          <input name="ordem" type="number" value="0" min="0"
+                 style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#fff; font-size:0.85rem; box-sizing:border-box;">
+        </div>
+        <button type="submit" class="premium-action-btn" style="padding:0.5rem 1rem; white-space:nowrap;">Criar</button>
+      </form>
+    </div>
+
+    <% if (provas && provas.length > 0) { %>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:0.75rem; margin-top:1rem;">
+        <% provas.forEach((prova) => { %>
+          <article class="panel-card" style="padding:0.9rem; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08); border-radius:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+              <div>
+                <div style="font-size:0.95rem; font-weight:700; color:#fff;"><%= prova.nome %></div>
+                <div style="font-size:0.7rem; color:rgba(255,255,255,0.5);"><%= prova.tipo_resultado === 'tempo' ? '⏱ Tempo' : '📏 Distância' %></div>
+              </div>
+              <div style="display:flex; gap:0.4rem;">
+                <a href="/juiz/<%= encodeURIComponent(esporte) %>/resultados/prova/<%= prova.id %>"
+                   style="font-size:0.75rem; padding:0.35rem 0.7rem; border-radius:8px; background:rgba(88,214,141,0.2); color:#58d68d; text-decoration:none; font-weight:600;">
+                  Lançar
+                </a>
+                <form method="POST" action="/juiz/<%= encodeURIComponent(esporte) %>/resultados/excluir-prova/<%= prova.id %>" style="display:inline;"
+                      onsubmit="return confirm('Excluir esta prova e todos os resultados?')">
+                  <button type="submit" style="font-size:0.7rem; padding:0.3rem 0.5rem; border-radius:6px; background:rgba(231,76,60,0.2); color:#e74c3c; border:none; cursor:pointer;">✕</button>
+                </form>
+              </div>
+            </div>
+          </article>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <div class="mini-card" style="text-align:center; margin-top:1.5rem;">
+        <p class="panel-subtitle">Nenhuma prova cadastrada. Crie uma prova para começar.</p>
+      </div>
+    <% } %>
+
+    <% if (classificacao && classificacao.length > 0) { %>
+      <div style="margin-top:1.5rem; border-top:1px solid rgba(255,255,255,0.08); padding-top:1.25rem;">
+        <h2 style="font-size:1.05rem; margin-bottom:0.75rem;">Classificação Geral</h2>
+        <div style="overflow-x:auto;">
+          <table style="width:100%; border-collapse:collapse; font-size:0.8rem;">
+            <thead>
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+                <th style="padding:0.5rem; text-align:left; color:rgba(255,255,255,0.6);">#</th>
+                <th style="padding:0.5rem; text-align:left; color:rgba(255,255,255,0.6);">Atleta</th>
+                <th style="padding:0.5rem; text-align:left; color:rgba(255,255,255,0.6);">Campus</th>
+                <th style="padding:0.5rem; text-align:center; color:#58d68d; font-weight:700;">PTS</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% classificacao.forEach((c, idx) => { %>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.05); <%= idx < 3 ? 'background:rgba(88,214,141,0.05);' : '' %>">
+                  <td style="padding:0.45rem 0.5rem; color:rgba(255,255,255,0.5);"><%= idx + 1 %>º</td>
+                  <td style="padding:0.45rem 0.5rem; color:#fff; font-weight:600;"><%= c.atleta_nome %></td>
+                  <td style="padding:0.45rem 0.5rem; color:rgba(255,255,255,0.7);"><%= c.campus_nome %></td>
+                  <td style="padding:0.45rem 0.5rem; text-align:center; font-weight:700; color:#58d68d;"><%= c.pontos %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% } %>
+
+  <% } else if (tipoEsporte === 'xadrez') { %>
+
+    <!-- XADREZ -->
+    <div style="margin-top:1.5rem;">
+      <h2 style="font-size:1.05rem; margin-bottom:0.75rem;">Pontuação dos Atletas</h2>
+      <form method="POST" action="/juiz/<%= encodeURIComponent(esporte) %>/resultados/salvar-xadrez">
+        <input type="hidden" name="modalidade_id" value="<%= modalidade.id %>">
+        <div style="overflow-x:auto;">
+          <table style="width:100%; border-collapse:collapse; font-size:0.8rem;">
+            <thead>
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+                <th style="padding:0.5rem; text-align:left; color:rgba(255,255,255,0.6);">Atleta</th>
+                <th style="padding:0.5rem; text-align:left; color:rgba(255,255,255,0.6);">Campus</th>
+                <th style="padding:0.5rem; text-align:center; color:#58d68d; font-weight:700;">PTS</th>
+                <th style="padding:0.5rem; text-align:center; color:rgba(255,255,255,0.6);">V</th>
+                <th style="padding:0.5rem; text-align:center; color:rgba(255,255,255,0.6);">D</th>
+                <th style="padding:0.5rem; text-align:center; color:rgba(255,255,255,0.6);">E</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% atletas.forEach((atleta) => {
+                const res = (resultados || []).find(r => r.atleta_id === atleta.id) || {};
+              %>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                  <td style="padding:0.45rem 0.5rem; color:#fff; font-weight:600;"><%= atleta.nome %></td>
+                  <td style="padding:0.45rem 0.5rem; color:rgba(255,255,255,0.7);"><%= atleta.campus_nome %></td>
+                  <td style="padding:0.3rem; text-align:center;">
+                    <input type="hidden" name="resultados[<%= atleta.id %>][atleta_id]" value="<%= atleta.id %>">
+                    <input type="number" name="resultados[<%= atleta.id %>][pontuacao]" value="<%= res.pontuacao || 0 %>" step="0.5" min="0"
+                           style="width:60px; padding:0.3rem; border-radius:6px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#58d68d; font-weight:700; font-size:0.85rem; text-align:center;">
+                  </td>
+                  <td style="padding:0.3rem; text-align:center;">
+                    <input type="number" name="resultados[<%= atleta.id %>][vitorias]" value="<%= res.vitorias || 0 %>" min="0"
+                           style="width:45px; padding:0.3rem; border-radius:6px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#fff; font-size:0.85rem; text-align:center;">
+                  </td>
+                  <td style="padding:0.3rem; text-align:center;">
+                    <input type="number" name="resultados[<%= atleta.id %>][derrotas]" value="<%= res.derrotas || 0 %>" min="0"
+                           style="width:45px; padding:0.3rem; border-radius:6px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#fff; font-size:0.85rem; text-align:center;">
+                  </td>
+                  <td style="padding:0.3rem; text-align:center;">
+                    <input type="number" name="resultados[<%= atleta.id %>][empates]" value="<%= res.empates || 0 %>" min="0"
+                           style="width:45px; padding:0.3rem; border-radius:6px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#fff; font-size:0.85rem; text-align:center;">
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:1rem; text-align:right;">
+          <button type="submit" class="premium-action-btn" style="padding:0.5rem 1.5rem;">Salvar Resultados</button>
+        </div>
+      </form>
+    </div>
+
+  <% } %>
+</section>

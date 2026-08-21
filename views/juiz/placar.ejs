@@ -1,3 +1,8 @@
+<%
+  const temSets = typeof regras !== 'undefined' && regras && regras.temSets;
+  const setsSalvos = (jogo.sets || []);
+%>
+
 <section class="panel-card" style="max-width:520px; margin:1rem auto;">
   <div style="margin-bottom:1rem;">
     <a href="/juiz/<%= encodeURIComponent(typeof esporteVoltar !== 'undefined' && esporteVoltar ? esporteVoltar : jogo.modalidade.split(' ')[0]) %>" style="color:rgba(255,255,255,0.5); text-decoration:none; font-size:0.85rem;">← Voltar para <%= typeof esporteVoltar !== 'undefined' && esporteVoltar ? esporteVoltar : jogo.modalidade.split(' ')[0] %></a>
@@ -45,25 +50,84 @@
     <form action="/juiz/jogos/<%= jogo.id %>/placar" method="POST" style="margin-top:1.25rem;">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
-      <div style="display:grid; grid-template-columns:1fr auto 1fr; gap:0.5rem; align-items:start; margin-bottom:1rem;">
-        <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem;">
-          <input type="number" name="placar1" min="0" value="<%= jogo.placar_1 != null ? jogo.placar_1 : 0 %>" required style="width:80px; text-align:center; font-size:1.8rem; font-weight:700; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); border-radius:12px; color:#fff; padding:0.5rem; outline:none;">
-          <% if (jogo.casa && jogo.casa !== '—') { %>
-            <button type="button" onclick="confirmarWO('<%= jogo.campus_1_id %>', '<%= jogo.casa %>')" style="font-size:0.65rem; font-weight:700; padding:0.3rem 0.6rem; border-radius:8px; background:rgba(245,176,65,0.1); border:1px solid rgba(245,176,65,0.25); color:#f5b041; cursor:pointer; white-space:nowrap; transition:all 0.2s;">W.O.</button>
-          <% } %>
+      <% if (temSets) { %>
+        <div id="setsSection">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
+            <span style="font-size:0.75rem; color:#cfd8dc; font-weight:600; text-transform:uppercase; letter-spacing:0.06em;">Placar por Sets</span>
+            <span style="font-size:0.65rem; color:#8a9ab5;">Melhor de 3</span>
+          </div>
+
+          <div id="setsContainer" style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:0.75rem;">
+            <% for (let s = 1; s <= 3; s++) { %>
+              <% const setSalvo = setsSalvos[s-1]; %>
+              <% const confirmado = setSalvo && (Number(setSalvo.pontos_1 || 0) > 0 || Number(setSalvo.pontos_2 || 0) > 0); %>
+              <div class="set-row" data-set="<%= s %>" style="display:grid; grid-template-columns:0.6rem 1fr auto 1fr auto; gap:0.4rem; align-items:center; padding:0.45rem 0.6rem; border-radius:10px; background:rgba(255,255,255,0.03); border:1px solid <%= confirmado ? 'rgba(88,214,141,0.4)' : 'rgba(255,255,255,0.08)' %>;">
+                <span style="font-size:0.65rem; font-weight:700; color:#8a9ab5; text-align:center;"><%= s %>º</span>
+                <input type="number" name="sets[<%= s - 1 %>][pontos_1]" min="0" value="<%= setSalvo ? setSalvo.pontos_1 : 0 %>" class="set-input set-p1" <%= confirmado ? 'readonly' : '' %> style="width:100%; text-align:center; font-size:1rem; font-weight:700; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); border-radius:8px; color:#fff; padding:0.35rem 0.25rem; outline:none; <%= confirmado ? 'opacity:0.6; cursor:default;' : '' %>">
+                <span style="font-size:0.8rem; font-weight:700; color:rgba(255,255,255,0.3);">x</span>
+                <input type="number" name="sets[<%= s - 1 %>][pontos_2]" min="0" value="<%= setSalvo ? setSalvo.pontos_2 : 0 %>" class="set-input set-p2" <%= confirmado ? 'readonly' : '' %> style="width:100%; text-align:center; font-size:1rem; font-weight:700; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); border-radius:8px; color:#fff; padding:0.35rem 0.25rem; outline:none; <%= confirmado ? 'opacity:0.6; cursor:default;' : '' %>">
+                <button type="button" class="btn-confirmar-set" data-set="<%= s %>" onclick="confirmarSet(<%= s %>)" style="font-size:0.6rem; font-weight:700; padding:0.3rem 0.5rem; border-radius:6px; background:<%= confirmado ? 'rgba(88,214,141,0.15)' : 'rgba(255,255,255,0.06)' %>; border:1px solid <%= confirmado ? 'rgba(88,214,141,0.35)' : 'rgba(255,255,255,0.12)' %>; color:<%= confirmado ? '#58d68d' : '#8a9ab5' %>; cursor:pointer; white-space:nowrap; transition:all 0.2s; <%= confirmado ? 'pointer-events:none;' : '' %>"><%= confirmado ? '✓' : 'OK' %></button>
+              </div>
+            <% } %>
+          </div>
+
+          <div id="setsSummary" style="display:grid; grid-template-columns:1fr auto 1fr; gap:0.5rem; align-items:center; text-align:center; margin-bottom:0.75rem; padding:0.5rem; border-radius:10px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06);">
+            <div>
+              <div style="font-size:1.3rem; font-weight:800; color:#58d68d;" id="setsVencidos1">0</div>
+              <div style="font-size:0.55rem; color:#8a9ab5; text-transform:uppercase;">Sets</div>
+            </div>
+            <div style="font-size:0.65rem; color:#cfd8dc; font-weight:700;">SETS</div>
+            <div>
+              <div style="font-size:1.3rem; font-weight:800; color:#58d68d;" id="setsVencidos2">0</div>
+              <div style="font-size:0.55rem; color:#8a9ab5; text-transform:uppercase;">Sets</div>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr auto 1fr; gap:0.5rem; align-items:center; text-align:center; margin-bottom:0.75rem;">
+            <div>
+              <div style="font-size:1rem; font-weight:700; color:#fff;" id="totalPontos1">0</div>
+              <div style="font-size:0.55rem; color:#8a9ab5; text-transform:uppercase;">Pontos Total</div>
+            </div>
+            <div style="font-size:0.65rem; color:#cfd8dc; font-weight:700;">PLACAR</div>
+            <div>
+              <div style="font-size:1rem; font-weight:700; color:#fff;" id="totalPontos2">0</div>
+              <div style="font-size:0.55rem; color:#8a9ab5; text-transform:uppercase;">Pontos Total</div>
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:center; gap:0.75rem; margin-bottom:0.5rem;">
+            <% if (jogo.casa && jogo.casa !== '—') { %>
+              <button type="button" onclick="confirmarWO('<%= jogo.campus_1_id %>', '<%= jogo.casa %>')" style="font-size:0.65rem; font-weight:700; padding:0.3rem 0.6rem; border-radius:8px; background:rgba(245,176,65,0.1); border:1px solid rgba(245,176,65,0.25); color:#f5b041; cursor:pointer; white-space:nowrap; transition:all 0.2s;">W.O. <%= jogo.casa %></button>
+            <% } %>
+            <% if (jogo.fora && jogo.fora !== '—') { %>
+              <button type="button" onclick="confirmarWO('<%= jogo.campus_2_id %>', '<%= jogo.fora %>')" style="font-size:0.65rem; font-weight:700; padding:0.3rem 0.6rem; border-radius:8px; background:rgba(245,176,65,0.1); border:1px solid rgba(245,176,65,0.25); color:#f5b041; cursor:pointer; white-space:nowrap; transition:all 0.2s;">W.O. <%= jogo.fora %></button>
+            <% } %>
+          </div>
         </div>
 
-        <div style="display:flex; align-items:center; padding-top:0.3rem;">
-          <span style="font-size:1.1rem; font-weight:700; color:rgba(255,255,255,0.4);">x</span>
-        </div>
+        <input type="hidden" name="placar1" id="placar1Hidden" value="<%= setsSalvos.reduce((acc, s) => acc + Number(s.pontos_1 || 0), 0) %>">
+        <input type="hidden" name="placar2" id="placar2Hidden" value="<%= setsSalvos.reduce((acc, s) => acc + Number(s.pontos_2 || 0), 0) %>">
+      <% } else { %>
+        <div style="display:grid; grid-template-columns:1fr auto 1fr; gap:0.5rem; align-items:start; margin-bottom:1rem;">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem;">
+            <input type="number" name="placar1" min="0" value="<%= jogo.placar_1 != null ? jogo.placar_1 : 0 %>" required style="width:80px; text-align:center; font-size:1.8rem; font-weight:700; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); border-radius:12px; color:#fff; padding:0.5rem; outline:none;">
+            <% if (jogo.casa && jogo.casa !== '—') { %>
+              <button type="button" onclick="confirmarWO('<%= jogo.campus_1_id %>', '<%= jogo.casa %>')" style="font-size:0.65rem; font-weight:700; padding:0.3rem 0.6rem; border-radius:8px; background:rgba(245,176,65,0.1); border:1px solid rgba(245,176,65,0.25); color:#f5b041; cursor:pointer; white-space:nowrap; transition:all 0.2s;">W.O.</button>
+            <% } %>
+          </div>
 
-        <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem;">
-          <input type="number" name="placar2" min="0" value="<%= jogo.placar_2 != null ? jogo.placar_2 : 0 %>" required style="width:80px; text-align:center; font-size:1.8rem; font-weight:700; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); border-radius:12px; color:#fff; padding:0.5rem; outline:none;">
-          <% if (jogo.fora && jogo.fora !== '—') { %>
-            <button type="button" onclick="confirmarWO('<%= jogo.campus_2_id %>', '<%= jogo.fora %>')" style="font-size:0.65rem; font-weight:700; padding:0.3rem 0.6rem; border-radius:8px; background:rgba(245,176,65,0.1); border:1px solid rgba(245,176,65,0.25); color:#f5b041; cursor:pointer; white-space:nowrap; transition:all 0.2s;">W.O.</button>
-          <% } %>
+          <div style="display:flex; align-items:center; padding-top:0.3rem;">
+            <span style="font-size:1.1rem; font-weight:700; color:rgba(255,255,255,0.4);">x</span>
+          </div>
+
+          <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem;">
+            <input type="number" name="placar2" min="0" value="<%= jogo.placar_2 != null ? jogo.placar_2 : 0 %>" required style="width:80px; text-align:center; font-size:1.8rem; font-weight:700; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); border-radius:12px; color:#fff; padding:0.5rem; outline:none;">
+            <% if (jogo.fora && jogo.fora !== '—') { %>
+              <button type="button" onclick="confirmarWO('<%= jogo.campus_2_id %>', '<%= jogo.fora %>')" style="font-size:0.65rem; font-weight:700; padding:0.3rem 0.6rem; border-radius:8px; background:rgba(245,176,65,0.1); border:1px solid rgba(245,176,65,0.25); color:#f5b041; cursor:pointer; white-space:nowrap; transition:all 0.2s;">W.O.</button>
+            <% } %>
+          </div>
         </div>
-      </div>
+      <% } %>
 
       <label class="premium-input-wrapper">
         <span class="field-label-text">Status</span>
@@ -76,18 +140,47 @@
       </label>
 
       <div class="config-submit-bar" style="margin-top:1.25rem;">
-        <button type="submit" class="premium-action-btn primary-save-btn" style="width:100%;">
+        <button type="submit" class="premium-action-btn primary-save-btn" id="btnSalvar" style="width:100%;">
           <span>Salvar resultado</span>
         </button>
       </div>
     </form>
   <% } else if (jogo.status === 'Encerrado' && !jogo.wo) { %>
     <div style="margin-top:1.25rem; text-align:center;">
-      <div style="font-size:1.15rem; font-weight:800; color:#fff; line-height:1.2; letter-spacing:0.02em; margin-bottom:0.5rem;">
-        <span><%= jogo.placar_1 != null ? jogo.placar_1 : 0 %></span>
-        <span style="color:#6c757d; margin:0 0.25rem; font-weight:400;">x</span>
-        <span><%= jogo.placar_2 != null ? jogo.placar_2 : 0 %></span>
-      </div>
+      <% if (temSets && setsSalvos.length > 0) { %>
+        <div style="font-size:0.65rem; color:#8a9ab5; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.5rem;">Resultado por Sets</div>
+        <div style="display:flex; flex-direction:column; gap:0.3rem; margin-bottom:0.6rem;">
+          <% let v1 = 0, v2 = 0; %>
+          <% setsSalvos.forEach((s, i) => { %>
+            <%
+              const s1 = Number(s.pontos_1 || 0);
+              const s2 = Number(s.pontos_2 || 0);
+              const ganhou1 = s1 > s2;
+              const ganhou2 = s2 > s1;
+              if (ganhou1) v1++;
+              if (ganhou2) v2++;
+            %>
+            <div style="display:grid; grid-template-columns:0.5rem 1fr auto 1fr; gap:0.4rem; align-items:center; font-size:0.7rem;">
+              <span style="color:#8a9ab5; text-align:center; font-weight:700;"><%= i + 1 %>º</span>
+              <div style="text-align:right; font-weight:700; color:<%= ganhou1 ? '#58d68d' : '#dfe3e8' %>;"><%= s1 %></div>
+              <span style="color:#8a9ab5; font-weight:400;">x</span>
+              <div style="text-align:left; font-weight:700; color:<%= ganhou2 ? '#58d68d' : '#dfe3e8' %>;"><%= s2 %></div>
+            </div>
+          <% }); %>
+        </div>
+        <div style="font-size:1.15rem; font-weight:800; color:#fff; line-height:1.2; letter-spacing:0.02em; margin-bottom:0.2rem;">
+          <span><%= v1 %></span>
+          <span style="color:#6c757d; margin:0 0.25rem; font-weight:400;">x</span>
+          <span><%= v2 %></span>
+          <span style="font-size:0.6rem; color:#8a9ab5; font-weight:600; margin-left:0.2rem;">sets</span>
+        </div>
+      <% } else { %>
+        <div style="font-size:1.15rem; font-weight:800; color:#fff; line-height:1.2; letter-spacing:0.02em; margin-bottom:0.5rem;">
+          <span><%= jogo.placar_1 != null ? jogo.placar_1 : 0 %></span>
+          <span style="color:#6c757d; margin:0 0.25rem; font-weight:400;">x</span>
+          <span><%= jogo.placar_2 != null ? jogo.placar_2 : 0 %></span>
+        </div>
+      <% } %>
       <div style="font-size:0.75rem; font-weight:700; padding:0.2rem 0.7rem; border-radius:8px; display:inline-block; background:rgba(88,214,141,0.18); color:#58d68d;">Encerrado</div>
     </div>
   <% } %>
@@ -104,4 +197,104 @@ function confirmarWO(campusId, campusNome) {
   document.getElementById('woCampusVencedor').value = campusId;
   document.getElementById('formWO').submit();
 }
+
+function confirmarSet(numeroSet) {
+  const row = document.querySelector('.set-row[data-set="' + numeroSet + '"]');
+  if (!row) return;
+  const p1 = row.querySelector('.set-p1');
+  const p2 = row.querySelector('.set-p2');
+  const v1 = parseInt(p1.value) || 0;
+  const v2 = parseInt(p2.value) || 0;
+
+  if (v1 === 0 && v2 === 0) {
+    alert('Preencha o placar deste set antes de confirmar.');
+    return;
+  }
+
+  p1.readOnly = true;
+  p2.readOnly = true;
+  p1.style.opacity = '0.6';
+  p1.style.cursor = 'default';
+  p2.style.opacity = '0.6';
+  p2.style.cursor = 'default';
+  row.style.borderColor = 'rgba(88,214,141,0.4)';
+
+  const btn = row.querySelector('.btn-confirmar-set');
+  if (btn) {
+    btn.textContent = '✓';
+    btn.style.background = 'rgba(88,214,141,0.15)';
+    btn.style.borderColor = 'rgba(88,214,141,0.35)';
+    btn.style.color = '#58d68d';
+    btn.style.pointerEvents = 'none';
+  }
+
+  calcularSets();
+
+  if (numeroSet < 3) {
+    const nextRow = document.querySelector('.set-row[data-set="' + (numeroSet + 1) + '"]');
+    if (nextRow) {
+      const nextP1 = nextRow.querySelector('.set-p1');
+      if (nextP1 && !nextP1.readOnly) nextP1.focus();
+    }
+  }
+}
+
+function calcularSets() {
+  if (typeof window._setInputs1 === 'undefined') return;
+  const inputs1 = window._setInputs1;
+  const inputs2 = window._setInputs2;
+  const setsVencidos1El = document.getElementById('setsVencidos1');
+  const setsVencidos2El = document.getElementById('setsVencidos2');
+  const totalPontos1El = document.getElementById('totalPontos1');
+  const totalPontos2El = document.getElementById('totalPontos2');
+  const placar1Hidden = document.getElementById('placar1Hidden');
+  const placar2Hidden = document.getElementById('placar2Hidden');
+
+  let sets1 = 0, sets2 = 0, total1 = 0, total2 = 0;
+
+  for (let i = 0; i < inputs1.length; i++) {
+    const v1 = parseInt(inputs1[i].value) || 0;
+    const v2 = parseInt(inputs2[i].value) || 0;
+
+    total1 += v1;
+    total2 += v2;
+
+    if (v1 > v2) sets1++;
+    else if (v2 > v1) sets2++;
+  }
+
+  setsVencidos1El.textContent = sets1;
+  setsVencidos2El.textContent = sets2;
+  totalPontos1El.textContent = total1;
+  totalPontos2El.textContent = total2;
+
+  if (placar1Hidden) placar1Hidden.value = total1;
+  if (placar2Hidden) placar2Hidden.value = total2;
+
+  for (let i = 0; i < inputs1.length; i++) {
+    const v1 = parseInt(inputs1[i].value) || 0;
+    const v2 = parseInt(inputs2[i].value) || 0;
+    const row = inputs1[i].closest('.set-row');
+    if (row && !inputs1[i].readOnly) {
+      if (v1 > v2 || v2 > v1) {
+        row.style.borderColor = 'rgba(245,176,65,0.4)';
+      } else {
+        row.style.borderColor = 'rgba(255,255,255,0.08)';
+      }
+    }
+  }
+}
+
+(function() {
+  const temSets = <%= typeof temSets !== 'undefined' && temSets ? 'true' : 'false' %>;
+  if (!temSets) return;
+
+  window._setInputs1 = document.querySelectorAll('.set-p1');
+  window._setInputs2 = document.querySelectorAll('.set-p2');
+
+  window._setInputs1.forEach(inp => inp.addEventListener('input', calcularSets));
+  window._setInputs2.forEach(inp => inp.addEventListener('input', calcularSets));
+
+  calcularSets();
+})();
 </script>
