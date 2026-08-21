@@ -8,6 +8,27 @@ function extrairErros(req) {
   return erros.isEmpty() ? null : erros.array().map((e) => e.msg).join('; ');
 }
 
+function juizPodeEditarModalidade(esportesDoJuiz, modalidadeNome) {
+  return esportesDoJuiz.some((esporte) =>
+    modalidadeNome === esporte ||
+    modalidadeNome === `${esporte} Masculino` ||
+    modalidadeNome === `${esporte} Feminino`
+  );
+}
+
+async function obterNomeModalidadePorId(modalidadeId) {
+  const [rows] = await require('../config/db').query('SELECT nome FROM modalidades WHERE id = ?', [Number(modalidadeId)]);
+  return rows.length ? rows[0].nome : null;
+}
+
+async function obterModalidadeDaProva(provaId) {
+  const [rows] = await require('../config/db').query(
+    'SELECT m.nome FROM provas p JOIN modalidades m ON p.modalidade_id = m.id WHERE p.id = ?',
+    [Number(provaId)]
+  );
+  return rows.length ? rows[0].nome : null;
+}
+
 /* ========== Admin: CRUD de Juízes ========== */
 
 async function renderListar(req, res) {
@@ -165,13 +186,26 @@ async function handleSalvarPlacar(req, res) {
   const jogo = await juizService.buscarJogoPorId(Number(req.params.jogoId));
   if (!jogo) return res.redirect('/juiz');
 
-  const { placar1, placar2, status, sets } = req.body;
+  const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
+  const esporteDoJogo = esportes.length === 1 ? esportes[0] : '';
   const regras = obterRegras(jogo.modalidade);
+
+  if (!juizPodeEditarModalidade(esportes, jogo.modalidade)) {
+    return res.status(403).render('juiz/placar', {
+      title: 'Atualizar Placar',
+      usuarioLogado: req.user,
+      mostrarFiltros: false,
+      jogo,
+      esporteVoltar: esporteDoJogo,
+      regras,
+      mensagemErro: 'Este jogo não é da sua modalidade.'
+    });
+  }
+
+  const { placar1, placar2, status, sets } = req.body;
 
   const erro = extrairErros(req);
   if (erro) {
-    const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
-    const esporteDoJogo = esportes.length === 1 ? esportes[0] : '';
     return res.render('juiz/placar', {
       title: 'Atualizar Placar',
       usuarioLogado: req.user,
@@ -193,8 +227,6 @@ async function handleSalvarPlacar(req, res) {
   try {
     await juizService.salvarPlacar(req.params.jogoId, { placar1, placar2, status, sets: setsParsed });
   } catch (e) {
-    const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
-    const esporteDoJogo = esportes.length === 1 ? esportes[0] : '';
     return res.render('juiz/placar', {
       title: 'Atualizar Placar',
       usuarioLogado: req.user,
@@ -206,7 +238,6 @@ async function handleSalvarPlacar(req, res) {
     });
   }
 
-  const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
   const esporteRedirect = esportes.length === 1 ? encodeURIComponent(esportes[0]) : '';
   res.redirect('/juiz/' + esporteRedirect + '?ok=Placar+atualizado');
 }
@@ -215,12 +246,25 @@ async function handleAplicarWO(req, res) {
   const jogo = await juizService.buscarJogoPorId(Number(req.params.jogoId));
   if (!jogo) return res.redirect('/juiz');
 
-  const { campus_vencedor } = req.body;
+  const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
+  const esporteDoJogo = esportes.length === 1 ? esportes[0] : '';
   const regras = obterRegras(jogo.modalidade);
 
+  if (!juizPodeEditarModalidade(esportes, jogo.modalidade)) {
+    return res.status(403).render('juiz/placar', {
+      title: 'Atualizar Placar',
+      usuarioLogado: req.user,
+      mostrarFiltros: false,
+      jogo,
+      esporteVoltar: esporteDoJogo,
+      regras,
+      mensagemErro: 'Este jogo não é da sua modalidade.'
+    });
+  }
+
+  const { campus_vencedor } = req.body;
+
   if (!campus_vencedor) {
-    const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
-    const esporteDoJogo = esportes.length === 1 ? esportes[0] : '';
     return res.render('juiz/placar', {
       title: 'Atualizar Placar',
       usuarioLogado: req.user,
@@ -235,8 +279,6 @@ async function handleAplicarWO(req, res) {
   try {
     await juizService.aplicarWO(req.params.jogoId, campus_vencedor);
   } catch (e) {
-    const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
-    const esporteDoJogo = esportes.length === 1 ? esportes[0] : '';
     return res.render('juiz/placar', {
       title: 'Atualizar Placar',
       usuarioLogado: req.user,
@@ -248,7 +290,6 @@ async function handleAplicarWO(req, res) {
     });
   }
 
-  const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
   const esporteRedirect = esportes.length === 1 ? encodeURIComponent(esportes[0]) : '';
   res.redirect('/juiz/' + esporteRedirect + '?ok=W.O.+aplicado+com+sucesso');
 }
@@ -324,6 +365,11 @@ async function handleCriarProva(req, res) {
   const esporte = req.params.esporte;
   const { modalidade_id, nome, tipo_resultado, ordem } = req.body;
   try {
+    const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
+    const nomeModalidade = await obterNomeModalidadePorId(modalidade_id);
+    if (!nomeModalidade || !juizPodeEditarModalidade(esportes, nomeModalidade)) {
+      return res.redirect('/juiz/' + encodeURIComponent(esporte) + '/resultados?erro=' + encodeURIComponent('Modalidade fora das suas atribuições.'));
+    }
     await resultadosIndividuaisService.criarProva(Number(modalidade_id), nome, tipo_resultado, Number(ordem) || 0);
     res.redirect('/juiz/' + encodeURIComponent(esporte) + '/resultados?ok=Prova+criada');
   } catch (e) {
@@ -334,6 +380,11 @@ async function handleCriarProva(req, res) {
 async function handleExcluirProva(req, res) {
   const esporte = req.params.esporte;
   try {
+    const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
+    const nomeModalidade = await obterModalidadeDaProva(req.params.provaId);
+    if (!nomeModalidade || !juizPodeEditarModalidade(esportes, nomeModalidade)) {
+      return res.redirect('/juiz/' + encodeURIComponent(esporte) + '/resultados?erro=' + encodeURIComponent('Prova fora das suas atribuições.'));
+    }
     await resultadosIndividuaisService.excluirProva(Number(req.params.provaId));
     res.redirect('/juiz/' + encodeURIComponent(esporte) + '/resultados?ok=Prova+excluida');
   } catch (e) {
@@ -377,6 +428,11 @@ async function handleSalvarResultadosProva(req, res) {
   const provaId = Number(req.params.provaId);
   const { resultados } = req.body;
   try {
+    const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
+    const nomeModalidade = await obterModalidadeDaProva(provaId);
+    if (!nomeModalidade || !juizPodeEditarModalidade(esportes, nomeModalidade)) {
+      return res.redirect('/juiz/' + encodeURIComponent(esporte) + '/resultados/prova/' + provaId + '?erro=' + encodeURIComponent('Prova fora das suas atribuições.'));
+    }
     await resultadosIndividuaisService.salvarResultadosProva(provaId, resultados || []);
     res.redirect('/juiz/' + encodeURIComponent(esporte) + '/resultados/prova/' + provaId + '?ok=Resultados+salvos');
   } catch (e) {
@@ -388,6 +444,11 @@ async function handleSalvarResultadosXadrez(req, res) {
   const esporte = req.params.esporte;
   const { modalidade_id, resultados } = req.body;
   try {
+    const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
+    const nomeModalidade = await obterNomeModalidadePorId(modalidade_id);
+    if (!nomeModalidade || !juizPodeEditarModalidade(esportes, nomeModalidade)) {
+      return res.redirect('/juiz/' + encodeURIComponent(esporte) + '/resultados?erro=' + encodeURIComponent('Modalidade fora das suas atribuições.'));
+    }
     await resultadosIndividuaisService.salvarResultadosXadrez(Number(modalidade_id), resultados || []);
     res.redirect('/juiz/' + encodeURIComponent(esporte) + '/resultados?ok=Resultados+salvos');
   } catch (e) {

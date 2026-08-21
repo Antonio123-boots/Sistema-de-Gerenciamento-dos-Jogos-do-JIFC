@@ -4,7 +4,9 @@ const adminModel = require('../models/adminModel');
 const atletaFormDrafts = new Map();
 
 function obterDataAtual() {
-  return new Date().toISOString().split('T')[0];
+  const hoje = new Date();
+  const pad = (valor) => String(valor).padStart(2, '0');
+  return `${hoje.getFullYear()}-${pad(hoje.getMonth() + 1)}-${pad(hoje.getDate())}`;
 }
 
 async function renderInscricoes(req, res) {

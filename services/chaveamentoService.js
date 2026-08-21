@@ -93,6 +93,11 @@ function obterFaseParaBanco(rodadaNumero = 1) {
   return 'Final';
 }
 
+function formatarDataHoraLocal(data) {
+  const pad = (valor) => String(valor).padStart(2, '0');
+  return `${data.getFullYear()}-${pad(data.getMonth() + 1)}-${pad(data.getDate())} ${pad(data.getHours())}:${pad(data.getMinutes())}:${pad(data.getSeconds())}`;
+}
+
 function criarParId(participante, tipoParticipante = 'campus') {
   const primeiroId = tipoParticipante === 'atleta'
     ? Number(participante?.atleta1Id || participante?.atleta_id || participante?.id || 0)
@@ -484,7 +489,7 @@ async function efetuarChaveamentoMatematico(modalidadeId, subCategoria = '') {
         for (const [indiceConfronto, confronto] of confrontos.entries()) {
           const faseJogo = obterFaseParaBanco(confronto?.rodada || 1);
           const dataHoraJogo = new Date(dataBaseJogo.getTime() + indiceConfronto * 60 * 60 * 1000);
-          const dataHoraSql = dataHoraJogo.toISOString().slice(0, 19).replace('T', ' ');
+          const dataHoraSql = formatarDataHoraLocal(dataHoraJogo);
           const [resultadoJogo] = await db.query(
             `INSERT INTO jogos (
                modalidade_id, chave_id, fase, rodada, atleta_1_id, atleta_2_id,
@@ -546,7 +551,7 @@ async function efetuarChaveamentoMatematico(modalidadeId, subCategoria = '') {
       const confrontos = montarConfrontosDaChave(participantes, { tipoParticipante: 'campus' });
       for (const [index, confronto] of confrontos.entries()) {
         const dataHoraJogo = new Date(dataBaseJogo.getTime() + index * 60 * 60 * 1000);
-        const dataHoraSql = dataHoraJogo.toISOString().slice(0, 19).replace('T', ' ');
+        const dataHoraSql = formatarDataHoraLocal(dataHoraJogo);
 
         const faseJogo = obterFaseParaBanco(confronto?.rodada || 1);
         const [resultadoJogo] = await db.query(
@@ -596,8 +601,7 @@ async function atualizarJogoChaveamento(jogoId, dados = {}) {
       const hora = horarioInformado ? Number(String(horarioInformado).split(':')[0]) : 0;
       const minuto = horarioInformado ? Number(String(horarioInformado).split(':')[1]) : 0;
       const dataLocal = new Date(ano, mes - 1, dia, hora || 0, minuto || 0, 0);
-      const formatarNumero = (valor) => String(valor).padStart(2, '0');
-      dataHoraSql = `${dataLocal.getFullYear()}-${formatarNumero(dataLocal.getMonth() + 1)}-${formatarNumero(dataLocal.getDate())} ${formatarNumero(dataLocal.getHours())}:${formatarNumero(dataLocal.getMinutes())}:00`;
+      dataHoraSql = formatarDataHoraLocal(dataLocal);
     }
   }
 
