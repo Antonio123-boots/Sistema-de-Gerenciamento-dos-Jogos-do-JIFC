@@ -17,7 +17,7 @@ const grupos = agruparParticipantesEmChaves(participantes, 4, {
   subCategoria: 'individual'
 });
 
-assert.deepStrictEqual(grupos.map((grupo) => grupo.length).sort((a, b) => b - a), [3, 3, 2]);
+assert.deepStrictEqual(grupos.map((grupo) => grupo.length).sort((a, b) => b - a), [4, 4]);
 
 const ids = grupos.flat().map((participante) => participante.id).sort((a, b) => a - b);
 assert.deepStrictEqual(ids, [1, 2, 3, 4, 5, 6, 7, 8]);

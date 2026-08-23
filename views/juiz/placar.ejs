@@ -97,10 +97,10 @@
 
           <div style="display:flex; justify-content:center; gap:0.75rem; margin-bottom:0.5rem;">
             <% if (jogo.casa && jogo.casa !== '—') { %>
-              <button type="button" onclick="confirmarWO('<%= jogo.campus_1_id %>', '<%= jogo.casa %>')" style="font-size:0.65rem; font-weight:700; padding:0.3rem 0.6rem; border-radius:8px; background:rgba(245,176,65,0.1); border:1px solid rgba(245,176,65,0.25); color:#f5b041; cursor:pointer; white-space:nowrap; transition:all 0.2s;">W.O. <%= jogo.casa %></button>
+              <button type="button" onclick="confirmarWO('<%= jogo.tipoIndividual && jogo.atleta_1_id ? jogo.atleta_1_id : jogo.campus_1_id %>', '<%= jogo.casa %>')" style="font-size:0.65rem; font-weight:700; padding:0.3rem 0.6rem; border-radius:8px; background:rgba(245,176,65,0.1); border:1px solid rgba(245,176,65,0.25); color:#f5b041; cursor:pointer; white-space:nowrap; transition:all 0.2s;">W.O. <%= jogo.casa %></button>
             <% } %>
             <% if (jogo.fora && jogo.fora !== '—') { %>
-              <button type="button" onclick="confirmarWO('<%= jogo.campus_2_id %>', '<%= jogo.fora %>')" style="font-size:0.65rem; font-weight:700; padding:0.3rem 0.6rem; border-radius:8px; background:rgba(245,176,65,0.1); border:1px solid rgba(245,176,65,0.25); color:#f5b041; cursor:pointer; white-space:nowrap; transition:all 0.2s;">W.O. <%= jogo.fora %></button>
+              <button type="button" onclick="confirmarWO('<%= jogo.tipoIndividual && jogo.atleta_2_id ? jogo.atleta_2_id : jogo.campus_2_id %>', '<%= jogo.fora %>')" style="font-size:0.65rem; font-weight:700; padding:0.3rem 0.6rem; border-radius:8px; background:rgba(245,176,65,0.1); border:1px solid rgba(245,176,65,0.25); color:#f5b041; cursor:pointer; white-space:nowrap; transition:all 0.2s;">W.O. <%= jogo.fora %></button>
             <% } %>
           </div>
         </div>
@@ -112,7 +112,7 @@
           <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem;">
             <input type="number" name="placar1" min="0" value="<%= jogo.placar_1 != null ? jogo.placar_1 : 0 %>" required style="width:80px; text-align:center; font-size:1.8rem; font-weight:700; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); border-radius:12px; color:#fff; padding:0.5rem; outline:none;">
             <% if (jogo.casa && jogo.casa !== '—') { %>
-              <button type="button" onclick="confirmarWO('<%= jogo.campus_1_id %>', '<%= jogo.casa %>')" style="font-size:0.65rem; font-weight:700; padding:0.3rem 0.6rem; border-radius:8px; background:rgba(245,176,65,0.1); border:1px solid rgba(245,176,65,0.25); color:#f5b041; cursor:pointer; white-space:nowrap; transition:all 0.2s;">W.O.</button>
+              <button type="button" onclick="confirmarWO('<%= jogo.tipoIndividual && jogo.atleta_1_id ? jogo.atleta_1_id : jogo.campus_1_id %>', '<%= jogo.casa %>')" style="font-size:0.65rem; font-weight:700; padding:0.3rem 0.6rem; border-radius:8px; background:rgba(245,176,65,0.1); border:1px solid rgba(245,176,65,0.25); color:#f5b041; cursor:pointer; white-space:nowrap; transition:all 0.2s;">W.O.</button>
             <% } %>
           </div>
 
@@ -123,7 +123,7 @@
           <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem;">
             <input type="number" name="placar2" min="0" value="<%= jogo.placar_2 != null ? jogo.placar_2 : 0 %>" required style="width:80px; text-align:center; font-size:1.8rem; font-weight:700; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); border-radius:12px; color:#fff; padding:0.5rem; outline:none;">
             <% if (jogo.fora && jogo.fora !== '—') { %>
-              <button type="button" onclick="confirmarWO('<%= jogo.campus_2_id %>', '<%= jogo.fora %>')" style="font-size:0.65rem; font-weight:700; padding:0.3rem 0.6rem; border-radius:8px; background:rgba(245,176,65,0.1); border:1px solid rgba(245,176,65,0.25); color:#f5b041; cursor:pointer; white-space:nowrap; transition:all 0.2s;">W.O.</button>
+              <button type="button" onclick="confirmarWO('<%= jogo.tipoIndividual && jogo.atleta_2_id ? jogo.atleta_2_id : jogo.campus_2_id %>', '<%= jogo.fora %>')" style="font-size:0.65rem; font-weight:700; padding:0.3rem 0.6rem; border-radius:8px; background:rgba(245,176,65,0.1); border:1px solid rgba(245,176,65,0.25); color:#f5b041; cursor:pointer; white-space:nowrap; transition:all 0.2s;">W.O.</button>
             <% } %>
           </div>
         </div>

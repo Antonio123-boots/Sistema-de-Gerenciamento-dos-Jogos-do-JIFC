@@ -6,6 +6,7 @@ const { listarCampi, obterCampusPorSlug, atualizarCampus } = require('../models/
 const { salvarFotoPerfilUsuario } = require('../models/authUsers');
 const { filtrarModalidadesParaHome } = require('../utils/homeFilters');
 const juizService = require('../services/juizService');
+const { ehTenisDeMesa, normalizarSubCategoriaFiltro } = require('../services/jogoService');
 
 const IFCS = [
     'IFC Araquari', 'IFC Blumenau', 'IFC Brusque', 'IFC Camboriú', 'IFC Concórdia',
@@ -65,13 +66,13 @@ function mapearImagemModalidade(nome) {
     const nomeNormalizado = String(nome || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
     if (nomeNormalizado.includes('futsal')) return '/imagens/futsal1.svg';
+    if (nomeNormalizado.includes('praia') || nomeNormalizado.includes('areia') || (nomeNormalizado.includes('volei') && nomeNormalizado.includes('praia'))) return '/imagens/areia1.svg';
     if (nomeNormalizado.includes('volei') || nomeNormalizado.includes('vôlei')) return '/imagens/volei1.svg';
     if (nomeNormalizado.includes('basquete')) return '/imagens/basquete1.svg';
     if (nomeNormalizado.includes('handebol')) return '/imagens/handebol1.svg';
     if (nomeNormalizado.includes('tenis')) return '/imagens/tenisdemesa1.svg';
     if (nomeNormalizado.includes('xadrez')) return '/imagens/xadrez1.svg';
     if (nomeNormalizado.includes('atletismo')) return '/imagens/atletismo1.svg';
-    if (nomeNormalizado.includes('praia') || nomeNormalizado.includes('areia')) return '/imagens/areia1.svg';
 
     return '/imagens/atletismo1.svg';
 }
@@ -285,6 +286,7 @@ router.get('/', async function(req, res, next) {
         const modalidadeSelecionada = String(req.query.modalidade || '').trim();
         const diaSelecionadoSolicitado = String(req.query.dia || '').trim();
         const generoSelecionadoSolicitado = String(req.query.genero || '').trim();
+        const subCategoriaSolicitada = String(req.query.sub || '').trim();
         const modalidadesBanco = await adminModel.getModalidadesBanco();
         const configuracoesBanco = await adminModel.getConfiguracoesBanco();
         const configuracoesAtuais = configuracoesBanco || adminModel.getConfiguracoes();
@@ -382,6 +384,9 @@ router.get('/', async function(req, res, next) {
             return '';
         })();
 
+        const ehTenisMesaAtivo = modalidadeBaseSelecionada === 'tenis-de-mesa';
+        const subCategoriaSelecionada = ehTenisMesaAtivo ? normalizarSubCategoriaFiltro(subCategoriaSolicitada) : '';
+
         const modalidadesEmExibicao = (() => {
             if (modalidadeBaseSelecionada) {
                 const relacionadas = modalidadesDisponiveis.filter((mod) => {
@@ -409,7 +414,8 @@ router.get('/', async function(req, res, next) {
         const jogos = await adminModel.getJogosPublicados({
             genero: generoSelecionado || undefined,
             dia: diaSelecionado || undefined,
-            modalidadeSlug: modalidadeSlugFiltro || undefined
+            modalidadeSlug: modalidadeSlugFiltro || undefined,
+            subCategoria: subCategoriaSelecionada || undefined
         });
 
         let classificacao = [];
@@ -424,8 +430,9 @@ router.get('/', async function(req, res, next) {
                     continue;
                 }
 
-                const tabelaClassificacao = await adminModel.getClassificacaoModalidade(modalidadeTabela.id);
-                const tabelaGrupos = await adminModel.getChavesModalidade(modalidadeTabela.id);
+                const subCategoriaTabela = ehTenisDeMesa(String(modalidadeTabela.nome || modalidadeTabela.nomeBase || '')) ? subCategoriaSelecionada : '';
+                const tabelaClassificacao = await adminModel.getClassificacaoModalidade(modalidadeTabela.id, null, { subCategoria: subCategoriaTabela });
+                const tabelaGrupos = await adminModel.getChavesModalidade(modalidadeTabela.id, subCategoriaTabela);
 
                 if (Array.isArray(tabelaClassificacao) && tabelaClassificacao.length) {
                     classificacao.push(...tabelaClassificacao.map((item) => ({
@@ -573,6 +580,8 @@ router.get('/', async function(req, res, next) {
             provasPorGenero,
             classificacaoAtletismoPorGenero,
             esporteAtivo: Boolean(modalidadeSelecionadaValida || modalidadeSelecionada),
+            subCategoriaAtiva: subCategoriaSelecionada,
+            mostrarSubFiltroTenis: ehTenisMesaAtivo,
             regrasClassificacao
         });
     } catch (error) {
@@ -615,6 +624,8 @@ router.get('/', async function(req, res, next) {
             provasPorGenero: {},
             classificacaoAtletismoPorGenero: null,
             esporteAtivo: Boolean(modalidadeSelecionadaValida),
+            subCategoriaAtiva: '',
+            mostrarSubFiltroTenis: false,
             regrasClassificacao: { temSets: false, temCartoes: false, colunasTabela: ['Pts', 'PJ', 'V', 'E', 'D', 'GP', 'GC', 'SG'] }
         });
     }
@@ -755,7 +766,7 @@ router.get('/chaveamento', async function(req, res, next) {
         const listaModalidadesCompleta = listaModalidades.map((mod) => {
             const nome = String(mod.nome || '').trim();
             const genero = String(mod.genero || '').trim();
-            const nomeNormalizado = nome.toLowerCase().normalize('NFD').replace(/[ -\u036f]/g, '');
+            const nomeNormalizado = nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
             let categoria = 'outros';
             if (nomeNormalizado.includes('futsal')) categoria = 'futsal';
             else if (nomeNormalizado.includes('volei')) categoria = 'volei';

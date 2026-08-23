@@ -1,5 +1,6 @@
 const juizService = require('../services/juizService');
 const resultadosIndividuaisService = require('../services/resultadosIndividuaisService');
+const { ehTenisDeMesa, normalizarSubCategoriaFiltro } = require('../services/jogoService');
 const { validationResult } = require('express-validator');
 const { obterRegras } = require('../utils/sportClassificationRules');
 
@@ -149,7 +150,14 @@ async function renderJogos(req, res) {
   }
 
   await juizService.atualizarStatusAutomatico();
-  const jogos = await juizService.obterJogosPorEsporte(esporte, genero);
+  let jogos = await juizService.obterJogosPorEsporte(esporte, genero);
+
+  const mostrarFiltroTipo = ehTenisDeMesa(esporte);
+  const tipoFiltro = mostrarFiltroTipo ? normalizarSubCategoriaFiltro(req.query.tipo) : '';
+  if (tipoFiltro) {
+    jogos = jogos.filter((jogo) => (tipoFiltro === 'individual' ? jogo.tipoIndividual : !jogo.tipoIndividual));
+  }
+
   const esportesDoJuiz = await juizService.obterEsportesDoJuiz(req.user.juizId);
   res.render('juiz/jogos', {
     title: esporte,
@@ -159,6 +167,8 @@ async function renderJogos(req, res) {
     jogos,
     esportesDoJuiz,
     generoFiltro: genero,
+    mostrarFiltroTipo,
+    tipoFiltro,
     mensagemSucesso: req.query.ok || null
   });
 }

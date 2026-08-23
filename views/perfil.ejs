@@ -174,14 +174,14 @@
 
 
     <% if (!publicMode && viewer.tipo === 'admin') { %>
-      <nav class="admin-actions-zone" aria-label="Ferramentas do Administrador">
-        <h2>Painel Administrativo</h2>
-        <div class="profile-actions">
-          <a class="btn btn-primary" href="/admin/configurar">Configurar prazos</a>
-          <a class="btn btn-secondary" href="/admin/cadastroCampus">Cadastrar campus</a>
-          <a class="btn btn-secondary" href="/admin/banirCampus">Gerenciar punições</a>
-          <a class="btn btn-secondary" href="/admin/chaveamento">Chaveamento</a>
-          <a class="btn btn-secondary" href="/admin/laudos">Validar atletas</a>
+      <nav class="admin-actions-zone" aria-label="Gestão do evento">
+        <h2>JIFC</h2>
+        <div class="admin-nav-grid">
+          <a class="admin-nav-card" href="/admin/configurar">Configurar prazos</a>
+          <a class="admin-nav-card" href="/admin/chaveamento">Chaveamento</a>
+          <a class="admin-nav-card" href="/admin/laudos">Validar atletas</a>
+          <a class="admin-nav-card" href="/admin/cadastroCampus">Cadastrar campus</a>
+          <a class="admin-nav-card" href="/admin/banirCampus">Gerenciar punições</a>
         </div>
       </nav>
     <% } %>

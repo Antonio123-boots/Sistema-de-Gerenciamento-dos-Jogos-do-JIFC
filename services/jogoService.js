@@ -11,6 +11,26 @@ function normalizarSlugParaFiltro(valor = '') {
     .replace(/(^-|-$)/g, '');
 }
 
+function ehTenisDeMesa(valor = '') {
+  const slug = normalizarSlugParaFiltro(valor);
+  return slug.includes('tenis');
+}
+
+function classificarSubCategoriaJogo(nomeModalidade, atleta1Id, atleta2Id) {
+  if (!ehTenisDeMesa(nomeModalidade)) {
+    return null;
+  }
+  return (atleta1Id || atleta2Id) ? 'individual' : 'dupla';
+}
+
+function normalizarSubCategoriaFiltro(valor = '') {
+  const texto = String(valor || '').trim().toLowerCase();
+  if (texto === 'individual' || texto === 'dupla') {
+    return texto;
+  }
+  return '';
+}
+
 async function getJogos() {
   try {
     await ensureJogoPublicadoColumn();
@@ -51,6 +71,7 @@ async function getJogosPublicados(filters = {}) {
   const diaFiltro = String(filters.dia || '').trim();
   const modalidadeSlugFiltro = normalizarSlugParaFiltro(filters.modalidadeSlug || filters.modalidade || '');
   const modalidadeBaseFiltro = modalidadeSlugFiltro.replace(/-(masculino|feminino)$/i, '');
+  const subCategoriaFiltro = normalizarSubCategoriaFiltro(filters.subCategoria);
 
   const query = `
     SELECT j.id, j.fase, j.status,
@@ -59,6 +80,7 @@ async function getJogosPublicados(filters = {}) {
            DATE_FORMAT(j.data_hora, '%d/%m') AS data,
            DATE_FORMAT(j.data_hora, '%H:%i') AS horario,
            j.campus_1_id, j.campus_2_id,
+           j.atleta_1_id, j.atleta_2_id,
            c1.nome AS casa, c2.nome AS fora,
            c1.foto_perfil AS foto_casa,
            c2.foto_perfil AS foto_fora,
@@ -101,6 +123,7 @@ async function getJogosPublicados(filters = {}) {
         ...linha,
         modalidadeSlug: modalidadeSlugCompleta,
         modalidadeBaseSlug: modalidadeBaseSlug,
+        subCategoria: classificarSubCategoriaJogo(nomeModalidade, linha.atleta_1_id, linha.atleta_2_id),
         casa: linha.casa || linha.atletaCasa || '—',
         fora: linha.fora || linha.atletaFora || '—',
         fotoCasa: linha.foto_casa || '/imagens/avatar.svg',
@@ -121,7 +144,8 @@ async function getJogosPublicados(filters = {}) {
         slugBaseAtual === modalidadeSlugFiltro ||
         slugNomeModalidade === modalidadeSlugFiltro ||
         slugBaseJogo === modalidadeBaseFiltro;
-      return atendeDia && atendeGenero && atendeModalidade;
+      const atendeSubCategoria = !subCategoriaFiltro || jogo.subCategoria === subCategoriaFiltro;
+      return atendeDia && atendeGenero && atendeModalidade && atendeSubCategoria;
     });
   } catch (error) {
     return [];
@@ -215,6 +239,9 @@ function agruparJogosPorRodadas(jogos = []) {
 
 module.exports = {
   normalizarSlugParaFiltro,
+  ehTenisDeMesa,
+  classificarSubCategoriaJogo,
+  normalizarSubCategoriaFiltro,
   getJogos,
   getJogosPublicados,
   getJogoPorId,

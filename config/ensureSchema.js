@@ -88,6 +88,60 @@ async function ensureJogoWoColumn() {
   }
 }
 
+let subCategoriaGarantida = false;
+
+async function garantirSubCategoriaChavesJogos() {
+  if (subCategoriaGarantida) return;
+
+  for (const tabela of ['chaves', 'jogos']) {
+    try {
+      await pool.query(`ALTER TABLE ${tabela} ADD COLUMN sub_categoria VARCHAR(20) DEFAULT 'geral'`);
+    } catch (error) {
+      if (!/Duplicate column|already exists/i.test(error.message || '')) {
+        throw error;
+      }
+    }
+  }
+
+  try {
+    await pool.query('ALTER TABLE chaves DROP INDEX uq_modalidade_numero_chave');
+  } catch (_) {}
+
+  try {
+    await pool.query('ALTER TABLE chaves ADD UNIQUE KEY uq_modalidade_sub_numero (modalidade_id, sub_categoria, numero_chave)');
+  } catch (error) {
+    if (!/Duplicate key name|already exists/i.test(error.message || '')) {
+      throw error;
+    }
+  }
+
+  try {
+    await pool.query(`
+      UPDATE jogos j
+      JOIN modalidades m ON m.id = j.modalidade_id
+      SET j.sub_categoria = CASE
+        WHEN LOWER(m.nome) LIKE '%tenis%' AND (j.atleta_1_id IS NOT NULL OR j.atleta_2_id IS NOT NULL) THEN 'individual'
+        WHEN LOWER(m.nome) LIKE '%tenis%' THEN 'dupla'
+        ELSE 'geral'
+      END
+      WHERE j.sub_categoria IS NULL OR j.sub_categoria = ''
+    `);
+    await pool.query(`
+      UPDATE chaves c
+      LEFT JOIN jogos j ON j.chave_id = c.id
+      SET c.sub_categoria = COALESCE((
+        SELECT MAX(j2.sub_categoria)
+        FROM jogos j2
+        WHERE j2.chave_id = c.id AND j2.sub_categoria IS NOT NULL
+      ), 'geral')
+      WHERE c.sub_categoria IS NULL OR c.sub_categoria = ''
+    `);
+    subCategoriaGarantida = true;
+  } catch (error) {
+    console.error('Erro ao preencher sub_categoria de chaves/jogos:', error.message);
+  }
+}
+
 async function ensureJuizModalidadeTable() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS juiz_modalidade (
@@ -320,6 +374,7 @@ async function ensureSchema() {
   await ensureCampusTable();
   await ensureJogoPublicadoColumn();
   await ensureJogoWoColumn();
+  await garantirSubCategoriaChavesJogos();
   await ensureJuizModalidadeTable();
   await ensureCartoesTable();
   await ensureResultadosPorSetsTable();
@@ -339,4 +394,4 @@ async function ensureSchema() {
   }
 }
 
-module.exports = { ensureSchema, ensureCampusTable, ensureJogoPublicadoColumn, ensureJogoWoColumn, ensureJuizModalidadeTable, ensureCartoesTable, ensureResultadosPorSetsTable, ensureClassificacaoCartoesColumns, ensureProvasTable, ensureResultadosAtletismoTable, ensureResultadosXadrezTable, ensureAtletasProvasColumn, sincronizarProvasAtletismoDoState, sincronizarProvasPadraoAtletismo };
+module.exports = { ensureSchema, ensureCampusTable, ensureJogoPublicadoColumn, ensureJogoWoColumn, garantirSubCategoriaChavesJogos, ensureJuizModalidadeTable, ensureCartoesTable, ensureResultadosPorSetsTable, ensureClassificacaoCartoesColumns, ensureProvasTable, ensureResultadosAtletismoTable, ensureResultadosXadrezTable, ensureAtletasProvasColumn, sincronizarProvasAtletismoDoState, sincronizarProvasPadraoAtletismo };

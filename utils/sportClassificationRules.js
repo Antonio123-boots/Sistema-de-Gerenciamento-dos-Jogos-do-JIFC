@@ -64,13 +64,22 @@ const RULES = {
   },
   basquete: {
     tipo: 'pontos',
-    pontuacaoVitoria: 2,
+    pontuacaoVitoria: 3,
     pontuacaoEmpate: 1,
     pontuacaoDerrota: 0,
     colunasTabela: ['Pts', 'PJ', 'V', 'E', 'D', 'PF', 'PC', 'SP'],
     colunasChave: ['Pts', 'PJ', 'V', 'E', 'D', 'PF', 'PC', 'SP'],
     temSets: false,
     temCartoes: false,
+    criteriosDesempate: [
+      'pontos',
+      'confronto_direto',
+      'vitorias',
+      'saldo_gols',
+      'maior_gols_feitos',
+      'pontos_average',
+      'sorteio'
+    ],
     ordenarPor: (a, b) => {
       if (b.pontos !== a.pontos) return b.pontos - a.pontos;
       if (b.vitorias !== a.vitorias) return b.vitorias - a.vitorias;
@@ -79,6 +88,34 @@ const RULES = {
       if (saldoB !== saldoA) return saldoB - saldoA;
       if (b.pontos_pro !== a.pontos_pro) return b.pontos_pro - a.pontos_pro;
       return 0;
+    }
+  },
+  'volei de praia': {
+    tipo: 'sets',
+    pontuacaoVitoria3_0_3_1: 3,
+    pontuacaoVitoria3_2: 2,
+    pontuacaoDerrota2_3: 1,
+    pontuacaoDerrota0_3_1_3: 0,
+    pontuacaoEmpate: 0,
+    colunasTabela: ['Pts', 'PJ', 'V', 'D', 'SG', 'SP', 'SA', 'PA'],
+    colunasChave: ['Pts', 'PJ', 'V', 'D', 'SG', 'SP', 'SA', 'PA'],
+    temSets: true,
+    temCartoes: false,
+    criteriosDesempate: [
+      'vitorias',
+      'sets_average',
+      'pontos_average',
+      'sorteio'
+    ],
+    ordenarPor: (a, b) => {
+      if (b.pontos !== a.pontos) return b.pontos - a.pontos;
+      if (b.vitorias !== a.vitorias) return b.vitorias - a.vitorias;
+      const qsA = a.sets_perdidos > 0 ? a.sets_ganhos / a.sets_perdidos : a.sets_ganhos;
+      const qsB = b.sets_perdidos > 0 ? b.sets_ganhos / b.sets_perdidos : b.sets_ganhos;
+      if (qsB !== qsA) return qsB - qsA;
+      const pqA = a.pontos_contra > 0 ? a.pontos_pro / a.pontos_contra : a.pontos_pro;
+      const pqB = b.pontos_contra > 0 ? b.pontos_pro / b.pontos_contra : b.pontos_pro;
+      return pqB - pqA;
     }
   },
   volei: {
@@ -109,7 +146,7 @@ const RULES = {
       return pqB - pqA;
     }
   },
-  'volei de praia': {
+  'tenis de mesa': {
     tipo: 'sets',
     pontuacaoVitoria3_0_3_1: 3,
     pontuacaoVitoria3_2: 2,
@@ -167,15 +204,16 @@ const RULES = {
 
 function normalizarNome(nome) {
   return String(nome || '').trim().toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[-_]+/g, ' ');
 }
 
 const PLACAR_WO = {
   futsal: { p1: 3, p2: 0 },
   handebol: { p1: 10, p2: 0 },
   basquete: { p1: 20, p2: 0 },
-  volei: { p1: 2, p2: 0, sets: [{ pontos_1: 21, pontos_2: 0 }, { pontos_1: 21, pontos_2: 0 }] },
   'volei de praia': { p1: 2, p2: 0, sets: [{ pontos_1: 21, pontos_2: 0 }, { pontos_1: 21, pontos_2: 0 }] },
+  volei: { p1: 2, p2: 0, sets: [{ pontos_1: 21, pontos_2: 0 }, { pontos_1: 21, pontos_2: 0 }] },
   'tenis de mesa': { p1: 2, p2: 0, sets: [{ pontos_1: 11, pontos_2: 0 }, { pontos_1: 11, pontos_2: 0 }] }
 };
 

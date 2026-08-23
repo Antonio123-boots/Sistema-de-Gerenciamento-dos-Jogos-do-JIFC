@@ -29,6 +29,8 @@ const modalidadesBase = [
   { nome: 'Futsal', genero: 'Feminino', tipo_confronto: 'Coletivo', formato_disputa: 'Grupos + Mata-Mata' },
   { nome: 'Vôlei', genero: 'Masculino', tipo_confronto: 'Coletivo', formato_disputa: 'Grupos + Mata-Mata' },
   { nome: 'Vôlei', genero: 'Feminino', tipo_confronto: 'Coletivo', formato_disputa: 'Grupos + Mata-Mata' },
+  { nome: 'Vôlei de Praia', genero: 'Masculino', tipo_confronto: 'Coletivo', formato_disputa: 'Grupos + Mata-Mata' },
+  { nome: 'Vôlei de Praia', genero: 'Feminino', tipo_confronto: 'Coletivo', formato_disputa: 'Grupos + Mata-Mata' },
   { nome: 'Basquete', genero: 'Masculino', tipo_confronto: 'Coletivo', formato_disputa: 'Grupos + Mata-Mata' },
   { nome: 'Basquete', genero: 'Feminino', tipo_confronto: 'Coletivo', formato_disputa: 'Grupos + Mata-Mata' },
   { nome: 'Handebol', genero: 'Masculino', tipo_confronto: 'Coletivo', formato_disputa: 'Grupos + Mata-Mata' },

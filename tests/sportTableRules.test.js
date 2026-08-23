@@ -37,6 +37,21 @@ assert.equal(regrasVoleibol.pontuacaoVitoria3_2, 2);
 assert.equal(regrasVoleibol.pontuacaoDerrota2_3, 1);
 assert.equal(regrasVoleibol.pontuacaoDerrota0_3_1_3, 0);
 
+const regrasTenisMesa = obterRegras('Tênis de Mesa Masculino');
+assert.equal(regrasTenisMesa.tipo, 'sets');
+assert.equal(regrasTenisMesa.temSets, true);
+assert.equal(regrasTenisMesa.temCartoes, false);
+assert.deepEqual(regrasTenisMesa.colunasTabela, ['Pts', 'PJ', 'V', 'D', 'SG', 'SP', 'SA', 'PA']);
+assert.equal(regrasTenisMesa.pontuacaoVitoria3_0_3_1, 3);
+assert.equal(regrasTenisMesa.pontuacaoVitoria3_2, 2);
+assert.equal(regrasTenisMesa.pontuacaoDerrota2_3, 1);
+assert.equal(regrasTenisMesa.pontuacaoDerrota0_3_1_3, 0);
+assert.deepEqual(regrasTenisMesa.criteriosDesempate, ['vitorias', 'sets_average', 'pontos_average', 'sorteio']);
+
+const regrasTenisMesaSlug = obterRegras('tenis-de-mesa-masculino');
+assert.equal(regrasTenisMesaSlug.tipo, 'sets');
+assert.deepEqual(regrasTenisMesaSlug.colunasTabela, ['Pts', 'PJ', 'V', 'D', 'SG', 'SP', 'SA', 'PA']);
+
 const regrasHandebol = obterRegras('Handebol');
 assert.equal(regrasHandebol.tipo, 'gols');
 assert.equal(regrasHandebol.temSets, false);
@@ -45,6 +60,16 @@ assert.equal(regrasHandebol.pontuacaoVitoria, 3);
 const regrasBasquete = obterRegras('Basquete');
 assert.equal(regrasBasquete.tipo, 'pontos');
 assert.equal(regrasBasquete.temSets, false);
+assert.equal(regrasBasquete.pontuacaoVitoria, 3);
+assert.deepEqual(regrasBasquete.criteriosDesempate, [
+  'pontos',
+  'confronto_direto',
+  'vitorias',
+  'saldo_gols',
+  'maior_gols_feitos',
+  'pontos_average',
+  'sorteio'
+]);
 
 const colunasFutsal = colunasParaExibicao('Futsal');
 assert.deepEqual(colunasFutsal, ['Pts', 'PJ', 'V', 'E', 'D', 'GP', 'GC', 'SG', 'CF']);

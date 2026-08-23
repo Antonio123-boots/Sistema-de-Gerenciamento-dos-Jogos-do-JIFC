@@ -24,8 +24,8 @@ const NOMES_FEMININOS = [
 ];
 
 const MODALIDADES_PRAIA = [
-  { nome: 'Volei de Praia', genero: 'Masculino', nomes: NOMES_MASCULINOS, prefixoMatricula: 'PRAIAM', baseCpf: 20000000000 },
-  { nome: 'Volei de Praia', genero: 'Feminino', nomes: NOMES_FEMININOS, prefixoMatricula: 'PRAIAF', baseCpf: 30000000000 }
+  { nome: 'Vôlei de Praia', genero: 'Masculino', nomes: NOMES_MASCULINOS, prefixoMatricula: 'PRAIAM', baseCpf: 20000000000 },
+  { nome: 'Vôlei de Praia', genero: 'Feminino', nomes: NOMES_FEMININOS, prefixoMatricula: 'PRAIAF', baseCpf: 30000000000 }
 ];
 
 const pad = (valor) => String(valor).padStart(2, '0');
@@ -36,10 +36,16 @@ async function cadastrarNoBanco(conn) {
 
   for (const modalidade of MODALIDADES_PRAIA) {
     const [modalidades] = await conn.query('SELECT id FROM modalidades WHERE nome = ? AND genero = ? LIMIT 1', [modalidade.nome, modalidade.genero]);
+    let modalidadeId;
     if (modalidades.length === 0) {
-      throw new Error(`Modalidade nao encontrada: ${modalidade.nome} ${modalidade.genero}`);
+      const [criada] = await conn.query(
+        'INSERT INTO modalidades (nome, genero, tipo_confronto, formato_disputa) VALUES (?, ?, ?, ?)',
+        [modalidade.nome, modalidade.genero, 'Coletivo', 'Grupos + Mata-Mata']
+      );
+      modalidadeId = criada.insertId;
+    } else {
+      modalidadeId = modalidades[0].id;
     }
-    const modalidadeId = modalidades[0].id;
 
     for (let indice = 0; indice < campis.length; indice += 1) {
       const campus = campis[indice];
@@ -126,12 +132,12 @@ function atualizarStateJson(campis) {
     const [contagem] = await conn.query(
       `SELECT m.genero, COUNT(*) AS equipes FROM campus_modalidade cm
        JOIN modalidades m ON m.id = cm.modalidade_id
-       WHERE m.nome = 'Volei de Praia' GROUP BY m.genero`
+       WHERE REPLACE(LOWER(m.nome), 'ê', 'e') = 'volei de praia' GROUP BY m.genero`
     );
     const [atletasPraia] = await conn.query(
       `SELECT m.genero, COUNT(*) AS total FROM atleta_modalidade am
        JOIN modalidades m ON m.id = am.modalidade_id
-       WHERE m.nome = 'Volei de Praia' GROUP BY m.genero`
+       WHERE REPLACE(LOWER(m.nome), 'ê', 'e') = 'volei de praia' GROUP BY m.genero`
     );
 
     console.log('Inscricoes criadas em:', resumo.join(' | '));

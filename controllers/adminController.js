@@ -297,6 +297,7 @@ async function renderChaveamento(req, res) {
         let imagem = '/imagens/atletismo1.svg';
         let slug = 'atletismo';
         if (norm.includes('futsal')) { imagem = '/imagens/futsal1.svg'; slug = 'futsal'; }
+        else if (norm.includes('praia') || (norm.includes('volei') && norm.includes('areia'))) { imagem = '/imagens/areia1.svg'; slug = 'volei-de-praia'; }
         else if (norm.includes('volei')) { imagem = '/imagens/volei1.svg'; slug = 'volei'; }
         else if (norm.includes('basquete')) { imagem = '/imagens/basquete1.svg'; slug = 'basquete'; }
         else if (norm.includes('handebol')) { imagem = '/imagens/handebol1.svg'; slug = 'handebol'; }
@@ -522,6 +523,13 @@ async function exportResumoInscricoes(req, res) {
   }
 }
 
+function montarDestinoChaveamento(modalidadeId, subCategoria) {
+  const id = Number(modalidadeId || 0);
+  if (!id) return '';
+  const sub = String(subCategoria || '').trim() || 'geral';
+  return `modalidade=${id}&sub=${encodeURIComponent(sub)}&`;
+}
+
 async function gerarChaveamento(req, res) {
   try {
     const { modalidadeId, subCategoria } = req.body;
@@ -562,14 +570,20 @@ async function gerarChaveamento(req, res) {
       });
 
       if (!elegiveis.length) {
-        return res.redirect(`/admin/chaveamento?erro=${encodeURIComponent('Nenhuma modalidade elegível para sorteio automático.')}`);
+        return res.redirect(`/admin/chaveamento?${montarDestinoChaveamento(modalidadeIdNum, subCategoria)}erro=${encodeURIComponent('Nenhuma modalidade elegível para sorteio automático.')}`);
       }
 
       for (const modalidade of elegiveis) {
+        if (adminModel.isModalidadeTenisMesa(modalidade.nome)) {
+          await adminModel.efetuarChaveamentoMatematico(modalidade.id, 'individual');
+          await adminModel.efetuarChaveamentoMatematico(modalidade.id, 'dupla');
+          continue;
+        }
+
         await adminModel.efetuarChaveamentoMatematico(modalidade.id, subCategoria || '');
       }
 
-      return res.redirect(`/admin/chaveamento?sucesso=${encodeURIComponent('Sorteio realizado para todas as modalidades elegíveis, exceto atletismo e xadrez.')}`);
+      return res.redirect(`/admin/chaveamento?${montarDestinoChaveamento(modalidadeIdNum, subCategoria)}sucesso=${encodeURIComponent('Sorteio realizado para todas as modalidades elegíveis, exceto atletismo e xadrez.')}`);
     }
 
     const [mod] = await db.query('SELECT tipo_confronto, nome FROM modalidades WHERE id = ?', [modalidadeIdNum]);
@@ -580,11 +594,11 @@ async function gerarChaveamento(req, res) {
     const modalidade = mod[0];
     const modalidadeSorteavel = adminModel.isModalidadeSorteavel(modalidade.nome, modalidade.tipo_confronto, subCategoria);
     if (!modalidadeSorteavel) {
-      return res.status(403).send('Esta modalidade não possui sorteio automático.');
+      return res.redirect(`/admin/chaveamento?${montarDestinoChaveamento(modalidadeIdNum, subCategoria)}erro=${encodeURIComponent('Esta modalidade não possui sorteio automático.')}`);
     }
 
     await adminModel.efetuarChaveamentoMatematico(modalidadeIdNum, subCategoria);
-    res.redirect(`/admin/chaveamento?modalidade=${modalidadeIdNum}&sub=${subCategoria || 'geral'}`);
+    res.redirect(`/admin/chaveamento?${montarDestinoChaveamento(modalidadeIdNum, subCategoria)}sucesso=${encodeURIComponent(`Sorteio realizado somente para ${modalidade.nome}.`)}`);
   } catch (error) {
     console.error(error);
     res.status(500).send("Erro ao processar sorteio automático.");
@@ -595,9 +609,27 @@ async function limparChaveamento(req, res) {
   try {
     const { modalidadeId, subCategoria } = req.body;
     const db = require('../config/db');
-    await db.query('UPDATE campus_modalidade SET chave_id = NULL WHERE modalidade_id = ?', [modalidadeId]);
-    await db.query('DELETE FROM jogos WHERE modalidade_id = ?', [modalidadeId]);
-    await db.query('DELETE FROM chaves WHERE modalidade_id = ?', [modalidadeId]);
+    const [mod] = await db.query('SELECT nome FROM modalidades WHERE id = ?', [Number(modalidadeId || 0)]);
+    const ehTenisMesa = mod.length > 0 && adminModel.isModalidadeTenisMesa(mod[0].nome);
+
+    if (ehTenisMesa) {
+      const subAlvo = String(subCategoria || '').trim().toLowerCase() === 'dupla' ? 'dupla' : 'individual';
+      await db.query('DELETE FROM jogos WHERE modalidade_id = ? AND sub_categoria = ?', [modalidadeId, subAlvo]);
+      await db.query('DELETE FROM chaves WHERE modalidade_id = ? AND sub_categoria = ?', [modalidadeId, subAlvo]);
+      if (subAlvo === 'dupla') {
+        await db.query('UPDATE campus_modalidade SET chave_id = NULL WHERE modalidade_id = ?', [modalidadeId]);
+      }
+    } else {
+      await db.query('UPDATE campus_modalidade SET chave_id = NULL WHERE modalidade_id = ?', [modalidadeId]);
+      await db.query('DELETE FROM jogos WHERE modalidade_id = ?', [modalidadeId]);
+      await db.query('DELETE FROM chaves WHERE modalidade_id = ?', [modalidadeId]);
+    }
+
+    await db.query(
+      'DELETE FROM classificacao_grupos WHERE modalidade_id = ? AND chave_id NOT IN (SELECT id FROM chaves WHERE modalidade_id = ?)',
+      [modalidadeId, modalidadeId]
+    );
+
     res.redirect(`/admin/chaveamento?modalidade=${modalidadeId}&sub=${subCategoria || 'geral'}`);
   } catch (error) {
     console.error(error);
@@ -606,16 +638,18 @@ async function limparChaveamento(req, res) {
 }
 
 async function publicarChaveamento(req, res) {
+  const { modalidadeId, subCategoria } = req.body;
   try {
     await adminModel.publicarTodosJogos();
-    res.redirect(`/admin/chaveamento?sucesso=` + encodeURIComponent('Sorteio confirmado e jogos publicados com sucesso.'));
+    res.redirect(`/admin/chaveamento?${montarDestinoChaveamento(modalidadeId, subCategoria)}sucesso=` + encodeURIComponent('Sorteio confirmado e jogos publicados com sucesso.'));
   } catch (error) {
     console.error(error);
-    res.redirect(`/admin/chaveamento?erro=` + encodeURIComponent(error.message || 'Erro ao publicar jogos.'));
+    res.redirect(`/admin/chaveamento?${montarDestinoChaveamento(modalidadeId, subCategoria)}erro=` + encodeURIComponent(error.message || 'Erro ao publicar jogos.'));
   }
 }
 
 async function cancelarSorteio(req, res) {
+  const { modalidadeId, subCategoria } = req.body;
   try {
     const [modalidades] = await db.query('SELECT id, nome FROM modalidades');
 
@@ -630,7 +664,7 @@ async function cancelarSorteio(req, res) {
       await db.query('DELETE FROM chaves WHERE modalidade_id = ?', [modalidade.id]);
     }
 
-    res.redirect('/admin/chaveamento');
+    res.redirect(`/admin/chaveamento?${montarDestinoChaveamento(modalidadeId, subCategoria)}sucesso=${encodeURIComponent('Sorteios cancelados (exceto atletismo e xadrez).')}`);
   } catch (error) {
     console.error(error);
     res.status(500).send('Erro ao cancelar o sorteio.');
@@ -698,7 +732,13 @@ async function salvarJogoChaveamento(req, res) {
     if (req.body.status === 'Encerrado') {
       await adminModel.atualizarClassificacaoAposJogo(req.params.jogoId);
     }
-    res.redirect('/admin/chaveamento');
+    const [jogoRows] = await db.query('SELECT modalidade_id, sub_categoria FROM jogos WHERE id = ?', [req.params.jogoId]);
+    const mid = Number(jogoRows[0]?.modalidade_id || 0);
+    if (!mid) {
+      return res.redirect('/admin/chaveamento');
+    }
+    const sub = String(jogoRows[0]?.sub_categoria || 'geral');
+    res.redirect(`/admin/chaveamento?modalidade=${mid}&sub=${encodeURIComponent(sub)}#match-carousel-${mid}`);
   } catch (error) {
     console.error(error);
     res.status(500).send('Erro ao salvar o confronto.');

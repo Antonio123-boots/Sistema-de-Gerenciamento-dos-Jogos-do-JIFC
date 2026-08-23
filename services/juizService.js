@@ -187,6 +187,10 @@ async function obterJogosPorEsporte(esporteNome, genero = null) {
       modalidade: j.modalidade,
       genero: j.genero,
       tipo_confronto: j.tipo_confronto,
+      campus_1_id: j.campus_1_id || null,
+      campus_2_id: j.campus_2_id || null,
+      atleta_1_id: j.atleta_1_id || null,
+      atleta_2_id: j.atleta_2_id || null,
       casa: casaNome,
       fora: foraNome,
       fotoCasa: j.foto_casa || '/imagens/avatar.svg',
@@ -262,8 +266,10 @@ async function buscarJogoPorId(jogoId) {
     modalidade: j.modalidade,
     genero: j.genero,
     tipo_confronto: j.tipo_confronto,
-    campus_1_id: j.campus_1_id,
-    campus_2_id: j.campus_2_id,
+    campus_1_id: j.campus_1_id || null,
+    campus_2_id: j.campus_2_id || null,
+    atleta_1_id: j.atleta_1_id || null,
+    atleta_2_id: j.atleta_2_id || null,
     casa: casaNome,
     fora: foraNome,
     fotoCasa: j.foto_casa || '/imagens/avatar.svg',
@@ -341,14 +347,14 @@ async function atualizarStatusAutomatico() {
   `);
 }
 
-async function aplicarWO(jogoId, campusVencedorId) {
+async function aplicarWO(jogoId, vencedorSelecionado) {
   const id = Number(jogoId || 0);
-  const vencedorId = Number(campusVencedorId || 0);
+  const vencedorId = Number(vencedorSelecionado || 0);
   if (!id) throw new Error('ID do jogo inválido.');
-  if (!vencedorId) throw new Error('Selecione o campus vencedor do W.O.');
+  if (!vencedorId) throw new Error('Selecione o vencedor do W.O.');
 
   const [rows] = await db.query(
-    `SELECT j.id, j.campus_1_id, j.campus_2_id, j.status,
+    `SELECT j.id, j.campus_1_id, j.campus_2_id, j.atleta_1_id, j.atleta_2_id, j.status,
             m.nome AS modalidade_nome
      FROM jogos j
      JOIN modalidades m ON m.id = j.modalidade_id
@@ -358,12 +364,19 @@ async function aplicarWO(jogoId, campusVencedorId) {
   const jogo = rows[0];
   if (!jogo) throw new Error('Jogo não encontrado.');
 
-  if (vencedorId !== jogo.campus_1_id && vencedorId !== jogo.campus_2_id) {
+  const confrontoIndividual = Boolean(jogo.atleta_1_id && jogo.atleta_2_id);
+  if (confrontoIndividual) {
+    if (vencedorId !== jogo.atleta_1_id && vencedorId !== jogo.atleta_2_id) {
+      throw new Error('O participante selecionado não participa deste jogo.');
+    }
+  } else if (vencedorId !== jogo.campus_1_id && vencedorId !== jogo.campus_2_id) {
     throw new Error('O campus selecionado não participa deste jogo.');
   }
 
   const placarWo = obterPlacarWo(jogo.modalidade_nome);
-  const vencedorEhCampus1 = vencedorId === jogo.campus_1_id;
+  const vencedorEhCampus1 = confrontoIndividual
+    ? vencedorId === jogo.atleta_1_id
+    : vencedorId === jogo.campus_1_id;
   const placarFinal = {
     p1: vencedorEhCampus1 ? placarWo.p1 : placarWo.p2,
     p2: vencedorEhCampus1 ? placarWo.p2 : placarWo.p1
@@ -398,10 +411,17 @@ async function aplicarWO(jogoId, campusVencedorId) {
     }
   }
 
-  await db.query(
-    'UPDATE jogos SET status = ?, vencedor_campus_id = ?, wo = 1 WHERE id = ?',
-    ['Encerrado', vencedorId, id]
-  );
+  if (confrontoIndividual) {
+    await db.query(
+      'UPDATE jogos SET status = ?, vencedor_atleta_id = ?, wo = 1 WHERE id = ?',
+      ['Encerrado', vencedorId, id]
+    );
+  } else {
+    await db.query(
+      'UPDATE jogos SET status = ?, vencedor_campus_id = ?, wo = 1 WHERE id = ?',
+      ['Encerrado', vencedorId, id]
+    );
+  }
 
   try {
     await atualizarClassificacaoAposJogo(id);

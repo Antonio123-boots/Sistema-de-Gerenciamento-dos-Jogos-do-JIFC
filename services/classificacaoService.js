@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const { obterRegras, normalizarNome } = require('../utils/sportClassificationRules');
+const { garantirSubCategoriaChavesJogos } = require('../config/ensureSchema');
 
 async function buscarJogosDoGrupo(modalidadeId, chaveId) {
   const [jogos] = await db.query(`
@@ -161,7 +162,9 @@ async function sincronizarClassificacaoGruposModalidade(modalidadeId) {
     return;
   }
 
-  const [chaves] = await db.query('SELECT id, numero_chave FROM chaves WHERE modalidade_id = ? ORDER BY numero_chave ASC', [id]);
+  await garantirSubCategoriaChavesJogos();
+
+  const [chaves] = await db.query('SELECT id, numero_chave, sub_categoria FROM chaves WHERE modalidade_id = ? ORDER BY numero_chave ASC', [id]);
   if (!chaves.length) {
     return;
   }
@@ -176,7 +179,9 @@ async function sincronizarClassificacaoGruposModalidade(modalidadeId) {
   for (const chave of chaves) {
     await db.query('DELETE FROM classificacao_grupos WHERE modalidade_id = ? AND chave_id = ?', [id, chave.id]);
 
-    if (modalidadeIndividual) {
+    const tratarComoIndividual = modalidadeIndividual && String(chave.sub_categoria || 'geral') !== 'dupla';
+
+    if (tratarComoIndividual) {
       const [participantes] = await db.query(`
         SELECT DISTINCT a.id AS id, a.nome AS nome, a.campus_id, c.nome AS campus_nome, c.nome_exibicao
         FROM jogos j
@@ -193,8 +198,8 @@ async function sincronizarClassificacaoGruposModalidade(modalidadeId) {
             pontos, jogos_jogados, vitorias, empates, derrotas,
             pontos_pro, pontos_contra,
             cartoes_amarelos, cartoes_vermelhos, sets_ganhos, sets_perdidos
-          ) VALUES (?, ?, ?, ?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-        `, [id, chave.id, participante.campus_id || null, participante.id || null]);
+          ) VALUES (?, ?, NULL, ?, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        `, [id, chave.id, participante.id || null]);
       }
       continue;
     }
@@ -381,11 +386,15 @@ async function atualizarContadoresCartoes(modalidadeId, chaveId, jogoId) {
   }
 }
 
-async function getClassificacaoModalidade(modalidadeId, chaveId = null) {
+async function getClassificacaoModalidade(modalidadeId, chaveId = null, opcoes = {}) {
   try {
     const [modalidadeRows] = await db.query('SELECT nome FROM modalidades WHERE id = ?', [modalidadeId]);
     const nomeModalidade = modalidadeRows[0]?.nome || '';
     const regras = obterRegras(nomeModalidade);
+
+    const filtroSubCategoria = ['individual', 'dupla'].includes(String(opcoes?.subCategoria || '').trim().toLowerCase())
+      ? String(opcoes.subCategoria).trim().toLowerCase()
+      : '';
 
     const query = chaveId
       ? `SELECT cg.*, 
@@ -397,7 +406,7 @@ async function getClassificacaoModalidade(modalidadeId, chaveId = null) {
          LEFT JOIN campus c ON c.id = cg.campus_id
          LEFT JOIN atletas a ON a.id = cg.atleta_id
          LEFT JOIN chaves ch ON ch.id = cg.chave_id
-         WHERE cg.modalidade_id = ? AND cg.chave_id = ?`
+         WHERE cg.modalidade_id = ? AND cg.chave_id = ? ${filtroSubCategoria ? 'AND ch.sub_categoria = ?' : ''}`
       : `SELECT cg.*, 
               COALESCE(c.nome, a.nome) AS participante_nome,
               COALESCE(c.nome_exibicao, a.nome) AS participante_exibicao,
@@ -407,9 +416,11 @@ async function getClassificacaoModalidade(modalidadeId, chaveId = null) {
          LEFT JOIN campus c ON c.id = cg.campus_id
          LEFT JOIN atletas a ON a.id = cg.atleta_id
          LEFT JOIN chaves ch ON ch.id = cg.chave_id
-         WHERE cg.modalidade_id = ?`;
+         WHERE cg.modalidade_id = ? ${filtroSubCategoria ? 'AND ch.sub_categoria = ?' : ''}`;
 
-    const params = chaveId ? [modalidadeId, chaveId] : [modalidadeId];
+    const params = chaveId
+      ? (filtroSubCategoria ? [modalidadeId, chaveId, filtroSubCategoria] : [modalidadeId, chaveId])
+      : (filtroSubCategoria ? [modalidadeId, filtroSubCategoria] : [modalidadeId]);
     const [linhas] = await db.query(query, params);
 
     const resultado = (linhas || []).map((linha) => ({
@@ -453,7 +464,8 @@ async function _aplicarClassificacaoJogo(jogoId) {
 
   const [jogoRows] = await db.query(
     `SELECT j.id, j.modalidade_id, j.chave_id, j.campus_1_id, j.campus_2_id,
-            j.wo, j.vencedor_campus_id,
+            j.atleta_1_id, j.atleta_2_id,
+            j.wo, j.vencedor_campus_id, j.vencedor_atleta_id,
             m.nome AS modalidade_nome
      FROM jogos j
      JOIN modalidades m ON j.modalidade_id = m.id
@@ -461,7 +473,13 @@ async function _aplicarClassificacaoJogo(jogoId) {
     [id]
   );
   const jogo = jogoRows[0];
-  if (!jogo || !jogo.campus_1_id || !jogo.campus_2_id) return;
+  if (!jogo) return;
+
+  const confrontoIndividual = Boolean(jogo.atleta_1_id && jogo.atleta_2_id);
+  if (!confrontoIndividual && (!jogo.campus_1_id || !jogo.campus_2_id)) return;
+
+  const idParticipante1 = Number(confrontoIndividual ? jogo.atleta_1_id : jogo.campus_1_id);
+  const idParticipante2 = Number(confrontoIndividual ? jogo.atleta_2_id : jogo.campus_2_id);
 
   const regras = obterRegras(jogo.modalidade_nome);
   const chaveId = jogo.chave_id;
@@ -491,7 +509,8 @@ async function _aplicarClassificacaoJogo(jogoId) {
   }
 
   const ehWO = Boolean(jogo.wo);
-  const vencedorId = Number(jogo.vencedor_campus_id || 0);
+  const vencedorId = Number((confrontoIndividual ? jogo.vencedor_atleta_id : jogo.vencedor_campus_id) || 0);
+  const participante1Venceu = Boolean(vencedorId) && vencedorId === idParticipante1;
 
   function calcularPontosVolei(setsVencidos, setsPerdidos, isVencedor) {
     if (isVencedor) {
@@ -504,57 +523,94 @@ async function _aplicarClassificacaoJogo(jogoId) {
     }
   }
 
-  let campus1Resultado;
-  let campus2Resultado;
+  let participante1Resultado;
+  let participante2Resultado;
 
   if (regras.tipo === 'sets') {
     if (ehWO && vencedorId) {
-      const campus1Venceu = vencedorId === jogo.campus_1_id;
-      campus1Resultado = campus1Venceu
+      participante1Resultado = participante1Venceu
         ? { pontos: regras.pontuacaoVitoria3_0_3_1 || 3, vitorias: 1, empates: 0, derrotas: 0 }
         : { pontos: regras.pontuacaoDerrota0_3_1_3 || 0, vitorias: 0, empates: 0, derrotas: 1 };
-      campus2Resultado = campus1Venceu
+      participante2Resultado = participante1Venceu
         ? { pontos: regras.pontuacaoDerrota0_3_1_3 || 0, vitorias: 0, empates: 0, derrotas: 1 }
         : { pontos: regras.pontuacaoVitoria3_0_3_1 || 3, vitorias: 1, empates: 0, derrotas: 0 };
     } else {
       if (sets1 > sets2) {
-        campus1Resultado = { pontos: calcularPontosVolei(sets1, sets2, true), vitorias: 1, empates: 0, derrotas: 0 };
-        campus2Resultado = { pontos: calcularPontosVolei(sets2, sets1, false), vitorias: 0, empates: 0, derrotas: 1 };
+        participante1Resultado = { pontos: calcularPontosVolei(sets1, sets2, true), vitorias: 1, empates: 0, derrotas: 0 };
+        participante2Resultado = { pontos: calcularPontosVolei(sets2, sets1, false), vitorias: 0, empates: 0, derrotas: 1 };
       } else if (sets1 < sets2) {
-        campus1Resultado = { pontos: calcularPontosVolei(sets1, sets2, false), vitorias: 0, empates: 0, derrotas: 1 };
-        campus2Resultado = { pontos: calcularPontosVolei(sets2, sets1, true), vitorias: 1, empates: 0, derrotas: 0 };
+        participante1Resultado = { pontos: calcularPontosVolei(sets1, sets2, false), vitorias: 0, empates: 0, derrotas: 1 };
+        participante2Resultado = { pontos: calcularPontosVolei(sets2, sets1, true), vitorias: 1, empates: 0, derrotas: 0 };
       } else {
-        campus1Resultado = { pontos: 0, vitorias: 0, empates: 1, derrotas: 0 };
-        campus2Resultado = { pontos: 0, vitorias: 0, empates: 1, derrotas: 0 };
+        participante1Resultado = { pontos: 0, vitorias: 0, empates: 1, derrotas: 0 };
+        participante2Resultado = { pontos: 0, vitorias: 0, empates: 1, derrotas: 0 };
       }
     }
   } else {
     if (ehWO && vencedorId) {
-      const campus1Venceu = vencedorId === jogo.campus_1_id;
-      campus1Resultado = campus1Venceu
+      participante1Resultado = participante1Venceu
         ? { pontos: regras.pontuacaoVitoria, vitorias: 1, empates: 0, derrotas: 0 }
         : { pontos: regras.pontuacaoDerrota, vitorias: 0, empates: 0, derrotas: 1 };
-      campus2Resultado = campus1Venceu
+      participante2Resultado = participante1Venceu
         ? { pontos: regras.pontuacaoDerrota, vitorias: 0, empates: 0, derrotas: 1 }
         : { pontos: regras.pontuacaoVitoria, vitorias: 1, empates: 0, derrotas: 0 };
     } else {
       if (placar1 > placar2) {
-        campus1Resultado = { pontos: regras.pontuacaoVitoria, vitorias: 1, empates: 0, derrotas: 0 };
-        campus2Resultado = { pontos: regras.pontuacaoDerrota, vitorias: 0, empates: 0, derrotas: 1 };
+        participante1Resultado = { pontos: regras.pontuacaoVitoria, vitorias: 1, empates: 0, derrotas: 0 };
+        participante2Resultado = { pontos: regras.pontuacaoDerrota, vitorias: 0, empates: 0, derrotas: 1 };
       } else if (placar1 < placar2) {
-        campus1Resultado = { pontos: regras.pontuacaoDerrota, vitorias: 0, empates: 0, derrotas: 1 };
-        campus2Resultado = { pontos: regras.pontuacaoVitoria, vitorias: 1, empates: 0, derrotas: 0 };
+        participante1Resultado = { pontos: regras.pontuacaoDerrota, vitorias: 0, empates: 0, derrotas: 1 };
+        participante2Resultado = { pontos: regras.pontuacaoVitoria, vitorias: 1, empates: 0, derrotas: 0 };
       } else {
-        campus1Resultado = { pontos: regras.pontuacaoEmpate, vitorias: 0, empates: 1, derrotas: 0 };
-        campus2Resultado = { pontos: regras.pontuacaoEmpate, vitorias: 0, empates: 1, derrotas: 0 };
+        participante1Resultado = { pontos: regras.pontuacaoEmpate, vitorias: 0, empates: 1, derrotas: 0 };
+        participante2Resultado = { pontos: regras.pontuacaoEmpate, vitorias: 0, empates: 1, derrotas: 0 };
       }
     }
   }
 
-  const atualizarCampus = async (campusId, resultadoCampus, placarPro, placarContra, setsGanhos, setsPerdidos) => {
+  const atualizarParticipante = async (participanteId, resultadoParticipante, placarPro, placarContra, setsGanhos, setsPerdidos) => {
+    if (!participanteId) return;
+
+    if (confrontoIndividual) {
+      const [existe] = await db.query(
+        'SELECT id FROM classificacao_grupos WHERE modalidade_id = ? AND chave_id = ? AND atleta_id = ?',
+        [modalidadeId, chaveId, participanteId]
+      );
+
+      if (!existe.length) {
+        await db.query(`
+          INSERT INTO classificacao_grupos (
+            modalidade_id, chave_id, campus_id, atleta_id,
+            pontos, jogos_jogados, vitorias, empates, derrotas,
+            pontos_pro, pontos_contra,
+            cartoes_amarelos, cartoes_vermelhos, sets_ganhos, sets_perdidos
+          ) VALUES (?, ?, NULL, ?, ?, 1, ?, ?, ?, ?, ?, 0, 0, ?, ?)
+        `, [modalidadeId, chaveId, participanteId,
+            resultadoParticipante.pontos, resultadoParticipante.vitorias, resultadoParticipante.empates, resultadoParticipante.derrotas,
+            placarPro, placarContra, setsGanhos, setsPerdidos]);
+      } else {
+        await db.query(`
+          UPDATE classificacao_grupos
+          SET pontos = pontos + ?,
+              jogos_jogados = jogos_jogados + 1,
+              vitorias = vitorias + ?,
+              empates = empates + ?,
+              derrotas = derrotas + ?,
+              pontos_pro = pontos_pro + ?,
+              pontos_contra = pontos_contra + ?,
+              sets_ganhos = sets_ganhos + ?,
+              sets_perdidos = sets_perdidos + ?
+          WHERE modalidade_id = ? AND chave_id = ? AND atleta_id = ?
+        `, [resultadoParticipante.pontos, resultadoParticipante.vitorias, resultadoParticipante.empates, resultadoParticipante.derrotas,
+            placarPro, placarContra, setsGanhos, setsPerdidos,
+            modalidadeId, chaveId, participanteId]);
+      }
+      return;
+    }
+
     const [existe] = await db.query(
       'SELECT id FROM classificacao_grupos WHERE modalidade_id = ? AND chave_id = ? AND campus_id = ?',
-      [modalidadeId, chaveId, campusId]
+      [modalidadeId, chaveId, participanteId]
     );
 
     if (!existe.length) {
@@ -565,8 +621,8 @@ async function _aplicarClassificacaoJogo(jogoId) {
           pontos_pro, pontos_contra,
           cartoes_amarelos, cartoes_vermelhos, sets_ganhos, sets_perdidos
         ) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, 0, 0, ?, ?)
-      `, [modalidadeId, chaveId, campusId, null,
-          resultadoCampus.pontos, resultadoCampus.vitorias, resultadoCampus.empates, resultadoCampus.derrotas,
+      `, [modalidadeId, chaveId, participanteId, null,
+          resultadoParticipante.pontos, resultadoParticipante.vitorias, resultadoParticipante.empates, resultadoParticipante.derrotas,
           placarPro, placarContra, setsGanhos, setsPerdidos]);
     } else {
       await db.query(`
@@ -581,14 +637,14 @@ async function _aplicarClassificacaoJogo(jogoId) {
             sets_ganhos = sets_ganhos + ?,
             sets_perdidos = sets_perdidos + ?
         WHERE modalidade_id = ? AND chave_id = ? AND campus_id = ?
-      `, [resultadoCampus.pontos, resultadoCampus.vitorias, resultadoCampus.empates, resultadoCampus.derrotas,
+      `, [resultadoParticipante.pontos, resultadoParticipante.vitorias, resultadoParticipante.empates, resultadoParticipante.derrotas,
           placarPro, placarContra, setsGanhos, setsPerdidos,
-          modalidadeId, chaveId, campusId]);
+          modalidadeId, chaveId, participanteId]);
     }
   };
 
-  await atualizarCampus(jogo.campus_1_id, campus1Resultado, placar1, placar2, sets1, sets2);
-  await atualizarCampus(jogo.campus_2_id, campus2Resultado, placar2, placar1, sets2, sets1);
+  await atualizarParticipante(idParticipante1, participante1Resultado, placar1, placar2, sets1, sets2);
+  await atualizarParticipante(idParticipante2, participante2Resultado, placar2, placar1, sets2, sets1);
 }
 
 async function recalcularClassificacaoModalidade(modalidadeId) {
@@ -601,7 +657,10 @@ async function recalcularClassificacaoModalidade(modalidadeId) {
     `SELECT j.id
      FROM jogos j
      INNER JOIN resultados_coletivos rc ON rc.jogo_id = j.id
-     WHERE j.modalidade_id = ? AND j.campus_1_id IS NOT NULL AND j.campus_2_id IS NOT NULL`,
+     WHERE j.modalidade_id = ? AND (
+       (j.campus_1_id IS NOT NULL AND j.campus_2_id IS NOT NULL)
+       OR (j.atleta_1_id IS NOT NULL AND j.atleta_2_id IS NOT NULL)
+     )`,
     [id]
   );
 

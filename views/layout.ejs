@@ -116,6 +116,7 @@
                             ? String(modalidadeSelecionada).replace(/-(masculino|feminino)$/i, '')
                             : '';
                         if (baseModalidadeSelecionada) queryGenero.set('modalidade', baseModalidadeSelecionada);
+                        if (typeof mostrarSubFiltroTenis !== 'undefined' && mostrarSubFiltroTenis && typeof subCategoriaAtiva !== 'undefined' && subCategoriaAtiva) queryGenero.set('sub', subCategoriaAtiva);
                         const isActiveGenero = typeof generoSelecionado !== 'undefined' && generoSelecionado === genero;
                         if (!isActiveGenero) queryGenero.set('genero', genero);
                         const hrefGenero = isActiveGenero
@@ -123,6 +124,7 @@
                                 const limpar = new URLSearchParams();
                                 if (typeof diaSelecionado !== 'undefined' && diaSelecionado) limpar.set('dia', diaSelecionado);
                                 if (baseModalidadeSelecionada) limpar.set('modalidade', baseModalidadeSelecionada);
+                                if (typeof mostrarSubFiltroTenis !== 'undefined' && mostrarSubFiltroTenis && typeof subCategoriaAtiva !== 'undefined' && subCategoriaAtiva) limpar.set('sub', subCategoriaAtiva);
                                 return limpar.toString() ? '?' + limpar.toString() : '';
                             })())
                             : '/' + (queryGenero.toString() ? '?' + queryGenero.toString() : '');
@@ -132,6 +134,37 @@
                 </ul>
             </div>
         </div>
+
+        <% if (typeof mostrarSubFiltroTenis !== 'undefined' && mostrarSubFiltroTenis) { %>
+        <div class="menu-generos">
+            <div class="modalidades-container">
+                <ul class="filter-list">
+                    <% [{ label: 'Individual', valor: 'individual' }, { label: 'Em Dupla', valor: 'dupla' }].forEach((subFiltro) => {
+                        const baseModalidadeSelecionada = typeof modalidadeSelecionada !== 'undefined' && modalidadeSelecionada
+                            ? String(modalidadeSelecionada).replace(/-(masculino|feminino)$/i, '')
+                            : '';
+                        const querySub = new URLSearchParams();
+                        if (typeof diaSelecionado !== 'undefined' && diaSelecionado) querySub.set('dia', diaSelecionado);
+                        if (baseModalidadeSelecionada) querySub.set('modalidade', baseModalidadeSelecionada);
+                        if (typeof generoSelecionado !== 'undefined' && generoSelecionado) querySub.set('genero', generoSelecionado);
+                        const isActiveSub = typeof subCategoriaAtiva !== 'undefined' && subCategoriaAtiva === subFiltro.valor;
+                        if (!isActiveSub) querySub.set('sub', subFiltro.valor);
+                        const hrefSub = isActiveSub
+                            ? '/' + ((() => {
+                                const limpar = new URLSearchParams();
+                                if (typeof diaSelecionado !== 'undefined' && diaSelecionado) limpar.set('dia', diaSelecionado);
+                                if (baseModalidadeSelecionada) limpar.set('modalidade', baseModalidadeSelecionada);
+                                if (typeof generoSelecionado !== 'undefined' && generoSelecionado) limpar.set('genero', generoSelecionado);
+                                return limpar.toString() ? '?' + limpar.toString() : '';
+                            })())
+                            : '/' + (querySub.toString() ? '?' + querySub.toString() : '');
+                    %>
+                        <li class="filter-item <%= isActiveSub ? 'is-active' : '' %>"><a href="<%= hrefSub %>"><%= subFiltro.label.toUpperCase() %></a></li>
+                    <% }); %>
+                </ul>
+            </div>
+        </div>
+        <% } %>
         <% const mostrarDiasPublicos = !modalidadeSelecionada && (!generoSelecionado || generoSelecionado === 'Masculino' || generoSelecionado === 'Feminino'); %>
         <% if (mostrarDiasPublicos) { %>
         <div class="menu-dias">
