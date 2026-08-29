@@ -11,6 +11,7 @@ async function buscarJogosDoGrupo(modalidadeId, chaveId) {
     WHERE j.modalidade_id = ? AND j.chave_id = ?
       AND j.campus_1_id IS NOT NULL AND j.campus_2_id IS NOT NULL
       AND rc.jogo_id IS NOT NULL
+      AND (j.status IS NULL OR j.status <> 'Cancelado')
   `, [modalidadeId, chaveId]);
   return jogos || [];
 }
@@ -660,7 +661,7 @@ async function recalcularClassificacaoModalidade(modalidadeId) {
      WHERE j.modalidade_id = ? AND (
        (j.campus_1_id IS NOT NULL AND j.campus_2_id IS NOT NULL)
        OR (j.atleta_1_id IS NOT NULL AND j.atleta_2_id IS NOT NULL)
-     )`,
+     ) AND (j.status IS NULL OR j.status <> 'Cancelado')`,
     [id]
   );
 

@@ -67,17 +67,29 @@ function startServer(port) {
         console.log(`Server is running on port ${port}`);
         require('./config/db').getConnection()
             .then((conn) => {
-                console.log('✅ Connected successfully to the MySQL database.');
+                console.log('Conectado ao banco de dados MySQL com sucesso.');
                 conn.release();
             })
             .catch((err) => {
-                console.error('❌ Database connection failure:', err.message);
+                console.error('Falha ao conectar ao banco de dados MySQL:', err.message);
             });
     });
 
     server.on('error', (error) => {
         if (error.code === 'EADDRINUSE') {
-            console.error(`Erro: porta ${port} já está em uso.`);
+            console.error('');
+            console.error('================================================================');
+            console.error(`ERRO: a porta ${port} ja esta em uso neste computador.`);
+            console.error(' Isso quase sempre significa que o servidor do JIFC ja esta aberto');
+            console.error(' em OUTRA janela ou aba do terminal.');
+            console.error('');
+            console.error(' Como resolver:');
+            console.error('  1) Feche a outra janela do terminal onde o servidor esta rodando');
+            console.error('     (Ctrl + C) e execute novamente;');
+            console.error('  2) Se nao encontrar a janela, encerre o processo que ocupa a porta:');
+            console.error(`       netstat -ano | findstr :${port}`);
+            console.error('       taskkill /PID <numero_do_PID> /F');
+            console.error('================================================================');
             process.exit(1);
             return;
         }

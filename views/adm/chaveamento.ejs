@@ -64,7 +64,7 @@
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <input type="hidden" name="modalidadeId" value="<%= modalidadeAtiva.id %>">
           <input type="hidden" name="subCategoria" value="<%= subCategoriaAtiva %>">
-          <button type="submit" class="btn btn-danger">Refazer Sorteio</button>
+          <button type="submit" class="btn btn-danger" onclick="return confirm('Refazer o sorteio de <%= modalidadeAtiva.nome %>? ATENCAO: todos os jogos, resultados e classificação desta modalidade serao apagados. Esta acao nao pode ser desfeita.');">Refazer Sorteio</button>
         </form>
       <% } else if (!modalidadeSorteavel) { %>
         <button class="btn btn-ghost" disabled title="Esta modalidade não possui sorteio automático">Sorteio automático indisponível</button>
@@ -90,7 +90,7 @@
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <input type="hidden" name="modalidadeId" value="<%= modalidadeAtiva.id %>">
         <input type="hidden" name="subCategoria" value="<%= subCategoriaAtiva %>">
-        <button type="submit" class="btn btn-danger">Cancelar Sorteio</button>
+        <button type="submit" class="btn btn-danger" onclick="return confirm('Cancelar TODOS os sorteios (exceto atletismo e xadrez)? ATENCAO: todos os jogos, resultados e classificações das demais modalidades serao apagados. Esta acao nao pode ser desfeita.');">Cancelar Sorteio</button>
       </form>
 
       <div id="generate-draw-modal" class="confirm-modal-overlay" hidden>
@@ -221,7 +221,7 @@
         <h2>Provas e Atletas Confirmados</h2>
         <p class="panel-subtitle" style="margin-bottom: 1.5rem;">Escolha a categoria de prova para ver o agrupamento dos atletas abaixo.</p>
 
-        <div style="display:grid; grid-template-columns: 220px 1fr; gap:1rem; align-items:start; margin-bottom: 1.5rem;">
+        <div class="atletismo-layout" style="margin-bottom: 1.5rem;">
           <div class="chave-card" style="padding: 1rem;">
             <div class="chave-title" style="font-size: 0.95rem; margin-bottom: 0.75rem;">Categorias</div>
             <div style="display:flex; flex-direction:column; gap:0.5rem;">
@@ -239,7 +239,8 @@
             <p class="panel-subtitle" style="margin: 0 0 1rem; font-size: 0.8rem;"><%= provaAtivaAtual.descricao %></p>
 
             <% if (provaAtivaAtual.slug === 'geral') { %>
-              <table style="width:100%; border-collapse:collapse;">
+              <div class="tabela-scroll" style="border:1px solid rgba(255,255,255,0.08); border-radius:10px;">
+                <table style="width:100%; min-width:420px; border-collapse:collapse;">
                 <thead>
                   <tr>
                     <th style="text-align:left; padding:0.5rem 0.75rem; border-bottom:1px solid rgba(255,255,255,0.2); font-size:0.8rem;">Posição</th>
@@ -262,6 +263,7 @@
                   <% } %>
                 </tbody>
               </table>
+              </div>
             <% } else { %>
 
             <% if (provaAtivaAtual.subprovas && provaAtivaAtual.subprovas.length) { %>
@@ -372,14 +374,20 @@
 
       <% } %>
 
-      <% if (rodadasJogos && rodadasJogos.length > 0) { %>
+      <% const temEliminatoria = typeof fasesEliminatoria !== 'undefined' && fasesEliminatoria && fasesEliminatoria.length > 0; %>
+      <% if ((rodadasJogos && rodadasJogos.length > 0) || temEliminatoria) { %>
         <div class="match-carousel-wrapper" id="match-carousel-<%= modalidadeAtiva.id %>" style="margin-top: 2rem;">
           <div class="match-carousel-header">
             <h2 style="margin: 0;">Confrontos por rodada</h2>
             <div class="round-pills">
-              <% rodadasJogos.forEach((rodada, index) => { %>
-                <button type="button" class="round-pill <%= index === 0 ? 'active' : '' %>" data-slide-index="<%= index %>"><%= rodada.label %></button>
-              <% }) %>
+              <% if (rodadasJogos && rodadasJogos.length > 0) { %>
+                <% rodadasJogos.forEach((rodada, index) => { %>
+                  <button type="button" class="round-pill <%= index === 0 ? 'active' : '' %>" data-slide-index="<%= index %>"><%= rodada.label %></button>
+                <% }) %>
+              <% } %>
+              <% if (temEliminatoria) { %>
+                <button type="button" class="round-pill <%= !(rodadasJogos && rodadasJogos.length > 0) ? 'active' : '' %>" data-slide-index="<%= rodadasJogos ? rodadasJogos.length : 0 %>">Eliminatória</button>
+              <% } %>
             </div>
           </div>
 
@@ -435,6 +443,63 @@
                 </div>
               </section>
             <% }) %>
+            <% if (temEliminatoria) { %>
+              <section class="match-slide <%= !(rodadasJogos && rodadasJogos.length > 0) ? 'active' : '' %>" data-slide-index="<%= rodadasJogos ? rodadasJogos.length : 0 %>">
+                <% fasesEliminatoria.forEach((fase) => { %>
+                  <h3 style="margin: 0.25rem 0 0.75rem; font-size: 1rem;"><%= fase.fase %></h3>
+                  <div class="game-grid" style="margin-bottom: 1.5rem;">
+                    <% fase.jogos.forEach((jogo) => { %>
+                      <% const dhKo = jogo.data_hora ? new Date(jogo.data_hora) : null;
+                         const dataInputKo2 = dhKo ? `${dhKo.getFullYear()}-${String(dhKo.getMonth() + 1).padStart(2, '0')}-${String(dhKo.getDate()).padStart(2, '0')}` : '';
+                         const horarioInputKo = dhKo ? `${String(dhKo.getHours()).padStart(2, '0')}:${String(dhKo.getMinutes()).padStart(2, '0')}` : '';
+                         const nomeCasaKo = jogo.campus_1_nome || jogo.atleta_1_nome || null;
+                         const nomeForaKo = jogo.campus_2_nome || jogo.atleta_2_nome || null; %>
+                      <article class="game-card admin-game-card">
+                        <div class="agc-meta">
+                          <span>#<%= jogo.numero_jogo %> · <%= jogo.status || 'Agendado' %></span>
+                          <span class="agc-chave"><%= fase.fase %></span>
+                        </div>
+                        <div class="agc-confronto">
+                          <span class="agc-nome"><%= nomeCasaKo || jogo.rotulo_casa || 'A definir' %></span>
+                          <span class="agc-placar">vs</span>
+                          <span class="agc-nome"><%= nomeForaKo || jogo.rotulo_fora || 'A definir' %></span>
+                        </div>
+                        <form action="/admin/chaveamento/jogo/<%= jogo.id %>/salvar" method="POST" class="agc-form">
+                          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                          <div class="agc-campos">
+                            <% if (Array.isArray(datasEventoDisponiveis) && datasEventoDisponiveis.length) { %>
+                              <% const dataPadraoKo = dataInputKo2 && datasEventoDisponiveis.includes(dataInputKo2) ? dataInputKo2 : datasEventoDisponiveis[0]; %>
+                              <label>
+                                <span>Data</span>
+                                <select name="dataJogo">
+                                  <% datasEventoDisponiveis.forEach((data) => { %>
+                                    <option value="<%= data %>" <%= dataPadraoKo === data ? 'selected' : '' %>><%= data.split('-').reverse().join('/') %></option>
+                                  <% }) %>
+                                </select>
+                              </label>
+                            <% } else { %>
+                              <label>
+                                <span>Data</span>
+                                <input type="date" name="dataJogo" value="<%= dataInputKo2 %>">
+                              </label>
+                            <% } %>
+                            <label>
+                              <span>Horário</span>
+                              <input type="time" name="horarioJogo" value="<%= horarioInputKo %>">
+                            </label>
+                            <label>
+                              <span>Local</span>
+                              <input type="text" name="localJogo" value="<%= jogo.local_jogo || 'A definir' %>">
+                            </label>
+                          </div>
+                          <button class="btn btn-secondary agc-salvar" type="submit">Salvar</button>
+                        </form>
+                      </article>
+                    <% }) %>
+                  </div>
+                <% }) %>
+              </section>
+            <% } %>
           </div>
 
           <script>

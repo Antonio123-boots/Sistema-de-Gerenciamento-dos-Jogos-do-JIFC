@@ -41,7 +41,7 @@
               <% prova.atletas.forEach((atleta, index) => { %>
                 <li class="chave-equipe-item">
                   <span><span class="chave-equipe-pos">#<%= index + 1 %></span> <%= atleta.nome %></span>
-                  <span class="item-subtext"><%= atleta.campus %></span>
+                  <span class="item-subtext"><%= atleta.campus %><%= atleta.detalhe ? ' · ' + atleta.detalhe : '' %></span>
                 </li>
               <% }) %>
             </ul>
@@ -51,18 +51,23 @@
     <% } %>
 
     <% if (modalidadeAtiva.categoria === 'xadrez') { %>
-      <div class="chave-card" style="max-width: 800px; margin: 0 auto;">
-        <div class="chave-title">♟️ Tabela de Classificação Atualizada — Sistema Suíço</div>
-        <ul class="chave-equipes-list">
-          <% classificadosXadrez.forEach((enxadrista, index) => { %>
-            <li class="chave-equipe-item">
-              <span><span class="chave-equipe-pos"><%= index + 1 %>º</span> <strong><%= enxadrista.nomeAtleta %></strong> (<%= enxadrista.nomeCampus %>)</span>
-              <span class="chave-equipe-pontos"><%= enxadrista.pontuacaoAtual %> pts</span>
-            </li>
-          <% }) %>
-        </ul>
-      </div>
-
+      <% if (classificadosXadrez && classificadosXadrez.length > 0) { %>
+        <div class="chave-card" style="max-width: 800px; margin: 0 auto;">
+          <div class="chave-title">♟️ Tabela de Classificação Atualizada — Sistema Suíço</div>
+          <ul class="chave-equipes-list">
+            <% classificadosXadrez.forEach((enxadrista, index) => { %>
+              <li class="chave-equipe-item">
+                <span><span class="chave-equipe-pos"><%= index + 1 %>º</span> <strong><%= enxadrista.nomeAtleta %></strong> (<%= enxadrista.nomeCampus %>)</span>
+                <span class="chave-equipe-pontos"><%= enxadrista.pontuacaoAtual %> pts</span>
+              </li>
+            <% }) %>
+          </ul>
+        </div>
+      <% } else { %>
+        <div class="feedback-empty">
+          <p>♟️ A tabela de classificação do xadrez será exibida assim que o juiz lançar os primeiros resultados.</p>
+        </div>
+      <% } %>
     <% } else { %>
       <% if (chavesGeradas && chavesGeradas.length > 0) { %>
         <div class="chaves-container">
@@ -95,6 +100,63 @@
     <% } %>
 
   </div>
+
+  <% if (fasesEliminatoria && fasesEliminatoria.length > 0) { %>
+    <div style="margin-top: 3.5rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 2rem;">
+      <h2 style="margin-bottom: 0.5rem;">🏆 Eliminatória</h2>
+      <p class="panel-subtitle" style="margin-bottom: 1.5rem;">Confrontos preenchem automaticamente conforme os resultados são confirmados.</p>
+
+      <% fasesEliminatoria.forEach((faseGrupo) => { %>
+        <div style="margin-bottom: 2rem;">
+          <h3 style="font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #ece42d; margin-bottom: 0.75rem;"><%= faseGrupo.fase %></h3>
+          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <% faseGrupo.jogos.forEach((jogo) => { %>
+              <%
+                const nomeCasa = (jogo.campus_1_exibicao || jogo.campus_1_nome || jogo.atleta_1_nome);
+                const nomeFora = (jogo.campus_2_exibicao || jogo.campus_2_nome || jogo.atleta_2_nome);
+                const labelCasa = nomeCasa || jogo.rotulo_casa || 'A definir';
+                const labelFora = nomeFora || jogo.rotulo_fora || 'A definir';
+                const ehEncerrado = jogo.status === 'Encerrado';
+                const ehWO = Boolean(jogo.wo);
+                const temPlacar = ehEncerrado && jogo.placar_1 != null && jogo.placar_2 != null;
+                const temDisputa = jogo.disputa_pontos_1 != null && jogo.disputa_pontos_2 != null
+                                  && Number(jogo.disputa_pontos_1) !== Number(jogo.disputa_pontos_2);
+              %>
+              <div class="chave-card" style="margin: 0; padding: 0.75rem 1rem;">
+                <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 0.75rem; align-items: center;">
+                  <div style="text-align: right; min-width: 0;">
+                    <span style="font-size: 0.8rem; font-weight: 600; color: #fff; word-break: break-word; <%= !nomeCasa ? 'color:#8a9ab5; font-style:italic;' : '' %>"><%= labelCasa %></span>
+                  </div>
+                  <div style="text-align: center; flex-shrink: 0;">
+                    <% if (temPlacar) { %>
+                      <div style="font-size: 1.1rem; font-weight: 800; color: #fff; line-height: 1.2;">
+                        <span><%= jogo.placar_1 %></span>
+                        <span style="color:#6c757d; margin:0 0.15rem; font-weight:400;">x</span>
+                        <span><%= jogo.placar_2 %></span>
+                      </div>
+                      <% if (temDisputa) { %>
+                        <div style="font-size: 0.65rem; color: #f5b041; font-weight: 700; margin-top: 0.15rem;">(<%= jogo.disputa_pontos_1 %>x<%= jogo.disputa_pontos_2 %>)</div>
+                      <% } %>
+                    <% } else { %>
+                      <span style="font-size: 0.8rem; font-weight: 700; color: rgba(255,255,255,0.35);">VS</span>
+                    <% } %>
+                  </div>
+                  <div style="text-align: left; min-width: 0;">
+                    <span style="font-size: 0.8rem; font-weight: 600; color: #fff; word-break: break-word; <%= !nomeFora ? 'color:#8a9ab5; font-style:italic;' : '' %>"><%= labelFora %></span>
+                  </div>
+                </div>
+                <% if (ehWO) { %>
+                  <div style="text-align: center; margin-top: 0.35rem;">
+                    <span style="font-size: 0.55rem; font-weight: 800; letter-spacing: 0.08em; padding: 0.15rem 0.45rem; border-radius: 6px; background: rgba(245,176,65,0.18); color: #f5b041;">W.O.</span>
+                  </div>
+                <% } %>
+              </div>
+            <% }) %>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
 
   <% if (jogosProgramados && jogosProgramados.length > 0) { %>
     <div style="margin-top: 3.5rem; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 2rem;">

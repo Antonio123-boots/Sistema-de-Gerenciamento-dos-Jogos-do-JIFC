@@ -1,6 +1,7 @@
-const RULES = {
+﻿const RULES = {
   futsal: {
     tipo: 'gols',
+    padraoEliminatoria: 'alternado',
     pontuacaoVitoria: 3,
     pontuacaoEmpate: 1,
     pontuacaoDerrota: 0,
@@ -24,6 +25,7 @@ const RULES = {
   },
   handebol: {
     tipo: 'gols',
+    padraoEliminatoria: 'alternado',
     pontuacaoVitoria: 3,
     pontuacaoEmpate: 1,
     pontuacaoDerrota: 0,
@@ -64,6 +66,7 @@ const RULES = {
   },
   basquete: {
     tipo: 'pontos',
+    padraoEliminatoria: 'alternado',
     pontuacaoVitoria: 3,
     pontuacaoEmpate: 1,
     pontuacaoDerrota: 0,
@@ -92,6 +95,7 @@ const RULES = {
   },
   'volei de praia': {
     tipo: 'sets',
+    padraoEliminatoria: 'sequencial',
     pontuacaoVitoria3_0_3_1: 3,
     pontuacaoVitoria3_2: 2,
     pontuacaoDerrota2_3: 1,
@@ -120,6 +124,7 @@ const RULES = {
   },
   volei: {
     tipo: 'sets',
+    padraoEliminatoria: 'alternado',
     pontuacaoVitoria3_0_3_1: 3,
     pontuacaoVitoria3_2: 2,
     pontuacaoDerrota2_3: 1,
@@ -148,6 +153,7 @@ const RULES = {
   },
   'tenis de mesa': {
     tipo: 'sets',
+    padraoEliminatoria: 'sequencial', // individual; dupla usa 'alternado' (ver obterPadraoEliminatoria)
     pontuacaoVitoria3_0_3_1: 3,
     pontuacaoVitoria3_2: 2,
     pontuacaoDerrota2_3: 1,
@@ -235,6 +241,20 @@ function obterRegras(nomeModalidade) {
   return RULES.futsal;
 }
 
+function obterPadraoEliminatoria(nomeModalidade, subCategoria) {
+  const nome = normalizarNome(nomeModalidade);
+  for (const [chave, regras] of Object.entries(RULES)) {
+    if (!nome.includes(chave)) continue;
+    const padrao = regras.padraoEliminatoria;
+    if (!padrao) return null;
+    if (chave === 'tenis de mesa' && normalizarNome(subCategoria) === 'dupla') {
+      return 'alternado';
+    }
+    return padrao;
+  }
+  return null;
+}
+
 function colunasParaExibicao(nomeModalidade) {
   const regras = obterRegras(nomeModalidade);
   return regras.colunasTabela;
@@ -251,5 +271,6 @@ module.exports = {
   colunasParaExibicao,
   colunasParaChave,
   normalizarNome,
-  obterPlacarWo
+  obterPlacarWo,
+  obterPadraoEliminatoria
 };

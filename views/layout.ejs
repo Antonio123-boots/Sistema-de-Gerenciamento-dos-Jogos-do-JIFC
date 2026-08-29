@@ -2,15 +2,16 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#1c1d3b">
     <title>JIFC - Jogos Internos</title>
-    <link rel="stylesheet" href="/css/geral.css">
+    <link rel="stylesheet" href="/css/geral.css?v=12">
     <link rel="stylesheet" href="/css/login.css">
     <link rel="stylesheet" href="/css/perfil.css">
     <link rel="stylesheet" href="/css/cadastroCampus.css">
     <link rel="stylesheet" href="/css/banirCampus.css">
-    <link rel="stylesheet" href="/css/responsive.css">
     <link rel="stylesheet" href="/css/chaveamento.css">
+    <link rel="stylesheet" href="/css/responsive.css?v=5">
 </head>
 <body>
 
@@ -106,6 +107,7 @@
             </div>
         </div>
 
+        <div class="filtros-secundarios">
         <div class="menu-generos">
             <div class="modalidades-container">
                 <ul class="filter-list">
@@ -133,6 +135,30 @@
                     <% }); %>
                 </ul>
             </div>
+        </div>
+
+        <% const mostrarDiasPublicos = !modalidadeSelecionada && (!generoSelecionado || generoSelecionado === 'Masculino' || generoSelecionado === 'Feminino'); %>
+        <% if (mostrarDiasPublicos) { %>
+        <div class="menu-dias">
+            <div class="dias-container">
+                <ul class="dias-list">
+                    <% const diasAtivos = Array.isArray(diasDisponiveis) && diasDisponiveis.length ? diasDisponiveis : ['24/06', '25/06', '26/06']; %>
+                    <% diasAtivos.filter(Boolean).forEach((dia) => { %>
+                        <% const queryDia = new URLSearchParams(); %>
+                        <% if (typeof generoSelecionado !== 'undefined' && generoSelecionado) queryDia.set('genero', generoSelecionado); %>
+                        <% const isActiveDay = typeof diaSelecionado !== 'undefined' && diaSelecionado === dia; %>
+                        <% if (!isActiveDay) queryDia.set('dia', dia); %>
+                        <% const hrefDia = isActiveDay ? '/' + ((() => {
+                            const limpar = new URLSearchParams();
+                            if (typeof generoSelecionado !== 'undefined' && generoSelecionado) limpar.set('genero', generoSelecionado);
+                            return limpar.toString() ? '?' + limpar.toString() : '';
+                        })()) : '/' + (queryDia.toString() ? '?' + queryDia.toString() : ''); %>
+                        <li class="dia-item <%= isActiveDay ? 'is-active' : '' %>"><a href="<%= hrefDia %>"><%= dia %></a></li>
+                    <% }); %>
+                </ul>
+            </div>
+        </div>
+        <% } %>
         </div>
 
         <% if (typeof mostrarSubFiltroTenis !== 'undefined' && mostrarSubFiltroTenis) { %>
@@ -165,33 +191,75 @@
             </div>
         </div>
         <% } %>
-        <% const mostrarDiasPublicos = !modalidadeSelecionada && (!generoSelecionado || generoSelecionado === 'Masculino' || generoSelecionado === 'Feminino'); %>
-        <% if (mostrarDiasPublicos) { %>
-        <div class="menu-dias">
-            <div class="dias-container">
-                <ul class="dias-list">
-                    <% const diasAtivos = Array.isArray(diasDisponiveis) && diasDisponiveis.length ? diasDisponiveis : ['24/06', '25/06', '26/06']; %>
-                    <% diasAtivos.filter(Boolean).forEach((dia) => { %>
-                        <% const queryDia = new URLSearchParams(); %>
-                        <% if (typeof generoSelecionado !== 'undefined' && generoSelecionado) queryDia.set('genero', generoSelecionado); %>
-                        <% const isActiveDay = typeof diaSelecionado !== 'undefined' && diaSelecionado === dia; %>
-                        <% if (!isActiveDay) queryDia.set('dia', dia); %>
-                        <% const hrefDia = isActiveDay ? '/' + ((() => {
-                            const limpar = new URLSearchParams();
-                            if (typeof generoSelecionado !== 'undefined' && generoSelecionado) limpar.set('genero', generoSelecionado);
-                            return limpar.toString() ? '?' + limpar.toString() : '';
-                        })()) : '/' + (queryDia.toString() ? '?' + queryDia.toString() : ''); %>
-                        <li class="dia-item <%= isActiveDay ? 'is-active' : '' %>"><a href="<%= hrefDia %>"><%= dia %></a></li>
-                    <% }); %>
-                </ul>
-            </div>
-        </div>
-        <% } %>
     <% } %>
 
     <div class="main-content">
         <%- body %>
     </div>
+
+    <script>
+        /* ==========================================================
+           GERENCIADOR DE VIEWPORT (JS)
+           - Detecta o tamanho da tela e marca o <html> com
+             data-viewport="mobile" | "tablet" | "desktop"
+           - O CSS usa esse atributo para ajustar o layout
+           ========================================================== */
+        (function () {
+            var mqMobile = window.matchMedia('(max-width: 600px)');
+            var mqTablet = window.matchMedia('(min-width: 601px) and (max-width: 1024px)');
+
+            function aplicarViewport() {
+                var raiz = document.documentElement;
+                var modo = 'desktop';
+                if (mqMobile.matches) modo = 'mobile';
+                else if (mqTablet.matches) modo = 'tablet';
+
+                raiz.setAttribute('data-viewport', modo);
+                raiz.classList.toggle('viewport-mobile', modo === 'mobile');
+                raiz.classList.toggle('viewport-tablet', modo === 'tablet');
+                raiz.classList.toggle('viewport-desktop', modo === 'desktop');
+            }
+
+            if (mqMobile.addEventListener) {
+                mqMobile.addEventListener('change', aplicarViewport);
+                mqTablet.addEventListener('change', aplicarViewport);
+            } else if (mqMobile.addListener) {
+                mqMobile.addListener(aplicarViewport);
+                mqTablet.addListener(aplicarViewport);
+            }
+
+            aplicarViewport();
+        })();
+
+        /* ==========================================================
+           CENTRALIZAR FILTRO ATIVO (sem deslocar a página)
+           - Ajusta APENAS o scrollLeft da própria faixa de filtros
+           - Nunca rola a página/site inteiro na horizontal
+             (era isso que "cortava" o topo no celular)
+           ========================================================== */
+        (function () {
+            function centralizarItemAtivo() {
+                var ativo = document.querySelector('.modalidades-list .is-active, .filter-list .is-active, .dias-list .is-active');
+                if (!ativo) return;
+
+                var lista = ativo.closest('ul');
+                if (!lista || lista.scrollWidth <= lista.clientWidth + 1) return;
+
+                var retLista = lista.getBoundingClientRect();
+                var retAtivo = ativo.getBoundingClientRect();
+                var alvo = lista.scrollLeft + ((retAtivo.left + retAtivo.width / 2) - (retLista.left + retLista.clientWidth / 2));
+                var maximo = lista.scrollWidth - lista.clientWidth;
+
+                lista.scrollLeft = Math.max(0, Math.min(alvo, maximo));
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', centralizarItemAtivo);
+            } else {
+                centralizarItemAtivo();
+            }
+        })();
+    </script>
 
 </body>
 </html>

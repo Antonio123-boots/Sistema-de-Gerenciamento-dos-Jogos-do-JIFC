@@ -5,8 +5,8 @@ const campusModel = require('../models/campusModel');
 const { listarCampi, obterCampusPorSlug, atualizarCampus } = require('../models/campiCatalog');
 const { salvarFotoPerfilUsuario } = require('../models/authUsers');
 const { filtrarModalidadesParaHome } = require('../utils/homeFilters');
-const juizService = require('../services/juizService');
 const { ehTenisDeMesa, normalizarSubCategoriaFiltro } = require('../services/jogoService');
+const mataMataService = require('../services/mataMataService');
 
 const IFCS = [
     'IFC Araquari', 'IFC Blumenau', 'IFC Brusque', 'IFC Camboriú', 'IFC Concórdia',
@@ -111,25 +111,28 @@ function formatarModalidadesParaHome(modalidadesBanco = [], generoAtivo = '', mo
         const mapa = new Map();
         (Array.isArray(modalidadesBanco) ? modalidadesBanco : []).forEach((mod, index) => {
             const nome = String(mod.nome || '').trim() || `Modalidade ${index + 1}`;
-            const nomeBase = normalizarNomeBase(nome);
             const genero = String(mod.genero || '').trim();
-            const slugBase = gerarSlugBase(nomeBase);
-            const slugMod = String(mod.slug || `${slugBase}-${String(genero || 'geral').trim().toLowerCase()}`).trim();
-            const chave = slugBase;
+            const baseSlug = obterBaseEsporte(nome);
+            if (!baseSlug) {
+                return;
+            }
+            const chave = baseSlug;
+            if (mapa.has(chave)) {
+                return;
+            }
+            const nomeExibicao = String(nome).replace(/\s+(masculino|feminino|masc\.?|fem\.?)$/i, '').trim() || nome;
+            const slugMod = String(mod.slug || `${baseSlug}-${String(genero || 'geral').trim().toLowerCase()}`).trim();
             const item = {
                 ...mod,
-                nome: nomeBase,
-                nomeBase,
-                slug: slugMod,
-                slugBase,
+                nome: nomeExibicao,
+                nomeBase: nomeExibicao,
+                slug: baseSlug,
+                slugBase: baseSlug,
                 dia: String(mod.dia || mod.data || '').trim(),
                 imagem: String(mod.imagem || mod.icone || mapearImagemModalidade(nome)).trim() || '/imagens/atletismo1.svg',
                 genero
             };
-
-            if (!mapa.has(chave)) {
-                mapa.set(chave, item);
-            }
+            mapa.set(chave, item);
         });
         return Array.from(mapa.values()).sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || '')));
     }
@@ -282,7 +285,6 @@ function filtrarPorDia(dia = '24/06', slug = '') {
 /* GET home page (Usuário Comum) */
 router.get('/', async function(req, res, next) {
     try {
-        await juizService.atualizarStatusAutomatico();
         const modalidadeSelecionada = String(req.query.modalidade || '').trim();
         const diaSelecionadoSolicitado = String(req.query.dia || '').trim();
         const generoSelecionadoSolicitado = String(req.query.genero || '').trim();
@@ -479,6 +481,8 @@ router.get('/', async function(req, res, next) {
         let provaFiltroSelecionada = '';
         let provasPorGenero = {};
         let classificacaoAtletismoPorGenero = null;
+        let classificacaoXadrezPorGenero = null;
+        let resultadosFinaisAtletismo = {};
         if (modalidadesParaTabela.length) {
             const resultadosIndividuaisService = require('../services/resultadosIndividuaisService');
             const temAtletismo = modalidadesParaTabela.some((modalidadeTabela) => resultadosIndividuaisService.ehAtletismo(String(modalidadeTabela.nome || '')));
@@ -495,7 +499,19 @@ router.get('/', async function(req, res, next) {
                 }
                 tipoClassificacaoIndividual = 'atletismo';
 
-                const { montarProvasComAtletasEDetalhes, PROVAS_ATLETISMO_EXIBICAO } = require('../utils/atletismoProvas');
+                const { montarProvasComAtletasEDetalhes, obterResultadosFinaisPorProva, PROVAS_ATLETISMO_EXIBICAO } = require('../utils/atletismoProvas');
+
+                // Resultados oficiais das provas com Final (100m), por gênero
+                try {
+                    const finaisPorGenero = await obterResultadosFinaisPorProva();
+                    resultadosFinaisAtletismo = {};
+                    for (const [generoChave, porSlug] of finaisPorGenero.entries()) {
+                        resultadosFinaisAtletismo[generoChave] = Object.fromEntries(porSlug);
+                    }
+                } catch (e) {
+                    console.error('Erro ao carregar resultados finais do atletismo:', e);
+                    resultadosFinaisAtletismo = {};
+                }
 
                 // Inscritos separados por gênero da modalidade de origem
                 const inscritosPorGeneroAtletismo = {};
@@ -546,10 +562,12 @@ router.get('/', async function(req, res, next) {
                     if (!modalidadeTabela || !modalidadeTabela.id) continue;
                     if (resultadosIndividuaisService.ehXadrez(String(modalidadeTabela.nome || ''))) {
                         const classif = await resultadosIndividuaisService.obterClassificacaoXadrez(modalidadeTabela.id);
-                        if (classif.length) {
-                            classificacaoIndividual = classif;
-                            tipoClassificacaoIndividual = 'xadrez';
-                        }
+                        if (!classif.length) continue;
+                        tipoClassificacaoIndividual = 'xadrez';
+                        classificacaoIndividual = classificacaoIndividual.concat(classif);
+                        const generoChave = String(modalidadeTabela.genero || 'Geral').trim() || 'Geral';
+                        if (!classificacaoXadrezPorGenero) classificacaoXadrezPorGenero = {};
+                        classificacaoXadrezPorGenero[generoChave] = (classificacaoXadrezPorGenero[generoChave] || []).concat(classif);
                     }
                 }
             }
@@ -579,6 +597,8 @@ router.get('/', async function(req, res, next) {
             provaFiltroSelecionada,
             provasPorGenero,
             classificacaoAtletismoPorGenero,
+            classificacaoXadrezPorGenero,
+            resultadosFinaisAtletismo,
             esporteAtivo: Boolean(modalidadeSelecionadaValida || modalidadeSelecionada),
             subCategoriaAtiva: subCategoriaSelecionada,
             mostrarSubFiltroTenis: ehTenisMesaAtivo,
@@ -789,10 +809,95 @@ router.get('/chaveamento', async function(req, res, next) {
 
         const modalidadeAtiva = listaModalidadesCompleta.find((item) => item.id === Number(req.query.modalidade)) || listaModalidadesCompleta[0];
         const subCategoria = req.query.sub || (modalidadeAtiva.categoria === 'tenis-de-mesa' ? 'individual' : 'geral');
-        const provasAtletismo = [];
-        const classificadosXadrez = [];
-        const chavesGeradas = [];
-        const jogosProgramados = [];
+
+        let provasAtletismo = [];
+        let classificadosXadrez = [];
+        let chavesGeradas = [];
+        let jogosProgramados = [];
+
+        try {
+            if (modalidadeAtiva.categoria === 'atletismo') {
+                const resultadosIndividuaisService = require('../services/resultadosIndividuaisService');
+                const provas = await resultadosIndividuaisService.obterProvasPorModalidade(modalidadeAtiva.id);
+                for (const prova of provas) {
+                    const resultados = await resultadosIndividuaisService.obterResultadosPorProva(prova.id);
+                    if (!resultados.length) continue;
+                    const ordenados = resultados.slice().sort((a, b) => {
+                        const etapaA = String(a.etapa) === 'final' ? 1 : 0;
+                        const etapaB = String(b.etapa) === 'final' ? 1 : 0;
+                        if (etapaA !== etapaB) return etapaB - etapaA;
+                        if (Number(b.pontos || 0) !== Number(a.pontos || 0)) return Number(b.pontos || 0) - Number(a.pontos || 0);
+                        return Number(a.posicao_final || 9999) - Number(b.posicao_final || 9999);
+                    });
+                    provasAtletismo.push({
+                        nomeProva: prova.nome,
+                        atletas: ordenados.map((r) => ({
+                            nome: r.atleta_nome,
+                            campus: r.campus_nome || '',
+                            detalhe: r.resultado_tempo_exibicao
+                                || (r.resultado_medida != null && r.resultado_medida !== '' ? `${r.resultado_medida} m` : '')
+                        }))
+                    });
+                }
+            } else if (modalidadeAtiva.categoria === 'xadrez') {
+                const resultadosIndividuaisService = require('../services/resultadosIndividuaisService');
+                const linhas = await resultadosIndividuaisService.obterClassificacaoXadrez(modalidadeAtiva.id);
+                const temResultado = linhas.some((l) => Number(l.pontuacao) > 0 || Number(l.vitorias) > 0 || Number(l.derrotas) > 0 || Number(l.empates) > 0);
+                if (temResultado) {
+                    classificadosXadrez = linhas.map((l) => ({
+                        nomeAtleta: l.atleta_nome,
+                        nomeCampus: l.campus_nome || '',
+                        pontuacaoAtual: Number(l.pontuacao) || 0
+                    }));
+                }
+            } else {
+                const chaves = await adminModel.getChavesModalidade(modalidadeAtiva.id, subCategoria);
+                const jogos = await adminModel.getJogosModalidade(modalidadeAtiva.id, subCategoria);
+                const jogosPublicados = jogos.filter((jogo) => Number(jogo.publicado) === 1);
+
+                if (jogosPublicados.length > 0) {
+                    jogosProgramados = jogosPublicados;
+                    chavesGeradas = chaves;
+
+                    try {
+                        const classificacao = await adminModel.getClassificacaoModalidade(modalidadeAtiva.id, null, { subCategoria });
+                        const mapaPontos = new Map();
+                        classificacao.forEach((linha) => {
+                            const participanteId = Number(linha.atleta_id || linha.campus_id || 0);
+                            if (!participanteId) return;
+                            mapaPontos.set(`${Number(linha.chave_id)}:${participanteId}`, Number(linha.pontos) || 0);
+                        });
+
+                        chavesGeradas = chaves.map((chave) => ({
+                            ...chave,
+                            integrantes: chave.integrantes
+                                .map((integrante) => ({
+                                    ...integrante,
+                                    pontosFaseDeGrupos: mapaPontos.get(`${Number(chave.id)}:${Number(integrante.id)}`) || 0
+                                }))
+                                .sort((a, b) => b.pontosFaseDeGrupos - a.pontosFaseDeGrupos)
+                        }));
+                    } catch (error) {
+                        console.error('Erro ao aplicar pontos na chave pública:', error);
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Erro ao carregar dados do chaveamento público:', error);
+            provasAtletismo = [];
+            classificadosXadrez = [];
+            chavesGeradas = [];
+            jogosProgramados = [];
+        }
+
+        let fasesEliminatoria = [];
+        try {
+            if (modalidadeAtiva.categoria !== 'atletismo' && modalidadeAtiva.categoria !== 'xadrez') {
+                fasesEliminatoria = await mataMataService.listarEliminatoria(modalidadeAtiva.id, subCategoria);
+            }
+        } catch (error) {
+            console.error('Erro ao carregar eliminatória no chaveamento público:', error);
+        }
 
         res.locals.modalidades = listaModalidadesCompleta;
         res.render('chaveamento', {
@@ -805,7 +910,8 @@ router.get('/chaveamento', async function(req, res, next) {
             provasAtletismo,
             classificadosXadrez,
             chavesGeradas,
-            jogosProgramados
+            jogosProgramados,
+            fasesEliminatoria
         });
     } catch (error) {
         console.error('Erro ao carregar chaveamento público:', error);

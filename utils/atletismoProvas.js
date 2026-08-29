@@ -192,6 +192,47 @@ async function obterPontuacaoPorAtleta() {
   return mapa;
 }
 
+/* Resultados oficiais das provas com Final (100m rasos): linhas da etapa 'final',
+   agrupadas por gênero da modalidade e slug da prova. */
+async function obterResultadosFinaisPorProva() {
+  const mapa = new Map();
+  try {
+    const [rows] = await db.query(
+      `SELECT ra.atleta_id, ra.posicao_final, ra.pontos, ra.resultado_tempo,
+              a.nome AS atleta_nome, c.nome AS campus_nome,
+              p.nome AS prova_nome, m.genero AS modalidade_genero
+       FROM resultados_atletismo ra
+       JOIN provas p ON p.id = ra.prova_id
+       JOIN modalidades m ON m.id = p.modalidade_id
+       JOIN atletas a ON a.id = ra.atleta_id
+       LEFT JOIN campus c ON c.id = a.campus_id
+       WHERE LOWER(m.nome) LIKE '%atletismo%' AND ra.etapa = 'final'
+       ORDER BY (ra.posicao_final IS NULL), ra.posicao_final ASC`
+    );
+    rows.forEach((row) => {
+      const slug = resolverSlugDaProva(row.prova_nome);
+      if (!slug) return;
+      const genero = String(row.modalidade_genero || 'Geral').trim() || 'Geral';
+      if (!mapa.has(genero)) mapa.set(genero, new Map());
+      const porSlug = mapa.get(genero);
+      if (!porSlug.has(slug)) porSlug.set(slug, []);
+      porSlug.get(slug).push({
+        atletaId: Number(row.atleta_id),
+        nome: String(row.atleta_nome || '').trim(),
+        campus: String(row.campus_nome || '').trim(),
+        posicao: row.posicao_final != null ? Number(row.posicao_final) : null,
+        pontos: Number(row.pontos || 0),
+        tempo: row.resultado_tempo != null
+          ? String(typeof row.resultado_tempo === 'string' ? row.resultado_tempo : row.resultado_tempo.toISOString().slice(11, 12)).replace(/^00:/, '')
+          : ''
+      });
+    });
+  } catch (error) {
+    console.error('Erro ao carregar resultados finais do atletismo:', error.message);
+  }
+  return mapa;
+}
+
 /* Versão completa: provas com atletas (banco + fallback state) e pontuação de cada prova */
 async function montarProvasComAtletasEDetalhes(inscritos) {
   const lista = Array.isArray(inscritos) ? inscritos : [];
@@ -235,5 +276,6 @@ module.exports = {
   obterMapaProvasDoBanco,
   resolverSlugDaProva,
   obterPontuacaoPorAtleta,
+  obterResultadosFinaisPorProva,
   montarProvasComAtletasEDetalhes
 };

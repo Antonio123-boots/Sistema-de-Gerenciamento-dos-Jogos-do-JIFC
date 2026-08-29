@@ -700,6 +700,14 @@
     border-left: 3px solid rgba(255, 255, 255, 0.2);
 }
 
+/* Layout de categorias do atletismo: sidebar + conteúdo */
+.atletismo-layout {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+}
+
 /* Responsividade Adaptada para o formato Table do CSS antigo */
 @media (max-width: 992px) {
     .chaveamento-layout {
@@ -712,5 +720,8 @@
     }
     .chaveamento-content {
         display: block;
+    }
+    .atletismo-layout {
+        grid-template-columns: 1fr;
     }
 }

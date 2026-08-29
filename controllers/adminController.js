@@ -1,6 +1,7 @@
 const adminModel = require('../models/adminModel');
 const campusModel = require('../models/campusModel');
 const resultadosIndividuaisService = require('../services/resultadosIndividuaisService');
+const mataMataService = require('../services/mataMataService');
 const db = require('../config/db');
 const { listarCampi, adicionarCampus, atualizarCampus, banCampus, desbanirCampus, removerCampus } = require('../models/campiCatalog');
 
@@ -426,7 +427,15 @@ async function renderChaveamento(req, res) {
       resumoInscricoes = null;
     }
 
-    const rodadasJogos = adminModel.agruparJogosPorRodadas(jogos);
+    const FASES_ELIMINATORIA_ADMIN = new Set(['Oitavas', 'Quartas', 'Semifinal', 'Final', 'Terceiro Lugar']);
+    const rodadasJogos = adminModel.agruparJogosPorRodadas((jogos || []).filter((jogo) => !FASES_ELIMINATORIA_ADMIN.has(String(jogo.fase || ''))));
+
+    let fasesEliminatoria = [];
+    try {
+      fasesEliminatoria = await mataMataService.listarEliminatoria(modalidadeAtiva.id, subCategoria);
+    } catch (error) {
+      console.error('Erro ao carregar eliminatória no painel:', error);
+    }
 
     const isIndividualModalidade = modalidadeAtiva.tipo_confronto === 'Individual'
         || categoriaSlug === 'atletismo'
@@ -464,6 +473,7 @@ async function renderChaveamento(req, res) {
         provasAtletismo: provasAtletismo,
         jogosProgramados: jogos,
         rodadasJogos,
+        fasesEliminatoria,
         datasEventoDisponiveis,
         resumoDisponivel,
         resumoInscricoes,
@@ -597,7 +607,14 @@ async function gerarChaveamento(req, res) {
       return res.redirect(`/admin/chaveamento?${montarDestinoChaveamento(modalidadeIdNum, subCategoria)}erro=${encodeURIComponent('Esta modalidade não possui sorteio automático.')}`);
     }
 
-    await adminModel.efetuarChaveamentoMatematico(modalidadeIdNum, subCategoria);
+    if (adminModel.isModalidadeTenisMesa(modalidade.nome)) {
+      // Tênis de Mesa sempre gera os dois formatos (Individual e Dupla)
+      // para que ambos apareçam nos filtros da home, independente do gênero.
+      await adminModel.efetuarChaveamentoMatematico(modalidadeIdNum, 'individual');
+      await adminModel.efetuarChaveamentoMatematico(modalidadeIdNum, 'dupla');
+    } else {
+      await adminModel.efetuarChaveamentoMatematico(modalidadeIdNum, subCategoria);
+    }
     res.redirect(`/admin/chaveamento?${montarDestinoChaveamento(modalidadeIdNum, subCategoria)}sucesso=${encodeURIComponent(`Sorteio realizado somente para ${modalidade.nome}.`)}`);
   } catch (error) {
     console.error(error);
@@ -605,30 +622,58 @@ async function gerarChaveamento(req, res) {
   }
 }
 
+async function apagarJogosEDadosDaModalidade(modalidadeId) {
+  const id = Number(modalidadeId || 0);
+  if (!id) return;
+
+  await db.query(
+    'DELETE FROM cartoes WHERE jogo_id IN (SELECT id FROM jogos WHERE modalidade_id = ?)',
+    [id]
+  );
+  await db.query(
+    'DELETE FROM resultados_por_sets WHERE jogo_id IN (SELECT id FROM jogos WHERE modalidade_id = ?)',
+    [id]
+  );
+  await db.query(
+    'DELETE FROM resultados_coletivos WHERE jogo_id IN (SELECT id FROM jogos WHERE modalidade_id = ?)',
+    [id]
+  );
+  await db.query('UPDATE campus_modalidade SET chave_id = NULL WHERE modalidade_id = ?', [id]);
+  await db.query('DELETE FROM classificacao_grupos WHERE modalidade_id = ?', [id]);
+  await db.query('DELETE FROM jogos WHERE modalidade_id = ?', [id]);
+  await db.query('DELETE FROM chaves WHERE modalidade_id = ?', [id]);
+}
+
 async function limparChaveamento(req, res) {
   try {
     const { modalidadeId, subCategoria } = req.body;
-    const db = require('../config/db');
     const [mod] = await db.query('SELECT nome FROM modalidades WHERE id = ?', [Number(modalidadeId || 0)]);
-    const ehTenisMesa = mod.length > 0 && adminModel.isModalidadeTenisMesa(mod[0].nome);
+    if (!mod.length) {
+      return res.status(404).send('Modalidade não encontrada.');
+    }
+    const ehTenisMesa = adminModel.isModalidadeTenisMesa(mod[0].nome);
 
     if (ehTenisMesa) {
       const subAlvo = String(subCategoria || '').trim().toLowerCase() === 'dupla' ? 'dupla' : 'individual';
+      await db.query(
+        `DELETE FROM cartoes WHERE jogo_id IN (SELECT id FROM jogos WHERE modalidade_id = ? AND sub_categoria = ?)`,
+        [modalidadeId, subAlvo]
+      );
+      await db.query(
+        `DELETE FROM resultados_por_sets WHERE jogo_id IN (SELECT id FROM jogos WHERE modalidade_id = ? AND sub_categoria = ?)`,
+        [modalidadeId, subAlvo]
+      );
+      await db.query(
+        `DELETE FROM resultados_coletivos WHERE jogo_id IN (SELECT id FROM jogos WHERE modalidade_id = ? AND sub_categoria = ?)`,
+        [modalidadeId, subAlvo]
+      );
+      await db.query('UPDATE campus_modalidade SET chave_id = NULL WHERE modalidade_id = ?', [modalidadeId]);
+      await db.query('DELETE FROM classificacao_grupos WHERE modalidade_id = ?', [modalidadeId]);
       await db.query('DELETE FROM jogos WHERE modalidade_id = ? AND sub_categoria = ?', [modalidadeId, subAlvo]);
       await db.query('DELETE FROM chaves WHERE modalidade_id = ? AND sub_categoria = ?', [modalidadeId, subAlvo]);
-      if (subAlvo === 'dupla') {
-        await db.query('UPDATE campus_modalidade SET chave_id = NULL WHERE modalidade_id = ?', [modalidadeId]);
-      }
     } else {
-      await db.query('UPDATE campus_modalidade SET chave_id = NULL WHERE modalidade_id = ?', [modalidadeId]);
-      await db.query('DELETE FROM jogos WHERE modalidade_id = ?', [modalidadeId]);
-      await db.query('DELETE FROM chaves WHERE modalidade_id = ?', [modalidadeId]);
+      await apagarJogosEDadosDaModalidade(modalidadeId);
     }
-
-    await db.query(
-      'DELETE FROM classificacao_grupos WHERE modalidade_id = ? AND chave_id NOT IN (SELECT id FROM chaves WHERE modalidade_id = ?)',
-      [modalidadeId, modalidadeId]
-    );
 
     res.redirect(`/admin/chaveamento?modalidade=${modalidadeId}&sub=${subCategoria || 'geral'}`);
   } catch (error) {
@@ -640,11 +685,22 @@ async function limparChaveamento(req, res) {
 async function publicarChaveamento(req, res) {
   const { modalidadeId, subCategoria } = req.body;
   try {
-    await adminModel.publicarTodosJogos();
+    await adminModel.publicarJogosModalidade(Number(modalidadeId || 0));
     res.redirect(`/admin/chaveamento?${montarDestinoChaveamento(modalidadeId, subCategoria)}sucesso=` + encodeURIComponent('Sorteio confirmado e jogos publicados com sucesso.'));
   } catch (error) {
     console.error(error);
     res.redirect(`/admin/chaveamento?${montarDestinoChaveamento(modalidadeId, subCategoria)}erro=` + encodeURIComponent(error.message || 'Erro ao publicar jogos.'));
+  }
+}
+
+async function gerarEliminatoria(req, res) {
+  const { modalidadeId, subCategoria } = req.body;
+  try {
+    const resultado = await mataMataService.gerarEliminatoria(Number(modalidadeId || 0), subCategoria);
+    res.redirect(`/admin/chaveamento?${montarDestinoChaveamento(modalidadeId, subCategoria)}sucesso=` + encodeURIComponent(`Eliminatória gerada: ${resultado.totalJogos} jogos (a partir do jogo ${resultado.numeroInicial}).`));
+  } catch (error) {
+    console.error(error);
+    res.redirect(`/admin/chaveamento?${montarDestinoChaveamento(modalidadeId, subCategoria)}erro=` + encodeURIComponent(error.message || 'Erro ao gerar a eliminatória.'));
   }
 }
 
@@ -659,9 +715,7 @@ async function cancelarSorteio(req, res) {
         continue;
       }
 
-      await db.query('UPDATE campus_modalidade SET chave_id = NULL WHERE modalidade_id = ?', [modalidade.id]);
-      await db.query('DELETE FROM jogos WHERE modalidade_id = ?', [modalidade.id]);
-      await db.query('DELETE FROM chaves WHERE modalidade_id = ?', [modalidade.id]);
+      await apagarJogosEDadosDaModalidade(modalidade.id);
     }
 
     res.redirect(`/admin/chaveamento?${montarDestinoChaveamento(modalidadeId, subCategoria)}sucesso=${encodeURIComponent('Sorteios cancelados (exceto atletismo e xadrez).')}`);
@@ -771,6 +825,7 @@ module.exports = {
   gerarChaveamento,
   limparChaveamento,
   publicarChaveamento,
+  gerarEliminatoria,
   cancelarSorteio,
   exportResumoInscricoes,
   renderAnalise,

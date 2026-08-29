@@ -103,7 +103,7 @@
 
     <% if (mostrarModalidades || mostrarAtletas) { %>
       <% if (totalAbas === 1) { %>
-      <div class="dashboard-tabs" role="tablist" style="grid-template-columns: repeat(1, minmax(0, 1fr));">
+      <div class="dashboard-tabs dashboard-tabs--unica" role="tablist">
         <% if (mostrarModalidades) { %>
           <button type="button" class="tab-trigger <%= abaAtivaAtual === 'modalidades' ? 'is-active' : '' %>" data-target="modalidades">Modalidades</button>
         <% } %>
@@ -112,7 +112,7 @@
         <% } %>
       </div>
       <% } else { %>
-      <div class="dashboard-tabs" role="tablist" style="grid-template-columns: repeat(2, minmax(0, 1fr));">
+      <div class="dashboard-tabs" role="tablist">
         <% if (mostrarModalidades) { %>
           <button type="button" class="tab-trigger <%= abaAtivaAtual === 'modalidades' ? 'is-active' : '' %>" data-target="modalidades">Modalidades</button>
         <% } %>
@@ -158,7 +158,7 @@
               <% }); %>
             </div>
 
-            <footer class="dashboard-footer" style="margin-top: 2.5rem; display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+            <footer class="dashboard-footer dashboard-footer--row" style="margin-top: 2.5rem;">
               <a class="btn btn-secondary" href="/perfil">Voltar ao Perfil</a>
               <button type="submit" class="btn btn-success primary-save-btn" style="border: none;">
                 Salvar Inscrições

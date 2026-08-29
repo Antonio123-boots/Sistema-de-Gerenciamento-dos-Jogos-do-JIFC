@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const { ensureJogoPublicadoColumn } = require('../config/ensureSchema');
+const { statusEfetivo } = require('../utils/jogoStatus');
 
 function normalizarSlugParaFiltro(valor = '') {
   return String(valor || '')
@@ -81,7 +82,9 @@ async function getJogosPublicados(filters = {}) {
            DATE_FORMAT(j.data_hora, '%H:%i') AS horario,
            j.campus_1_id, j.campus_2_id,
            j.atleta_1_id, j.atleta_2_id,
+           j.rotulo_casa, j.rotulo_fora,
            c1.nome AS casa, c2.nome AS fora,
+           c1.nome_exibicao AS casa_exibicao, c2.nome_exibicao AS fora_exibicao,
            c1.foto_perfil AS foto_casa,
            c2.foto_perfil AS foto_fora,
            a1.nome AS atletaCasa, a2.nome AS atletaFora,
@@ -91,7 +94,8 @@ async function getJogosPublicados(filters = {}) {
            m.tipo_confronto,
            j.publicado,
            j.wo,
-           j.vencedor_campus_id
+           j.vencedor_campus_id,
+           j.disputa_pontos_1, j.disputa_pontos_2
     FROM jogos j
     JOIN modalidades m ON j.modalidade_id = m.id
     LEFT JOIN campus c1 ON j.campus_1_id = c1.id
@@ -121,11 +125,16 @@ async function getJogosPublicados(filters = {}) {
 
       return {
         ...linha,
+        status: statusEfetivo(linha.status, linha.data_hora),
         modalidadeSlug: modalidadeSlugCompleta,
         modalidadeBaseSlug: modalidadeBaseSlug,
         subCategoria: classificarSubCategoriaJogo(nomeModalidade, linha.atleta_1_id, linha.atleta_2_id),
-        casa: linha.casa || linha.atletaCasa || '—',
-        fora: linha.fora || linha.atletaFora || '—',
+        casa: linha.casa_exibicao || linha.casa || linha.atletaCasa || null,
+        fora: linha.fora_exibicao || linha.fora || linha.atletaFora || null,
+        rotuloCasa: linha.rotulo_casa || null,
+        rotuloFora: linha.rotulo_fora || null,
+        disputa_pontos_1: linha.disputa_pontos_1,
+        disputa_pontos_2: linha.disputa_pontos_2,
         fotoCasa: linha.foto_casa || '/imagens/avatar.svg',
         fotoFora: linha.foto_fora || '/imagens/avatar.svg',
         sets

@@ -63,9 +63,9 @@
         : [defaultGrupo];
 %>
 
-<main style="<%= (exibirTabelaClassificacao && Array.isArray(jogos) && jogos.length > 0) ? 'display:grid; grid-template-columns:minmax(0, 1.2fr) minmax(0, 0.8fr); gap:1.2rem; align-items:stretch; width:100%; max-width:100%;' : 'display:block; width:100%; max-width:100%;' %>">
+<main class="<%= (exibirTabelaClassificacao && Array.isArray(jogos) && jogos.length > 0) ? 'home-layout' : 'home-layout home-layout--simples' %>">
     <% if (exibirTabelaClassificacao) { %>
-        <aside style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:0.6rem 0.7rem 0.8rem; height:fit-content; position:sticky; top:1.5rem; box-shadow:0 4px 18px rgba(0,0,0,0.18); width:100%; max-width:100%; box-sizing:border-box;">
+        <aside class="home-classificacao">
             <% if (deveAgruparPorGenero) { %>
                 <% 
                     const generosOrdenados = ['Masculino', 'Feminino'];
@@ -92,7 +92,7 @@
                                         <%= labelGrupo %> <%= grupo.letra || grupo.numero_chave || 'Geral' %>
                                     </div>
 
-                                    <div style="border:1px solid rgba(255,255,255,0.08); border-radius:10px; overflow:hidden; background:rgba(255,255,255,0.02);">
+                                    <div class="tabela-scroll tabela-scroll--larga" style="border:1px solid rgba(255,255,255,0.08); border-radius:10px; background:rgba(255,255,255,0.02);">
                                         <div style="display:grid; grid-template-columns:<%= mostraPontuacao ? '30px minmax(0, 1.9fr) repeat(' + totalColunasExtra + ', minmax(0, 0.56fr))' : '30px minmax(0, 2.1fr) minmax(0, 1.1fr)' %>; align-items:center; gap:0.12rem; font-size:0.62rem; color:#b8c2cc; padding:0.34rem 0.24rem 0.28rem; border-bottom:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02);">
                                             <div style="font-weight:700; color:#dfe3e8; text-align:center;">#</div>
                                             <div style="font-weight:700; color:#dfe3e8; padding-left:0.1rem;">Campus</div>
@@ -215,7 +215,7 @@
                                     <span><%= prova.nome %></span>
                                     <span style="color:#8a9ab5; text-transform:none; font-weight:400;">· <%= prova.atletas.length %> atleta(s)</span>
                                 </div>
-                                <div style="border:1px solid rgba(255,255,255,0.08); border-radius:10px; overflow:hidden; background:rgba(255,255,255,0.02);">
+                                <div class="tabela-scroll tabela-scroll--media" style="border:1px solid rgba(255,255,255,0.08); border-radius:10px; background:rgba(255,255,255,0.02);">
                                     <div style="display:grid; grid-template-columns:38px minmax(0,1.6fr) minmax(0,1.1fr) 56px; align-items:center; gap:0.25rem; font-size:0.8rem; color:#b8c2cc; padding:0.45rem 0.35rem 0.4rem; border-bottom:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02);">
                                         <div style="font-weight:700; color:#dfe3e8; text-align:center;">#</div>
                                         <div style="font-weight:700; color:#dfe3e8; padding-left:0.1rem;">Atleta</div>
@@ -238,13 +238,46 @@
                                         <div style="padding:0.6rem 0.35rem; font-size:0.75rem; color:#8a9ab5; text-align:center;">Sem atletas inscritos nesta prova.</div>
                                     <% } %>
                                 </div>
+
+                                <% const finaisDoGenero = (typeof resultadosFinaisAtletismo === 'object' && resultadosFinaisAtletismo) ? (resultadosFinaisAtletismo[genero] || {}) : {}; %>
+                                <% const linhasFinal = finaisDoGenero[prova.slug] || []; %>
+                                <% if (linhasFinal.length > 0) { %>
+                                    <div style="margin-top:0.45rem;">
+                                        <div style="display:flex; align-items:center; gap:0.45rem; padding:0.32rem 0.2rem; color:#cfd8dc; font-size:0.78rem; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; border-bottom:1px solid rgba(255,255,255,0.06); margin-bottom:0.3rem;">
+                                            <span style="font-size:0.62rem; font-weight:700; letter-spacing:0.03em; padding:0.16rem 0.55rem; border-radius:999px; background:rgba(88,214,141,0.12); border:1px solid rgba(88,214,141,0.4); color:#58d68d;">Final</span>
+                                            <span>Resultado da Final · <%= prova.nome %></span>
+                                        </div>
+                                        <div class="tabela-scroll tabela-scroll--media" style="border:1px solid rgba(88,214,141,0.25); border-radius:10px; background:rgba(88,214,141,0.03);">
+                                            <div style="display:grid; grid-template-columns:38px minmax(0,1.6fr) minmax(0,1.1fr) 74px 56px; align-items:center; gap:0.25rem; font-size:0.8rem; color:#b8c2cc; padding:0.45rem 0.35rem 0.4rem; border-bottom:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02);">
+                                                <div style="font-weight:700; color:#dfe3e8; text-align:center;">#</div>
+                                                <div style="font-weight:700; color:#dfe3e8; padding-left:0.1rem;">Atleta</div>
+                                                <div style="font-weight:700; color:#dfe3e8; text-align:left;">Campus</div>
+                                                <div style="font-weight:700; color:#dfe3e8; text-align:center;">Tempo</div>
+                                                <div style="font-weight:700; color:#58d68d; text-align:center;">PTS</div>
+                                            </div>
+                                            <% linhasFinal.forEach((linha) => { %>
+                                                <div style="display:grid; grid-template-columns:38px minmax(0,1.6fr) minmax(0,1.1fr) 74px 56px; align-items:center; gap:0.25rem; font-size:0.8rem; color:#b8c2cc; padding:0.48rem 0.35rem; border-top:1px solid rgba(255,255,255,0.06);">
+                                                    <div style="font-weight:700; color:<%= linha.posicao && linha.posicao <= 3 ? '#58d68d' : '#dfe3e8' %>; text-align:center;"><%= linha.posicao ? (linha.posicao + 'º') : '—' %></div>
+                                                    <div style="color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= linha.nome || 'Atleta sem nome' %></div>
+                                                    <div style="color:rgba(255,255,255,0.6); font-size:0.75rem; overflow:hidden; text-overflow:ellipsis;"><%= linha.campus || '—' %></div>
+                                                    <div style="text-align:center; font-family:monospace; color:rgba(255,255,255,0.85);"><%= linha.tempo || '—' %></div>
+                                                    <% if (Number(linha.pontos || 0) > 0) { %>
+                                                        <div style="text-align:center; font-weight:700; color:#58d68d;"><%= Number(linha.pontos) %></div>
+                                                    <% } else { %>
+                                                        <div style="text-align:center; color:#6c757d;">—</div>
+                                                    <% } %>
+                                                </div>
+                                            <% }) %>
+                                        </div>
+                                    </div>
+                                <% } %>
                             </div>
                         <% }) %>
                     <% } else { %>
                         <div style="padding:0.6rem 0.3rem; font-size:0.75rem; color:#8a9ab5;">Nenhum atleta inscrito no atletismo ainda.</div>
                     <% } %>
                 </div>
-            <% } else { %>
+            <% } else if (!ehXadrez) { %>
                 <%
                     const gruposBaseTabela = Array.isArray(grupos) && grupos.length ? grupos : [];
                     const ordemGenerosTabela = ['Masculino', 'Feminino'];
@@ -280,7 +313,7 @@
                                 <%= labelGrupo %> <%= grupo.letra || grupo.numero_chave || 'Geral' %>
                             </div>
 
-                            <div style="border:1px solid rgba(255,255,255,0.08); border-radius:10px; overflow:hidden; background:rgba(255,255,255,0.02);">
+                            <div class="tabela-scroll tabela-scroll--larga" style="border:1px solid rgba(255,255,255,0.08); border-radius:10px; background:rgba(255,255,255,0.02);">
                                 <div style="display:grid; grid-template-columns:<%= mostraPontuacao ? '38px minmax(0, 1.9fr) repeat(' + totalColunasExtra + ', minmax(0, 0.56fr))' : '38px minmax(0, 2.1fr) minmax(0, 1.1fr)' %>; align-items:center; gap:0.25rem; font-size:0.8rem; color:#b8c2cc; padding:0.45rem 0.35rem 0.4rem; border-bottom:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02);">
                                     <div style="font-weight:700; color:#dfe3e8; text-align:center;">#</div>
                                     <div style="font-weight:700; color:#dfe3e8; padding-left:0.1rem;">Campus</div>
@@ -359,7 +392,9 @@
                     </div>
                     <%
                         const ordemGenerosGeral = ['Masculino', 'Feminino'];
-                        const mapaGeralGenero = (tipoClassificacaoIndividual === 'atletismo' && typeof classificacaoAtletismoPorGenero === 'object' && classificacaoAtletismoPorGenero) ? classificacaoAtletismoPorGenero : null;
+                        const mapaGeralGenero = (tipoClassificacaoIndividual === 'atletismo' && typeof classificacaoAtletismoPorGenero === 'object' && classificacaoAtletismoPorGenero)
+                            ? classificacaoAtletismoPorGenero
+                            : ((tipoClassificacaoIndividual === 'xadrez' && typeof classificacaoXadrezPorGenero !== 'undefined' && classificacaoXadrezPorGenero && typeof classificacaoXadrezPorGenero === 'object') ? classificacaoXadrezPorGenero : null);
                         const secoesGeralTabela = mapaGeralGenero
                             ? [
                                 ...ordemGenerosGeral.filter((g) => Array.isArray(mapaGeralGenero[g]) && mapaGeralGenero[g].length > 0),
@@ -377,7 +412,7 @@
                                 <span style="display:inline-block; font-size:0.78rem; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; padding:0.28rem 0.75rem; border-radius:999px; background:<%= coresGeral.bg %>; border:1px solid <%= coresGeral.bd %>; color:<%= coresGeral.tx %>;"><%= secaoGeral.genero %></span>
                             </div>
                         <% } %>
-                        <div style="border:1px solid rgba(255,255,255,0.08); border-radius:10px; overflow:hidden; background:rgba(255,255,255,0.02); <%= secaoGeral.genero && secoesGeralTabela.length > 1 ? 'margin-bottom:0.9rem;' : '' %>">
+                        <div class="tabela-scroll tabela-scroll--media" style="border:1px solid rgba(255,255,255,0.08); border-radius:10px; background:rgba(255,255,255,0.02); <%= secaoGeral.genero && secoesGeralTabela.length > 1 ? 'margin-bottom:0.9rem;' : '' %>">
                             <% if (tipoClassificacaoIndividual === 'atletismo') { %>
                                 <div style="display:grid; grid-template-columns:34px minmax(0,1.6fr) minmax(0,0.9fr) 48px; align-items:center; gap:0.25rem; font-size:0.8rem; color:#b8c2cc; padding:0.45rem 0.35rem 0.4rem; border-bottom:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02);">
                                     <div style="font-weight:700; color:#dfe3e8; text-align:center;">#</div>
@@ -439,33 +474,49 @@
     <% } %>
 
 
-    <div style="width:100%;">
-        <% if (Array.isArray(jogos) && jogos.length > 0) { %>
-            <div style="display:grid; grid-template-columns:<%= esporteAtivo ? 'repeat(auto-fit, minmax(260px, 1fr))' : 'repeat(3, 1fr)' %>; gap:1rem; width:100%;">
+    <details class="painel-jogos" open>
+        <summary class="painel-jogos__cabecalho">
+            <span class="painel-jogos__titulo">
+                Jogos<% if (Array.isArray(jogos) && jogos.length > 0) { %> (<%= jogos.length %>)<% } %>
+            </span>
+            <span class="painel-jogos__dica" aria-hidden="true"></span>
+            <span class="painel-jogos__seta" aria-hidden="true">&#9662;</span>
+        </summary>
+
+        <div style="width:100%;">
+            <% if (Array.isArray(jogos) && jogos.length > 0) { %>
+                <% if (esporteAtivo) { %>
+                    <div class="carrossel-jogos" id="carrosselJogos">
+                        <button type="button" class="carrossel-btn carrossel-anterior" aria-label="Jogo anterior">&#10094;</button>
+                        <div class="carrossel-trilho">
+                <% } else { %>
+                    <div class="jogos-grid jogos-grid--fixa">
+                <% } %>
                 <% jogos.forEach((jogo) => { %>
-                    <article class="panel-card" style="padding:1rem; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08); border-radius:18px; display:flex; flex-direction:column; justify-content:space-between; height:100%;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; min-height:1.5rem;">
+                    <article class="panel-card" style="position:relative; padding:1rem; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08); border-radius:18px; display:flex; flex-direction:column; justify-content:space-between; height:100%;">
+                        <% if (Boolean(jogo.wo)) { %>
+                            <span style="position:absolute; top:0.6rem; right:0.75rem; font-size:0.55rem; font-weight:800; letter-spacing:0.08em; padding:0.15rem 0.45rem; border-radius:6px; line-height:1.2; background:rgba(245,176,65,0.18); color:#f5b041;">W.O.</span>
+                        <% } %>
+                        <%
+                          const faseRotulo = jogo.fase === 'Fase de Grupos' ? 'Classificatórias'
+                            : jogo.fase === 'Terceiro Lugar' ? 'Disputa de 3°' : (jogo.fase || '');
+                        %>
+                        <div style="display:flex; flex-direction:column; gap:0.35rem; margin-bottom:0.75rem; min-height:1.5rem;">
+                            <% if (faseRotulo) { %>
+                                <span style="align-self:flex-start; font-size:0.55rem; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; padding:0.15rem 0.45rem; border-radius:6px; line-height:1.2; background:rgba(236,228,45,0.18); color:#ece42d;"><%= faseRotulo %></span>
+                            <% } %>
                             <div style="font-size:0.75rem; color:#cfd8dc; text-transform:uppercase; letter-spacing:0.08em; line-height:1.3;"><%= jogo.modalidade %> · <%= jogo.genero %></div>
                         </div>
 
                         <div style="display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); gap:0.75rem; align-items:center; flex:1;">
                             <div style="text-align:center; min-width:0;">
                                 <img src="<%= jogo.fotoCasa || '/imagens/avatar.svg' %>" alt="Foto do campus <%= jogo.casa %>" style="width:48px; height:48px; object-fit:cover; border-radius:50%; margin:0 auto 0.55rem; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.08); display:block;">
-                                <div style="font-size:0.75rem; color:#fff; font-weight:600; line-height:1.2; word-break:break-word;"><%= jogo.casa %></div>
+                                <div style="font-size:0.75rem; color:#fff; font-weight:600; line-height:1.2; word-break:break-word;"><%= (jogo.casa) ? jogo.casa : (jogo.rotuloCasa || 'A definir') %></div>
                             </div>
 
                             <div style="display:flex; flex-direction:column; gap:0.25rem; justify-items:center; text-align:center; align-items:center; flex-shrink:0;">
                                 <% const temPlacar = jogo.status && jogo.status !== 'Agendado' && (Number(jogo.placar_casa) > 0 || Number(jogo.placar_fora) > 0 || jogo.status === 'Encerrado' || jogo.status === 'Em Andamento'); %>
-                                <% const ehWO = Boolean(jogo.wo); %>
-                                <% if (ehWO) { %>
-                                    <% const nomeVencedor = jogo.vencedor_campus_id === jogo.campus_1_id ? jogo.casa : (jogo.vencedor_campus_id === jogo.campus_2_id ? jogo.fora : ''); %>
-                                    <div style="font-size:1.05rem; font-weight:800; color:#f5b041; line-height:1.2; letter-spacing:0.02em;">W.O.</div>
-                                    <% if (nomeVencedor) { %>
-                                        <div style="font-size:0.6rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:6px; line-height:1.2; background:rgba(245,176,65,0.18); color:#f5b041; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><%= nomeVencedor %> venceu</div>
-                                    <% } else { %>
-                                        <div style="font-size:0.6rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:6px; line-height:1.2; background:rgba(245,176,65,0.18); color:#f5b041;">Walk Over</div>
-                                    <% } %>
-                                <% } else if (temPlacar) { %>
+                                <% if (temPlacar) { %>
                                     <% const ehVolei = jogo.sets && jogo.sets.length > 0; %>
                                     <% if (ehVolei) { %>
                                         <%
@@ -493,6 +544,13 @@
                                             <span><%= jogo.placar_fora %></span>
                                         </div>
                                     <% } %>
+                                    <%
+                                      const temDisputa = jogo.disputa_pontos_1 != null && jogo.disputa_pontos_2 != null
+                                        && Number(jogo.disputa_pontos_1) !== Number(jogo.disputa_pontos_2);
+                                    %>
+                                    <% if (temDisputa) { %>
+                                        <div style="font-size:0.6rem; font-weight:700; color:#f5b041; line-height:1.2; margin-top:0.2rem;">Pênaltis <%= jogo.disputa_pontos_1 %>-<%= jogo.disputa_pontos_2 %></div>
+                                    <% } %>
                                     <div style="font-size:0.6rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:6px; line-height:1.2; margin-top:0.2rem;
                                         <%= jogo.status === 'Encerrado' ? 'background:rgba(88,214,141,0.18); color:#58d68d;' : 'background:rgba(241,196,39,0.18); color:#f5b041;' %>
                                     "><%= jogo.status %></div>
@@ -505,12 +563,94 @@
 
                             <div style="text-align:center; min-width:0;">
                                 <img src="<%= jogo.fotoFora || '/imagens/avatar.svg' %>" alt="Foto do campus <%= jogo.fora %>" style="width:48px; height:48px; object-fit:cover; border-radius:50%; margin:0 auto 0.55rem; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.08); display:block;">
-                                <div style="font-size:0.75rem; color:#fff; font-weight:600; line-height:1.2; word-break:break-word;"><%= jogo.fora %></div>
+                                <div style="font-size:0.75rem; color:#fff; font-weight:600; line-height:1.2; word-break:break-word;"><%= (jogo.fora) ? jogo.fora : (jogo.rotuloFora || 'A definir') %></div>
                             </div>
                         </div>
                     </article>
                 <% }); %>
+                <% if (esporteAtivo) { %>
+                        </div>
+                        <button type="button" class="carrossel-btn carrossel-proximo" aria-label="Próximo jogo">&#10095;</button>
+                        <div class="carrossel-dots"></div>
+                    </div>
+                <% } else { %>
             </div>
+                <% } %>
+        <% } else { %>
+            <article class="panel-card" style="text-align:center; padding:1.5rem;">
+                <p class="panel-subtitle" style="margin:0;">Nenhum jogo encontrado para este filtro.</p>
+            </article>
         <% } %>
-    </div>
+        </div>
+    </details>
+
+    <script>
+        (function () {
+            var car = document.getElementById('carrosselJogos');
+            if (!car) return;
+            var trilho = car.querySelector('.carrossel-trilho');
+            var anterior = car.querySelector('.carrossel-anterior');
+            var proximo = car.querySelector('.carrossel-proximo');
+            var dotsCaixa = car.querySelector('.carrossel-dots');
+            var mqlDesktop = window.matchMedia('(min-width: 768px) and (max-width: 1023.98px)');
+            var slides = Array.prototype.slice.call(trilho.children);
+            if (!slides.length) return;
+            var dots = [];
+            slides.forEach(function (_, idx) {
+                var b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'carrossel-dot';
+                b.setAttribute('aria-label', 'Ir para o jogo ' + (idx + 1));
+                b.addEventListener('click', function () { irPara(idx); });
+                dotsCaixa.appendChild(b);
+                dots.push(b);
+            });
+            function vertical() { return mqlDesktop.matches; }
+            function indice() {
+                var atual = 0, menor = Infinity;
+                slides.forEach(function (s, k) {
+                    var d = vertical()
+                        ? Math.abs(s.offsetTop - trilho.scrollTop)
+                        : Math.abs(s.offsetLeft - trilho.scrollLeft);
+                    if (d < menor) { menor = d; atual = k; }
+                });
+                return atual;
+            }
+            function irPara(i) {
+                var alvo = slides[Math.min(slides.length - 1, Math.max(0, i))];
+                if (!alvo) return;
+                if (vertical()) trilho.scrollTo({ top: alvo.offsetTop, behavior: 'smooth' });
+                else trilho.scrollTo({ left: alvo.offsetLeft, behavior: 'smooth' });
+            }
+            function aplicarModo() {
+                anterior.textContent = vertical() ? '\u25B2' : '\u276E';
+                proximo.textContent = vertical() ? '\u25BC' : '\u276F';
+                if (vertical()) {
+                    var h = slides[0].offsetHeight || 170;
+                    var estilos = window.getComputedStyle(trilho);
+                    var g = parseFloat(estilos.rowGap || estilos.gap) || 16;
+                    trilho.style.height = Math.round(h * 4 + g * 3 + h * 0.35) + 'px';
+                } else {
+                    trilho.style.height = '';
+                }
+                atualizar();
+            }
+            function atualizar() {
+                var i = indice();
+                dots.forEach(function (d, k) { d.classList.toggle('ativo', k === i); });
+                anterior.disabled = i <= 0;
+                proximo.disabled = i >= slides.length - 1;
+            }
+            anterior.addEventListener('click', function () { irPara(indice() - 1); });
+            proximo.addEventListener('click', function () { irPara(indice() + 1); });
+            var t = null;
+            trilho.addEventListener('scroll', function () {
+                if (t) clearTimeout(t);
+                t = setTimeout(atualizar, 80);
+            }, { passive: true });
+            window.addEventListener('resize', aplicarModo);
+            if (mqlDesktop.addEventListener) mqlDesktop.addEventListener('change', aplicarModo);
+            aplicarModo();
+        })();
+    </script>
 </main>

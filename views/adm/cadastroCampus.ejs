@@ -109,7 +109,7 @@
 
       <div style="display:grid; gap:0.9rem;">
         <% (campi || []).forEach((campus) => { %>
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:1rem; border-radius:16px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08);">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:1rem; border-radius:16px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); flex-wrap:wrap;">
             <div>
               <strong><%= campus.nomeExibicao %></strong>
               <p style="margin:0.25rem 0 0; color:rgba(255,255,255,0.72);">E-mail: <%= campus.email %></p>

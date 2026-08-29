@@ -115,7 +115,7 @@ CREATE TABLE jogos (
     id INT AUTO_INCREMENT PRIMARY KEY,
     modalidade_id INT NOT NULL,
     chave_id INT DEFAULT NULL, -- Facilitador direto para carregar a tabela daquele grupo específico
-    fase ENUM('Fase de Grupos', 'Oitavas', 'Quartas', 'Semifinal', 'Final', 'Bateria Única', 'Eliminatória') NOT NULL,
+    fase ENUM('Fase de Grupos', 'Oitavas', 'Quartas', 'Semifinal', 'Final', 'Bateria Única', 'Eliminatória', 'Terceiro Lugar') NOT NULL,
     rodada INT NOT NULL DEFAULT 1,
     
     -- Participantes Coletivos
@@ -126,7 +126,7 @@ CREATE TABLE jogos (
     atleta_1_id INT DEFAULT NULL,
     atleta_2_id INT DEFAULT NULL,
 
-    data_hora DATETIME NOT NULL,
+    data_hora DATETIME NULL, -- Aceita NULL: jogos de eliminatória nascem sem data definida (admin define depois)
     local_jogo VARCHAR(100) NOT NULL,
     status ENUM('Agendado', 'Em Andamento', 'Encerrado', 'Cancelado') DEFAULT 'Agendado',
     
@@ -136,6 +136,20 @@ CREATE TABLE jogos (
     
     -- Walk Over
     wo TINYINT(1) DEFAULT 0,
+
+    -- Publicação no calendário público
+    publicado TINYINT(1) DEFAULT 0,
+
+    -- Subcategoria do jogo (tênis de mesa: individual/dupla)
+    sub_categoria VARCHAR(20) DEFAULT 'geral',
+
+    -- Mata-mata/Eliminatória: rótulo do confronto pendente ('1A', '2C', 'V17' = vencedor do jogo 17,
+    -- 'D17' = derrotado do jogo 17, 'T1' = melhor terceiro) e numeração contínua da modalidade
+    rotulo_casa VARCHAR(24) DEFAULT NULL,
+    rotulo_fora VARCHAR(24) DEFAULT NULL,
+    numero_jogo INT DEFAULT NULL,
+    disputa_pontos_1 INT DEFAULT NULL,
+    disputa_pontos_2 INT DEFAULT NULL,
     
     FOREIGN KEY (modalidade_id) REFERENCES modalidades(id) ON DELETE CASCADE,
     FOREIGN KEY (chave_id) REFERENCES chaves(id) ON DELETE SET NULL,

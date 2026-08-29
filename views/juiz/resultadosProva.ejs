@@ -2,7 +2,6 @@
   <div class="profile-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
     <div>
       <h1 style="font-size:1.3rem; margin:0;"><%= prova.nome %></h1>
-      <p class="panel-subtitle" style="margin:0.2rem 0 0;"><%= prova.modalidade_nome %> · <%= prova.tipo_resultado === 'tempo' ? '⏱ Tempo' : '📏 Distância' %></p>
     </div>
     <a href="/juiz/<%= encodeURIComponent(esporte) %>/resultados" style="font-size:0.8rem; padding:0.4rem 0.8rem; border-radius:999px; text-decoration:none; background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.7); border:1px solid rgba(255,255,255,0.1);">← Voltar</a>
   </div>
@@ -14,76 +13,389 @@
     <div class="alert alert-danger" style="margin-top:1rem;"><%= mensagemErro %></div>
   <% } %>
 
-  <form method="POST" action="/juiz/<%= encodeURIComponent(esporte) %>/resultados/salvar-prova/<%= prova.id %>" style="margin-top:1.25rem;">
-    <div style="overflow-x:auto;">
-      <table style="width:100%; border-collapse:collapse; font-size:0.8rem;">
-        <thead>
-          <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
-            <th style="padding:0.5rem; text-align:left; color:rgba(255,255,255,0.6);">Atleta</th>
-            <th style="padding:0.5rem; text-align:left; color:rgba(255,255,255,0.6);">Campus</th>
-            <% if (prova.tipo_resultado === 'tempo') { %>
-              <th style="padding:0.5rem; text-align:center; color:rgba(255,255,255,0.6);">Tempo (mm:ss.ms)</th>
-            <% } else { %>
-              <th style="padding:0.5rem; text-align:center; color:rgba(255,255,255,0.6);">Resultado (m/cm)</th>
-            <% } %>
-            <th style="padding:0.5rem; text-align:center; color:#58d68d; font-weight:700;">Posição</th>
-            <th style="padding:0.5rem; text-align:center; color:#58d68d; font-weight:700;">PTS</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% atletas.forEach((atleta) => {
-            const r = (resultados || []).find(x => x.atleta_id === atleta.id) || {};
-          %>
-            <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
-              <td style="padding:0.45rem 0.5rem; color:#fff; font-weight:600;"><%= atleta.nome %></td>
-              <td style="padding:0.45rem 0.5rem; color:rgba(255,255,255,0.7);"><%= atleta.campus_nome %></td>
-              <td style="padding:0.3rem; text-align:center;">
-                <input type="hidden" name="resultados[<%= atleta.id %>][atleta_id]" value="<%= atleta.id %>">
-                <% if (prova.tipo_resultado === 'tempo') { %>
-                  <input type="text" name="resultados[<%= atleta.id %>][resultado_tempo]" value="<%= r.resultado_tempo || '' %>" placeholder="00:00.000"
-                         style="width:110px; padding:0.3rem; border-radius:6px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#fff; font-size:0.85rem; text-align:center; font-family:monospace;">
-                <% } else { %>
-                  <input type="number" name="resultados[<%= atleta.id %>][resultado_medida]" value="<%= r.resultado_medida || '' %>" step="0.01" min="0" placeholder="0.00"
-                         style="width:80px; padding:0.3rem; border-radius:6px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#fff; font-size:0.85rem; text-align:center;">
-                <% } %>
-              </td>
-              <td style="padding:0.3rem; text-align:center;">
-                <input type="number" name="resultados[<%= atleta.id %>][posicao_final]" value="<%= r.posicao_final || '' %>" min="1" max="8" placeholder="—"
-                       class="posicao-input"
-                       data-atleta-id="<%= atleta.id %>"
-                       style="width:55px; padding:0.3rem; border-radius:6px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#58d68d; font-weight:700; font-size:0.85rem; text-align:center;">
-              </td>
-              <td style="padding:0.3rem; text-align:center;">
-                <span class="pontos-display" data-atleta-id="<%= atleta.id %>" style="font-weight:700; color:#58d68d; font-size:0.9rem;"><%= r.pontos || 0 %></span>
-              </td>
-            </tr>
-          <% }) %>
-        </tbody>
-      </table>
-    </div>
+  <%
+    // Organiza os resultados salvos por etapa (prova / final) e atleta
+    const resultadosEtapa = { prova: {}, final: {} };
+    (resultados || []).forEach((r) => {
+      const etapa = String(r.etapa || 'prova') === 'final' ? 'final' : 'prova';
+      resultadosEtapa[etapa][Number(r.atleta_id)] = r;
+    });
 
-    <div style="margin-top:1.25rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
-      <div style="font-size:0.75rem; color:rgba(255,255,255,0.5);">
-        Posições: 1º=13pts · 2º=8pts · 3º=6pts · 4º=5pts · 5º=4pts · 6º=3pts · 7º=2pts · 8º=1pt
-      </div>
-      <button type="submit" class="premium-action-btn" style="padding:0.5rem 1.5rem;">Salvar Resultados</button>
+    const temBaterias = formatoProva === 'final_por_tempo' || formatoProva === 'baterias_com_final';
+    const temFinal = formatoProva === 'baterias_com_final';
+    const atletasComFinal = atletas.filter((atleta) => resultadosEtapa.final[Number(atleta.id)]);
+    const estiloInput = 'padding:0.35rem; border-radius:6px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#fff; font-size:0.85rem; text-align:center;';
+    const estiloInputTempo = estiloInput + ' font-family:monospace;';
+  %>
+
+  <% if (typeof semInscritosNaProva !== 'undefined' && semInscritosNaProva) { %>
+    <div class="mini-card" style="text-align:center; margin-top:1.25rem;">
+      <p class="panel-subtitle">Nenhum atleta inscrito nesta prova.</p>
     </div>
+  <% } else if (atletas && atletas.length > 0) { %>
+
+  <form method="POST" action="/juiz/<%= encodeURIComponent(esporte) %>/resultados/salvar-prova/<%= prova.id %>" style="margin-top:1.25rem;">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+    <% if (!temBaterias) { %>
+      <!-- ===== SÉRIE ÚNICA (posição manual) ===== -->
+      <div style="overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; font-size:0.8rem;">
+          <thead>
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+              <th style="padding:0.5rem; text-align:left; color:rgba(255,255,255,0.6);">Atleta</th>
+              <th style="padding:0.5rem; text-align:left; color:rgba(255,255,255,0.6);">Campus</th>
+              <% if (prova.tipo_resultado === 'tempo') { %>
+                <th style="padding:0.5rem; text-align:center; color:rgba(255,255,255,0.6);">Tempo (segundos)</th>
+              <% } else { %>
+                <th style="padding:0.5rem; text-align:center; color:rgba(255,255,255,0.6);">Resultado</th>
+              <% } %>
+              <th style="padding:0.5rem; text-align:center; color:#58d68d; font-weight:700;">Posição</th>
+              <th style="padding:0.5rem; text-align:center; color:#58d68d; font-weight:700;">PTS</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% atletas.forEach((atleta) => {
+              const r = resultadosEtapa.prova[Number(atleta.id)] || {};
+            %>
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                <td style="padding:0.45rem 0.5rem; color:#fff; font-weight:600;"><%= atleta.nome %></td>
+                <td style="padding:0.45rem 0.5rem; color:rgba(255,255,255,0.7);"><%= atleta.campus_nome %></td>
+                <td style="padding:0.3rem; text-align:center;">
+                  <input type="hidden" name="resultados[<%= atleta.id %>][atleta_id]" value="<%= atleta.id %>">
+                  <% if (prova.tipo_resultado === 'tempo') { %>
+                    <input type="text" name="resultados[<%= atleta.id %>][resultado_tempo]" value="<%= r.resultado_tempo_exibicao || '' %>" placeholder="10,500"
+                           class="pix-tempo" inputmode="numeric"
+                           style="<%= estiloInputTempo %> width:110px;">
+                    <span class="tempo-hint" style="display:block; margin-top:0.15rem; font-size:0.6rem; color:rgba(255,255,255,0.45); font-family:monospace; min-height:0.8rem;"></span>
+                  <% } else { %>
+                    <input type="text" name="resultados[<%= atleta.id %>][resultado_medida]" value="<%= r.resultado_medida != null ? r.resultado_medida : '' %>" placeholder="5,55"
+                           class="pix-medida" inputmode="decimal"
+                           style="<%= estiloInput %> width:80px;">
+                  <% } %>
+                </td>
+                <td style="padding:0.3rem; text-align:center;">
+                  <input type="number" name="resultados[<%= atleta.id %>][posicao_final]" value="<%= r.posicao_final != null ? r.posicao_final : '' %>" min="1" placeholder="—"
+                         class="posicao-input"
+                         data-atleta-id="<%= atleta.id %>"
+                         style="<%= estiloInput %> width:55px; color:#58d68d; font-weight:700;">
+                </td>
+                <td style="padding:0.3rem; text-align:center;">
+                  <span class="pontos-display" data-atleta-id="<%= atleta.id %>" style="font-weight:700; color:#58d68d; font-size:0.9rem;"><%= r.pontos || 0 %></span>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:1.25rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+        <div style="font-size:0.75rem; color:rgba(255,255,255,0.5);">
+          Somente do 1º ao 8º lugar pontuam (13, 8, 6, 5, 4, 3, 2, 1 pts). Do 9º em diante o resultado é registrado com 0 pt.
+        </div>
+        <button type="submit" class="premium-action-btn" style="padding:0.5rem 1.5rem;">Salvar Resultados</button>
+      </div>
+
+    <% } else { %>
+
+      <!-- ===== BATERIAS ===== -->
+      <h2 style="font-size:1rem; margin:0.25rem 0 0.5rem;">Baterias</h2>
+      <p style="font-size:0.75rem; color:rgba(255,255,255,0.5); margin:0 0 0.75rem;">
+        Informe o número da bateria de cada atleta e o tempo. A posição e os pontos são calculados automaticamente
+        <%= temFinal ? 'pela Final.' : 'pelos melhores tempos entre todas as baterias (final por tempo).' %>
+      </p>
+      <div style="overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; font-size:0.8rem;">
+          <thead>
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+              <th style="padding:0.5rem; text-align:left; color:rgba(255,255,255,0.6);">Atleta</th>
+              <th style="padding:0.5rem; text-align:left; color:rgba(255,255,255,0.6);">Campus</th>
+              <th style="padding:0.5rem; text-align:center; color:rgba(255,255,255,0.6);">Bateria</th>
+              <th style="padding:0.5rem; text-align:center; color:rgba(255,255,255,0.6);">Tempo (segundos)</th>
+              <% if (temFinal) { %>
+                <th style="padding:0.5rem; text-align:center; color:#f5b041;">Class. p/ Final</th>
+              <% } else { %>
+                <th style="padding:0.5rem; text-align:center; color:#58d68d;">Posição</th>
+                <th style="padding:0.5rem; text-align:center; color:#58d68d;">PTS</th>
+              <% } %>
+            </tr>
+          </thead>
+          <tbody>
+            <% atletas.forEach((atleta) => {
+              const r = resultadosEtapa.prova[Number(atleta.id)] || {};
+            %>
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                <td style="padding:0.45rem 0.5rem; color:#fff; font-weight:600;"><%= atleta.nome %></td>
+                <td style="padding:0.45rem 0.5rem; color:rgba(255,255,255,0.7);"><%= atleta.campus_nome %></td>
+                <td style="padding:0.3rem; text-align:center;">
+                  <input type="hidden" name="resultados[<%= atleta.id %>][atleta_id]" value="<%= atleta.id %>">
+                  <input type="number" name="resultados[<%= atleta.id %>][numero_bateria]" value="<%= Number(r.numero_bateria) || 1 %>" min="1" placeholder="1"
+                         style="<%= estiloInput %> width:55px;">
+                </td>
+                <td style="padding:0.3rem; text-align:center;">
+                  <input type="text" name="resultados[<%= atleta.id %>][resultado_tempo]" value="<%= r.resultado_tempo_exibicao || '' %>" placeholder="10,500"
+                         class="tempo-input pix-tempo" data-etapa="prova" data-atleta-id="<%= atleta.id %>" inputmode="numeric"
+                         style="<%= estiloInputTempo %> width:110px;">
+                  <span class="tempo-hint" style="display:block; margin-top:0.15rem; font-size:0.6rem; color:rgba(255,255,255,0.45); font-family:monospace; min-height:0.8rem;"></span>
+                </td>
+                <% if (temFinal) { %>
+                  <td style="padding:0.3rem; text-align:center;">
+                    <input type="checkbox" name="resultados[<%= atleta.id %>][classificado_final]" value="1"
+                           <%= resultadosEtapa.final[Number(atleta.id)] ? 'checked' : '' %>
+                           style="width:16px; height:16px; accent-color:#58d68d; cursor:pointer;">
+                  </td>
+                <% } else { %>
+                  <td style="padding:0.3rem; text-align:center;">
+                    <span class="pos-display" data-atleta-id="<%= atleta.id %>" style="font-weight:700; color:#58d68d;"><%= r.posicao_final != null ? r.posicao_final + 'º' : '—' %></span>
+                  </td>
+                  <td style="padding:0.3rem; text-align:center;">
+                    <span class="pontos-display" data-atleta-id="<%= atleta.id %>" style="font-weight:700; color:#58d68d;"><%= r.pontos || 0 %></span>
+                  </td>
+                <% } %>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
+      <% if (temFinal) { %>
+
+        <!-- ===== FINAL (100m rasos) ===== -->
+        <h2 style="font-size:1rem; margin:1.5rem 0 0.5rem;">Final</h2>
+        <% if (atletasComFinal.length > 0) { %>
+          <p style="font-size:0.75rem; color:rgba(255,255,255,0.5); margin:0 0 0.75rem;">
+            Lançe os tempos da Final. A pontuação da prova sai exclusivamente do resultado da Final.
+          </p>
+          <div style="overflow-x:auto; border:1px solid rgba(245,176,65,0.25); border-radius:10px; background:rgba(245,176,65,0.04); padding:0.25rem 0.5rem 0.5rem;">
+            <table style="width:100%; border-collapse:collapse; font-size:0.8rem;">
+              <thead>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+                  <th style="padding:0.5rem; text-align:left; color:rgba(255,255,255,0.6);">Atleta</th>
+                  <th style="padding:0.5rem; text-align:left; color:rgba(255,255,255,0.6);">Campus</th>
+                  <th style="padding:0.5rem; text-align:center; color:rgba(255,255,255,0.6);">Tempo na Final (segundos)</th>
+                  <th style="padding:0.5rem; text-align:center; color:#58d68d;">Posição</th>
+                  <th style="padding:0.5rem; text-align:center; color:#58d68d;">PTS</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% atletasComFinal.forEach((atleta) => {
+                  const rf = resultadosEtapa.final[Number(atleta.id)] || {};
+                %>
+                  <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+                    <td style="padding:0.45rem 0.5rem; color:#fff; font-weight:600;"><%= atleta.nome %></td>
+                    <td style="padding:0.45rem 0.5rem; color:rgba(255,255,255,0.7);"><%= atleta.campus_nome %></td>
+                    <td style="padding:0.3rem; text-align:center;">
+                      <input type="text" name="resultados[<%= atleta.id %>][resultado_tempo_final]" value="<%= rf.resultado_tempo_exibicao || '' %>" placeholder="10,500"
+                             class="tempo-input pix-tempo" data-etapa="final" data-atleta-id="<%= atleta.id %>" inputmode="numeric"
+                             style="<%= estiloInputTempo %> width:110px;">
+                      <span class="tempo-hint" style="display:block; margin-top:0.15rem; font-size:0.6rem; color:rgba(255,255,255,0.45); font-family:monospace; min-height:0.8rem;"></span>
+                    </td>
+                    <td style="padding:0.3rem; text-align:center;">
+                      <span class="pos-display" data-etapa="final" data-atleta-id="<%= atleta.id %>" style="font-weight:700; color:#58d68d;"><%= rf.posicao_final != null ? rf.posicao_final + 'º' : '—' %></span>
+                    </td>
+                    <td style="padding:0.3rem; text-align:center;">
+                      <span class="pontos-display" data-etapa="final" data-atleta-id="<%= atleta.id %>" style="font-weight:700; color:#58d68d;"><%= rf.pontos || 0 %></span>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } else { %>
+          <div class="mini-card" style="text-align:center;">
+            <p class="panel-subtitle" style="margin:0.5rem 0;">Marque os atletas classificados nas baterias e salve para liberar a tabela da Final.</p>
+          </div>
+        <% } %>
+
+        <div style="margin-top:1.25rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+          <div style="font-size:0.75rem; color:rgba(255,255,255,0.5);">
+            Somente do 1º ao 8º lugar da Final pontuam (13, 8, 6, 5, 4, 3, 2, 1 pts).
+          </div>
+          <button type="submit" class="premium-action-btn" style="padding:0.5rem 1.5rem;">Salvar Resultados</button>
+        </div>
+
+      <% } else { %>
+
+        <div style="margin-top:1.25rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+          <div style="font-size:0.75rem; color:rgba(255,255,255,0.5);">
+            Final por Tempo: a classificação geral considera o melhor tempo de cada atleta entre todas as baterias. Do 9º em diante, 0 pt.
+          </div>
+          <button type="submit" class="premium-action-btn" style="padding:0.5rem 1.5rem;">Salvar Resultados</button>
+        </div>
+
+      <% } %>
+    <% } %>
   </form>
+  <% } else { %>
+    <div class="mini-card" style="text-align:center; margin-top:1.25rem;">
+      <p class="panel-subtitle">Nenhum atleta inscrito nesta modalidade.</p>
+    </div>
+  <% } %>
 </section>
 
 <script>
   (function() {
-    const PONTOS = [13, 8, 6, 5, 4, 3, 2, 1];
-    const inputs = document.querySelectorAll('.posicao-input');
-    inputs.forEach(function(input) {
+    var PONTOS = [13, 8, 6, 5, 4, 3, 2, 1];
+
+    function converterTempoParaMs(valor) {
+      var texto = String(valor || '').trim();
+      if (!texto) return null;
+
+      var mCompleto = texto.match(/^(?:(\d{1,2}):)?(\d{1,3}):(\d{1,2})(?:[.,](\d{1,3}))?$/);
+      if (mCompleto) {
+        var horas = Number(mCompleto[1] || 0);
+        var minutos = Number(mCompleto[2]);
+        var segundos = Number(mCompleto[3]);
+        var ms = mCompleto[4] ? Number(mCompleto[4].padEnd(3, '0')) : 0;
+        return ((horas * 60 + minutos) * 60 + segundos) * 1000 + ms;
+      }
+
+      var mSegundos = texto.match(/^(\d{1,4})(?:[.,](\d{1,3}))?$/);
+      if (mSegundos) {
+        return Number(mSegundos[1]) * 1000 + (mSegundos[2] ? Number(mSegundos[2].padEnd(3, '0')) : 0);
+      }
+
+      return null;
+    }
+
+    /* ===== Máscara estilo Pix: só dígitos; vírgula e separador de milhar automáticos ===== */
+    function apenasDigitos(valor) {
+      return String(valor || '').replace(/\D/g, '');
+    }
+
+    function casasDoCampo(campo) {
+      return campo.classList.contains('pix-tempo') ? 3 : 2;
+    }
+
+    function formatarEstiloPix(digitos, casas) {
+      digitos = String(digitos || '').replace(/^0+(?=\d)/, '');
+      if (!digitos) return '';
+      while (digitos.length <= casas) digitos = '0' + digitos;
+      var parteInteira = digitos.slice(0, digitos.length - casas);
+      var parteDecimal = digitos.slice(digitos.length - casas);
+      parteInteira = parteInteira.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      return parteInteira + ',' + parteDecimal;
+    }
+
+    function aplicarMascara(campo) {
+      var bruto = String(campo.value || '');
+      if (campo.classList.contains('pix-tempo') && bruto.indexOf(':') !== -1) return;
+      var limite = campo.classList.contains('pix-tempo') ? 7 : 6;
+      campo.value = formatarEstiloPix(apenasDigitos(bruto).slice(0, limite), casasDoCampo(campo));
+    }
+
+    function valorInicialParaMascara(campo) {
+      var bruto = String(campo.value || '').trim();
+      if (!bruto) return '';
+      if (campo.classList.contains('pix-tempo')) {
+        var ms = converterTempoParaMs(bruto);
+        return ms != null ? formatarEstiloPix(String(Math.round(ms)), 3) : bruto;
+      }
+      var numero = parseFloat(bruto.replace(',', '.'));
+      return isFinite(numero) ? formatarEstiloPix(String(Math.round(numero * 100)), 2) : bruto;
+    }
+
+    function formatarCronometro(ms) {
+      var horas = Math.floor(ms / 3600000);
+      var minutos = Math.floor((ms % 3600000) / 60000);
+      var segundos = Math.floor((ms % 60000) / 1000);
+      var milesimos = ms % 1000;
+      var pad2 = function(v) { return String(v).padStart(2, '0'); };
+      return (horas > 0 ? horas + ':' : '') + pad2(minutos) + ':' + pad2(segundos) + '.' + String(milesimos).padStart(3, '0');
+    }
+
+    function atualizarDicaTempo(campo) {
+      var dica = campo.parentElement.querySelector('.tempo-hint');
+      if (!dica) return;
+      var ms = converterTempoParaMs(campo.value);
+      dica.textContent = ms != null ? '= ' + formatarCronometro(ms) : '';
+    }
+
+    /* Inicializa campos já preenchidos com valores salvos */
+    document.querySelectorAll('.pix-tempo, .pix-medida').forEach(function(campo) {
+      if (campo.value) {
+        campo.value = valorInicialParaMascara(campo);
+      }
+      atualizarDicaTempo(campo);
+    });
+
+    /* Série única: prévia dos pontos conforme a posição digitada */
+    document.querySelectorAll('.posicao-input').forEach(function(input) {
       input.addEventListener('input', function() {
-        const atletaId = this.getAttribute('data-atleta-id');
-        const pos = parseInt(this.value, 10);
-        const display = document.querySelector('.pontos-display[data-atleta-id="' + atletaId + '"]');
+        var atletaId = this.getAttribute('data-atleta-id');
+        var pos = parseInt(this.value, 10);
+        var display = document.querySelector('.pontos-display[data-atleta-id="' + atletaId + '"]');
         if (display) {
           display.textContent = (pos >= 1 && pos <= PONTOS.length) ? PONTOS[pos - 1] : 0;
         }
       });
     });
+
+    /* Baterias / Final: ranking automático pelo tempo */
+    function recalcularRanking(etapa) {
+      var entradas = [];
+      document.querySelectorAll('.tempo-input[data-etapa="' + etapa + '"]').forEach(function(input) {
+        var ms = converterTempoParaMs(input.value);
+        entradas.push({
+          input: input,
+          atletaId: input.getAttribute('data-atleta-id'),
+          valido: ms !== null,
+          ms: ms === null ? Infinity : ms
+        });
+      });
+      if (!entradas.length) return;
+
+      entradas.sort(function(a, b) {
+        if (a.valido !== b.valido) return a.valido ? -1 : 1;
+        return a.ms - b.ms;
+      });
+
+      var ordem = {};
+      entradas.forEach(function(item, indice) {
+        ordem[item.atletaId] = item.valido ? (indice + 1) : null;
+      });
+
+      entradas.forEach(function(item) {
+        var container = item.input.closest('tr');
+        var posDisplay = container ? container.querySelector('.pos-display[data-atleta-id="' + item.atletaId + '"]') : null;
+        var pontosDisplay = container ? container.querySelector('.pontos-display[data-atleta-id="' + item.atletaId + '"]') : null;
+        var pos = ordem[item.atletaId];
+        if (posDisplay) posDisplay.textContent = pos ? pos + 'º' : '—';
+        if (pontosDisplay) pontosDisplay.textContent = (pos && pos <= PONTOS.length) ? PONTOS[pos - 1] : 0;
+      });
+    }
+
+    document.querySelectorAll('.pix-tempo').forEach(function(input) {
+      input.addEventListener('input', function() {
+        aplicarMascara(this);
+        atualizarDicaTempo(this);
+        recalcularRanking(this.getAttribute('data-etapa'));
+      });
+    });
+
+    document.querySelectorAll('.pix-medida').forEach(function(input) {
+      input.addEventListener('input', function() {
+        aplicarMascara(this);
+      });
+    });
+
+    /* Antes de enviar, converte "10,500" -> "10.500" e "5,55" -> "5.55" */
+    var formPrincipal = document.querySelector('form');
+    if (formPrincipal) {
+      formPrincipal.addEventListener('submit', function() {
+        document.querySelectorAll('.pix-tempo').forEach(function(campo) {
+          var bruto = String(campo.value || '').trim();
+          if (!bruto) { campo.value = ''; return; }
+          var ms = converterTempoParaMs(bruto);
+          campo.value = ms != null ? (ms / 1000).toFixed(3) : bruto;
+        });
+        document.querySelectorAll('.pix-medida').forEach(function(campo) {
+          var bruto = String(campo.value || '').trim();
+          if (!bruto) { campo.value = ''; return; }
+          var numero = parseFloat(bruto.replace(',', '.'));
+          campo.value = isFinite(numero) ? String(numero) : bruto;
+        });
+      });
+    }
   })();
 </script>

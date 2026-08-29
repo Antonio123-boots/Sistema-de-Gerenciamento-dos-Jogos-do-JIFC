@@ -88,6 +88,57 @@ async function ensureJogoWoColumn() {
   }
 }
 
+let mataMataGarantido = false;
+
+async function ensureMataMataColumns() {
+  if (mataMataGarantido) return;
+
+  const [columns] = await pool.query(
+    "SELECT COLUMN_NAME AS column_name, IS_NULLABLE AS is_nullable, COLUMN_TYPE AS column_type FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'jogos'"
+  );
+  const existing = new Set(columns.map((column) => column.column_name));
+
+  const alterStatements = [
+    ['rotulo_casa', "ALTER TABLE jogos ADD COLUMN rotulo_casa VARCHAR(24) DEFAULT NULL"],
+    ['rotulo_fora', "ALTER TABLE jogos ADD COLUMN rotulo_fora VARCHAR(24) DEFAULT NULL"],
+    ['numero_jogo', "ALTER TABLE jogos ADD COLUMN numero_jogo INT DEFAULT NULL"]
+  ];
+
+  for (const [columnName, statement] of alterStatements) {
+    if (existing.has(columnName)) {
+      continue;
+    }
+    try {
+      await pool.query(statement);
+      existing.add(columnName);
+    } catch (error) {
+      if (!/Duplicate column|already exists/i.test(error.message || '')) {
+        throw error;
+      }
+    }
+  }
+
+  const dataHora = columns.find((column) => column.column_name === 'data_hora');
+  if (dataHora && String(dataHora.is_nullable).toUpperCase() === 'NO') {
+    await pool.query('ALTER TABLE jogos MODIFY COLUMN data_hora DATETIME NULL');
+  }
+
+  const faseColumn = columns.find((column) => column.column_name === 'fase');
+  if (faseColumn && !String(faseColumn.column_type || '').includes('Terceiro Lugar')) {
+    await pool.query(
+      "ALTER TABLE jogos MODIFY COLUMN fase ENUM('Fase de Grupos','Oitavas','Quartas','Semifinal','Final','Bateria Única','Eliminatória','Terceiro Lugar') NOT NULL"
+    );
+  }
+
+  for (const nome of ['disputa_pontos_1', 'disputa_pontos_2']) {
+    if (!columns.find((column) => column.column_name === nome)) {
+      await pool.query(`ALTER TABLE jogos ADD COLUMN ${nome} INT DEFAULT NULL`);
+    }
+  }
+
+  mataMataGarantido = true;
+}
+
 let subCategoriaGarantida = false;
 
 async function garantirSubCategoriaChavesJogos() {
@@ -209,6 +260,62 @@ async function ensureClassificacaoCartoesColumns() {
   }
 }
 
+async function ensureProvasFormatoColumn() {
+  try {
+    await pool.query("ALTER TABLE provas ADD COLUMN formato VARCHAR(20) DEFAULT 'direta'");
+  } catch (error) {
+    if (!/Duplicate column|already exists/i.test(error.message || '')) {
+      throw error;
+    }
+  }
+}
+
+let bateriasGarantidas = false;
+
+/* Colunas de baterias nas corridas: número da bateria e etapa (prova/final).
+   O índice único passa a permitir um resultado por etapa do atleta na mesma prova
+   (bateria + final no 100m rasos). */
+async function garantirColunasBateriasResultados() {
+  if (bateriasGarantidas) return;
+
+  const alterStatements = [
+    "ALTER TABLE resultados_atletismo ADD COLUMN numero_bateria INT DEFAULT 1",
+    "ALTER TABLE resultados_atletismo ADD COLUMN etapa VARCHAR(10) DEFAULT 'prova'"
+  ];
+
+  for (const statement of alterStatements) {
+    try {
+      await pool.query(statement);
+    } catch (error) {
+      if (!/Duplicate column|already exists/i.test(error.message || '')) {
+        throw error;
+      }
+    }
+  }
+
+  try {
+    await pool.query('UPDATE resultados_atletismo SET etapa = \'prova\' WHERE etapa IS NULL OR etapa = \'\'');
+  } catch (_) {}
+
+  try {
+    await pool.query('ALTER TABLE resultados_atletismo DROP INDEX uq_prova_atleta');
+  } catch (error) {
+    if (!/check that column\/key|exists/i.test(error.message || '') && !/Unknown|doesn.t exist/i.test(error.message || '')) {
+      throw error;
+    }
+  }
+
+  try {
+    await pool.query('ALTER TABLE resultados_atletismo ADD UNIQUE KEY uq_prova_atleta_etapa (prova_id, atleta_id, etapa)');
+  } catch (error) {
+    if (!/Duplicate key name|already exists/i.test(error.message || '')) {
+      throw error;
+    }
+  }
+
+  bateriasGarantidas = true;
+}
+
 async function ensureProvasTable() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS provas (
@@ -232,9 +339,11 @@ async function ensureResultadosAtletismoTable() {
       resultado_medida DECIMAL(10,2) DEFAULT NULL,
       posicao_final INT DEFAULT NULL,
       pontos INT DEFAULT 0,
+      numero_bateria INT DEFAULT 1,
+      etapa VARCHAR(10) DEFAULT 'prova',
       FOREIGN KEY (prova_id) REFERENCES provas(id) ON DELETE CASCADE,
       FOREIGN KEY (atleta_id) REFERENCES atletas(id) ON DELETE CASCADE,
-      UNIQUE KEY uq_prova_atleta (prova_id, atleta_id)
+      UNIQUE KEY uq_prova_atleta_etapa (prova_id, atleta_id, etapa)
     )
   `);
 
@@ -330,35 +439,80 @@ async function sincronizarProvasAtletismoDoState() {
 }
 
 /* Garante que as 15 provas padrão de atletismo existam no banco para cada modalidade
-   (Masculino/Feminino). O juiz NÃO cadastra provas — apenas lança resultados. */
+   (Masculino/Feminino). O juiz NÃO cadastra provas — apenas lança resultados.
+   Também define/atualiza o formato das provas padrão (baterias nas corridas,
+   sendo o 100m rasos o único com final). */
 async function sincronizarProvasPadraoAtletismo() {
   try {
-    const { PROVAS_ATLETISMO_EXIBICAO, MAPA_PROVAS_INSCRICAO, normalizarTextoProva } = require('../utils/atletismoProvas');
+    const {
+      PROVAS_ATLETISMO_EXIBICAO,
+      MAPA_PROVAS_INSCRICAO,
+      normalizarTextoProva,
+      resolverSlugDaProva
+    } = require('../utils/atletismoProvas');
     const [modalidades] = await pool.query("SELECT id FROM modalidades WHERE LOWER(nome) LIKE '%atletismo%'");
     if (!modalidades.length) return;
 
+    /* Gera variações normalizadas do nome ("100m" ≡ "100m rasos") para
+       evitar recriar provas já existentes com grafia diferente. */
+    const gerarVariantesNome = (nomes) => {
+      const conjunto = new Set();
+      (Array.isArray(nomes) ? nomes : []).forEach((nome) => {
+        const norm = normalizarTextoProva(nome);
+        if (!norm) return;
+        conjunto.add(norm);
+        const semRasos = norm.replace(/\brasos\b/g, '').replace(/\s+/g, ' ').trim();
+        if (semRasos) conjunto.add(semRasos);
+      });
+      return conjunto;
+    };
+
+    const definirFormato = (tipoResultado, slugProva) => {
+      if (tipoResultado !== 'tempo') return 'direta';
+      return String(slugProva || '').toLowerCase() === '100m' ? 'baterias_com_final' : 'final_por_tempo';
+    };
+
     for (const modalidade of modalidades) {
-      const [existentes] = await pool.query('SELECT nome FROM provas WHERE modalidade_id = ?', [modalidade.id]);
+      const [existentes] = await pool.query(
+        'SELECT id, nome, tipo_resultado, formato FROM provas WHERE modalidade_id = ?',
+        [modalidade.id]
+      );
+
       const nomesExistentes = new Set();
       existentes.forEach((p) => {
-        nomesExistentes.add(normalizarTextoProva(p.nome));
-        (MAPA_PROVAS_INSCRICAO[Object.keys(MAPA_PROVAS_INSCRICAO).find((slug) => (MAPA_PROVAS_INSCRICAO[slug] || []).some((n) => normalizarTextoProva(n) === normalizarTextoProva(p.nome)))] || [])
-          .forEach((n) => nomesExistentes.add(normalizarTextoProva(n)));
+        gerarVariantesNome([p.nome]).forEach((variante) => nomesExistentes.add(variante));
+        Object.keys(MAPA_PROVAS_INSCRICAO).forEach((slug) => {
+          const aceitos = MAPA_PROVAS_INSCRICAO[slug];
+          if (gerarVariantesNome(aceitos).has(normalizarTextoProva(p.nome))) {
+            gerarVariantesNome(aceitos).forEach((variante) => nomesExistentes.add(variante));
+          }
+        });
       });
 
       let inseridas = 0;
       for (let i = 0; i < PROVAS_ATLETISMO_EXIBICAO.length; i++) {
         const prova = PROVAS_ATLETISMO_EXIBICAO[i];
         const aceitos = MAPA_PROVAS_INSCRICAO[prova.slug] || [];
-        if (aceitos.some((nome) => nomesExistentes.has(normalizarTextoProva(nome)))) continue;
+        const variaveisProva = gerarVariantesNome([prova.nome, ...aceitos]);
+        if ([...variaveisProva].some((variante) => nomesExistentes.has(variante))) continue;
 
         const tipoResultado = ['Corrida', 'Revezamento'].includes(prova.grupo) ? 'tempo' : 'medida';
         await pool.query(
-          'INSERT INTO provas (modalidade_id, nome, tipo_resultado, ordem) VALUES (?, ?, ?, ?)',
-          [modalidade.id, prova.nome, tipoResultado, i + 1]
+          'INSERT INTO provas (modalidade_id, nome, tipo_resultado, ordem, formato) VALUES (?, ?, ?, ?, ?)',
+          [modalidade.id, prova.nome, tipoResultado, i + 1, definirFormato(tipoResultado, prova.slug)]
         );
-        aceitos.forEach((nome) => nomesExistentes.add(normalizarTextoProva(nome)));
+        gerarVariantesNome([prova.nome, ...aceitos]).forEach((variante) => nomesExistentes.add(variante));
         inseridas++;
+      }
+
+      // Atualiza o formato das provas padrão já criadas (ex.: corridas passam a ter baterias)
+      for (const p of existentes) {
+        const slugResolvido = resolverSlugDaProva(p.nome);
+        if (!slugResolvido) continue;
+        const formatoEsperado = definirFormato(String(p.tipo_resultado || ''), slugResolvido);
+        if ((p.formato || '') !== formatoEsperado) {
+          await pool.query('UPDATE provas SET formato = ? WHERE id = ?', [formatoEsperado, p.id]);
+        }
       }
 
       if (inseridas > 0) {
@@ -380,7 +534,9 @@ async function ensureSchema() {
   await ensureResultadosPorSetsTable();
   await ensureClassificacaoCartoesColumns();
   await ensureProvasTable();
+  await ensureProvasFormatoColumn();
   await ensureResultadosAtletismoTable();
+  await garantirColunasBateriasResultados();
   await ensureResultadosXadrezTable();
   await ensureAtletasProvasColumn();
   await sincronizarProvasPadraoAtletismo();
@@ -394,4 +550,4 @@ async function ensureSchema() {
   }
 }
 
-module.exports = { ensureSchema, ensureCampusTable, ensureJogoPublicadoColumn, ensureJogoWoColumn, garantirSubCategoriaChavesJogos, ensureJuizModalidadeTable, ensureCartoesTable, ensureResultadosPorSetsTable, ensureClassificacaoCartoesColumns, ensureProvasTable, ensureResultadosAtletismoTable, ensureResultadosXadrezTable, ensureAtletasProvasColumn, sincronizarProvasAtletismoDoState, sincronizarProvasPadraoAtletismo };
+module.exports = { ensureSchema, ensureCampusTable, ensureJogoPublicadoColumn, ensureJogoWoColumn, ensureMataMataColumns, garantirSubCategoriaChavesJogos, ensureJuizModalidadeTable, ensureCartoesTable, ensureResultadosPorSetsTable, ensureClassificacaoCartoesColumns, ensureProvasTable, ensureResultadosAtletismoTable, ensureResultadosXadrezTable, ensureAtletasProvasColumn, sincronizarProvasAtletismoDoState, sincronizarProvasPadraoAtletismo };

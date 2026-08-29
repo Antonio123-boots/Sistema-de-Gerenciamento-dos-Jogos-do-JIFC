@@ -61,8 +61,13 @@
     <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:1rem; margin-top:1.25rem; width:100%;">
       <% jogos.forEach((jogo) => { %>
         <% const temPlacar = jogo.status !== 'Agendado' && (Number(jogo.placar_1) > 0 || Number(jogo.placar_2) > 0 || jogo.status === 'Encerrado' || jogo.status === 'Em Andamento'); %>
-        <% const ehWO = Boolean(jogo.wo); %>
-        <article class="panel-card" style="padding:1rem; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08); border-radius:18px; display:flex; flex-direction:column; justify-content:space-between; height:100%; <%= ehWO ? 'border-color:rgba(245,176,65,0.25);' : (jogo.status === 'Encerrado' ? 'opacity:0.75;' : '') %>">
+        <article class="panel-card" style="position:relative; padding:1rem; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08); border-radius:18px; display:flex; flex-direction:column; justify-content:space-between; height:100%; <%= jogo.status === 'Encerrado' ? 'opacity:0.75;' : '' %>">
+          <% if (Boolean(jogo.wo)) { %>
+            <span style="position:absolute; top:0.6rem; right:0.75rem; font-size:0.55rem; font-weight:800; letter-spacing:0.08em; padding:0.15rem 0.45rem; border-radius:6px; line-height:1.2; background:rgba(245,176,65,0.18); color:#f5b041;">W.O.</span>
+          <% } %>
+          <% const fasesEliminatoria = ['Oitavas', 'Quartas', 'Semifinal', 'Final', 'Terceiro Lugar']; if (fasesEliminatoria.includes(String(jogo.fase || ''))) { %>
+            <span style="position:absolute; top:0.6rem; <%= Boolean(jogo.wo) ? 'right:4.5rem;' : 'right:0.75rem;' %> font-size:0.55rem; font-weight:800; letter-spacing:0.08em; padding:0.15rem 0.45rem; border-radius:6px; line-height:1.2; background:rgba(236,228,45,0.18); color:#ece42d;"><%= jogo.fase %></span>
+          <% } %>
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; min-height:1.5rem;">
             <div style="font-size:0.75rem; color:#cfd8dc; text-transform:uppercase; letter-spacing:0.08em; line-height:1.3;"><%= jogo.modalidade %> · <%= jogo.genero %></div>
           </div>
@@ -70,19 +75,11 @@
           <div style="display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); gap:0.75rem; align-items:center; flex:1;">
             <div style="text-align:center; min-width:0;">
               <img src="<%= jogo.fotoCasa || '/imagens/avatar.svg' %>" alt="Foto do campus <%= jogo.casa %>" style="width:48px; height:48px; object-fit:cover; border-radius:50%; margin:0 auto 0.55rem; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.08); display:block;">
-              <div style="font-size:0.75rem; color:#fff; font-weight:600; line-height:1.2; word-break:break-word;"><%= jogo.casa %></div>
+              <div style="font-size:0.75rem; color:#fff; font-weight:600; line-height:1.2; word-break:break-word;"><%= (jogo.casa && jogo.casa !== 'Atleta não informado' && jogo.casa !== 'Campus não informado') ? jogo.casa : (jogo.rotuloCasa || 'A Definir') %></div>
             </div>
 
             <div style="display:flex; flex-direction:column; gap:0.25rem; justify-items:center; text-align:center; align-items:center; flex-shrink:0;">
-              <% if (ehWO) { %>
-                <% const nomeVencedorWO = jogo.vencedor_campus_id === jogo.campus_1_id ? jogo.casa : (jogo.vencedor_campus_id === jogo.campus_2_id ? jogo.fora : ''); %>
-                <div style="font-size:1.05rem; font-weight:800; color:#f5b041; line-height:1.2; letter-spacing:0.02em;">W.O.</div>
-                <% if (nomeVencedorWO) { %>
-                  <div style="font-size:0.6rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:6px; line-height:1.2; background:rgba(245,176,65,0.18); color:#f5b041; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><%= nomeVencedorWO %> venceu</div>
-                <% } else { %>
-                  <div style="font-size:0.6rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:6px; line-height:1.2; background:rgba(245,176,65,0.18); color:#f5b041;">Walk Over</div>
-                <% } %>
-              <% } else if (temPlacar) { %>
+              <% if (temPlacar) { %>
                 <% if (jogo.temSets && jogo.sets && jogo.sets.length > 0) { %>
                   <%
                     let s1 = 0, s2 = 0;
@@ -121,20 +118,20 @@
 
             <div style="text-align:center; min-width:0;">
               <img src="<%= jogo.fotoFora || '/imagens/avatar.svg' %>" alt="Foto do campus <%= jogo.fora %>" style="width:48px; height:48px; object-fit:cover; border-radius:50%; margin:0 auto 0.55rem; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.08); display:block;">
-              <div style="font-size:0.75rem; color:#fff; font-weight:600; line-height:1.2; word-break:break-word;"><%= jogo.fora %></div>
+              <div style="font-size:0.75rem; color:#fff; font-weight:600; line-height:1.2; word-break:break-word;"><%= (jogo.fora && jogo.fora !== 'Atleta não informado' && jogo.fora !== 'Campus não informado') ? jogo.fora : (jogo.rotuloFora || 'A Definir') %></div>
             </div>
           </div>
 
-          <div style="margin-top:0.75rem; display:flex; justify-content:space-between; align-items:center;">
-            <% if (jogo.wo) { %>
-              <% const nomeVencedorBadge = jogo.vencedor_campus_id === jogo.campus_1_id ? jogo.casa : (jogo.vencedor_campus_id === jogo.campus_2_id ? jogo.fora : ''); %>
-              <span style="font-size:0.7rem; padding:0.25rem 0.6rem; border-radius:999px; background:rgba(245,176,65,0.18); color:#f5b041; font-weight:700;">W.O. — <%= nomeVencedorBadge || '—' %></span>
-            <% } else if (jogo.status === 'Encerrado') { %>
+          <div style="margin-top:0.75rem; display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+            <% if (jogo.status === 'Encerrado') { %>
               <span style="font-size:0.7rem; padding:0.25rem 0.6rem; border-radius:999px; background:rgba(88,214,141,0.18); color:#58d68d; font-weight:700;">Encerrado</span>
+            <% } else if (jogo.bloqueado) { %>
+              <span style="font-size:0.7rem; padding:0.25rem 0.6rem; border-radius:999px; background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.7);"><%= jogo.status || 'Agendado' %></span>
+              <span style="font-size:0.7rem; padding:0.35rem 0.7rem; border-radius:6px; background:rgba(180,130,60,0.15); color:#b4823c; font-weight:600; cursor:not-allowed;">Aguardando fase anterior</span>
             <% } else { %>
               <span style="font-size:0.7rem; padding:0.25rem 0.6rem; border-radius:999px; background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.7);"><%= jogo.status || 'Agendado' %></span>
+              <a class="btn btn-secondary" style="font-size:0.8rem; padding:0.4rem 0.8rem;" href="/juiz/jogos/<%= jogo.id %>/placar">Atualizar Placar</a>
             <% } %>
-            <a class="btn btn-secondary" style="font-size:0.8rem; padding:0.4rem 0.8rem;" href="/juiz/jogos/<%= jogo.id %>/placar">Atualizar Placar</a>
           </div>
         </article>
       <% }) %>

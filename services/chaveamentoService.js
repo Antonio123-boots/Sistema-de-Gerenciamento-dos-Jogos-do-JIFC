@@ -2,6 +2,25 @@ const db = require('../config/db');
 const { getConfiguracoesBanco } = require('./configService');
 const { isModalidadeTenisMesa } = require('./modalidadeService');
 const { garantirSubCategoriaChavesJogos } = require('../config/ensureSchema');
+const mataMataService = require('./mataMataService');
+const { obterPadraoEliminatoria } = require('../utils/sportClassificationRules');
+const { statusEfetivo } = require('../utils/jogoStatus');
+
+async function gerarEliminatoriaAposSorteio(modalidadeId, nomeModalidade, subEfetiva) {
+  try {
+    const padrao = obterPadraoEliminatoria(nomeModalidade, subEfetiva);
+    if (!padrao) return;
+    const [chavesExistentes] = await db.query(
+      'SELECT COUNT(*) AS total FROM chaves WHERE modalidade_id = ? AND sub_categoria = ?',
+      [modalidadeId, subEfetiva]
+    );
+    if (Number(chavesExistentes[0].total) < 2) return;
+    const resultado = await mataMataService.gerarEliminatoria(modalidadeId, subEfetiva);
+    console.log(`Eliminatória gerada junto ao sorteio: ${nomeModalidade} (${subEfetiva}) — ${resultado.totalJogos} jogos.`);
+  } catch (error) {
+    console.error(`Eliminatória não gerada para ${nomeModalidade} (${subEfetiva}): ${error.message}`);
+  }
+}
 
 function resolverSubCategoria(nomeModalidade, subCategoria = '') {
   const subNormalizada = String(subCategoria || '').trim().toLowerCase();
@@ -565,7 +584,7 @@ async function efetuarChaveamentoMatematico(modalidadeId, subCategoria = '') {
 
         const confrontos = montarConfrontosDaChave(grupo, { tipoParticipante: 'atleta' });
         for (const [indiceConfronto, confronto] of confrontos.entries()) {
-          const faseJogo = obterFaseParaBanco(confronto?.rodada || 1);
+        const faseJogo = 'Fase de Grupos';
           const dataHoraJogo = new Date(dataBaseJogo.getTime() + indiceConfronto * 60 * 60 * 1000);
           const dataHoraSql = formatarDataHoraLocal(dataHoraJogo);
           const [resultadoJogo] = await db.query(
@@ -579,6 +598,7 @@ async function efetuarChaveamentoMatematico(modalidadeId, subCategoria = '') {
         }
       }
 
+      await gerarEliminatoriaAposSorteio(id, nomeModalidade, subEfetiva);
       return { chaves: chavesCriadas, jogos: jogosGerados };
     }
 
@@ -631,7 +651,7 @@ async function efetuarChaveamentoMatematico(modalidadeId, subCategoria = '') {
         const dataHoraJogo = new Date(dataBaseJogo.getTime() + index * 60 * 60 * 1000);
         const dataHoraSql = formatarDataHoraLocal(dataHoraJogo);
 
-        const faseJogo = obterFaseParaBanco(confronto?.rodada || 1);
+        const faseJogo = 'Fase de Grupos';
         const [resultadoJogo] = await db.query(
           `INSERT INTO jogos (
              modalidade_id, chave_id, fase, rodada, campus_1_id, campus_2_id,
@@ -643,6 +663,7 @@ async function efetuarChaveamentoMatematico(modalidadeId, subCategoria = '') {
       }
     }
 
+    await gerarEliminatoriaAposSorteio(id, nomeModalidade, subEfetiva);
     return { chaves: chavesCriadas, jogos: jogosGerados };
   } catch (error) {
     throw error;
@@ -812,6 +833,29 @@ async function getChavesModalidade(modalidadeId, subCategoria = '') {
       });
     }
 
+    try {
+      const classificacaoService = require('./classificacaoService');
+      const classificacao = await classificacaoService.getClassificacaoModalidade(id, null, {});
+      const mapaPontos = new Map();
+      classificacao.forEach((linha) => {
+        const participanteId = Number(linha.atleta_id || linha.campus_id || 0);
+        if (!participanteId) return;
+        mapaPontos.set(`${Number(linha.chave_id)}:${participanteId}`, Number(linha.pontos) || 0);
+      });
+      grupos.forEach((grupo) => {
+        grupo.integrantes.forEach((integrante) => {
+          const pontos = mapaPontos.get(`${Number(grupo.id)}:${Number(integrante.id)}`);
+          if (typeof pontos === 'number') {
+            integrante.pontosFaseDeGrupos = pontos;
+          }
+        });
+        grupo.integrantes.sort((a, b) =>
+          (b.pontosFaseDeGrupos - a.pontosFaseDeGrupos)
+          || String(a.nomeCampus || '').localeCompare(String(b.nomeCampus || ''), 'pt-BR')
+        );
+      });
+    } catch (_) { }
+
     return grupos;
   } catch (error) {
     return [];
@@ -911,7 +955,7 @@ async function getJogosModalidade(modalidadeId, subCategoria = '') {
     });
 
     const [linhas] = await db.query(
-      `SELECT j.id, j.modalidade_id, j.chave_id, j.fase, j.rodada, j.status, j.data_hora, j.local_jogo,
+      `SELECT j.id, j.modalidade_id, j.chave_id, j.fase, j.rodada, j.status, j.data_hora, j.local_jogo, j.publicado,
               j.campus_1_id, j.campus_2_id, j.atleta_1_id, j.atleta_2_id,
               chv.numero_chave AS chave_numero,
               c1.nome AS campus_1_nome,
@@ -964,7 +1008,7 @@ async function getJogosModalidade(modalidadeId, subCategoria = '') {
         placar: jogo.placar || 'vs',
         chaveNumero: jogo.chave_numero || null,
         rodadaNumero,
-        status: jogo.status || 'Agendado'
+        status: statusEfetivo(jogo.status, jogo.data_hora)
       };
     });
   } catch (error) {

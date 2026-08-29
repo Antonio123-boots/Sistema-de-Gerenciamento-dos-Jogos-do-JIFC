@@ -1,7 +1,47 @@
 const db = require('../config/db');
+const mataMataService = require('./mataMataService');
+
+const FASES_ELIMINATORIAS = new Set(['Oitavas', 'Quartas', 'Semifinal', 'Terceiro Lugar', 'Final']);
+const FASES_PRECEDENTES = {
+  'Oitavas': ['Fase de Grupos'],
+  'Quartas': ['Oitavas', 'Fase de Grupos'],
+  'Semifinal': ['Quartas', 'Oitavas', 'Fase de Grupos'],
+  'Final': ['Semifinal', 'Quartas', 'Oitavas', 'Fase de Grupos'],
+  'Terceiro Lugar': ['Semifinal', 'Quartas', 'Oitavas', 'Fase de Grupos']
+};
+
+async function resolverEliminatoriaDoJogo(jogoId) {
+  try {
+    const [rows] = await db.query('SELECT modalidade_id, sub_categoria FROM jogos WHERE id = ?', [Number(jogoId)]);
+    if (rows.length) {
+      await mataMataService.resolverEliminatoria(rows[0].modalidade_id, rows[0].sub_categoria);
+    }
+  } catch (error) {
+    console.error('Erro ao resolver eliminatória:', error.message);
+  }
+}
+
+async function faseAnteriorCompleta(modalidadeId, sub, faseAtual) {
+  if (!FASES_ELIMINATORIAS.has(faseAtual)) return true;
+  const precedentes = FASES_PRECEDENTES[faseAtual] || [];
+  for (const faseAnterior of precedentes) {
+    const [rows] = await db.query(
+      `SELECT COUNT(*) AS total,
+              SUM(CASE WHEN status = 'Encerrado' THEN 1 ELSE 0 END) AS encerrados
+       FROM jogos WHERE modalidade_id = ? AND sub_categoria = ? AND fase = ?`,
+      [modalidadeId, sub, faseAnterior]
+    );
+    if (rows[0].total > 0) {
+      return Number(rows[0].total) === Number(rows[0].encerrados);
+    }
+  }
+  return true;
+}
+
 const argon2 = require('argon2');
 const { atualizarClassificacaoAposJogo } = require('./classificacaoService');
 const { obterRegras, obterPlacarWo } = require('../utils/sportClassificationRules');
+const { statusEfetivo } = require('../utils/jogoStatus');
 
 function normalizarEsportes(esportes) {
   if (!esportes) return [];
@@ -134,9 +174,11 @@ async function obterJogosPorEsporte(esporteNome, genero = null) {
   }
 
   const [rows] = await db.query(
-    `SELECT j.id, j.fase, j.rodada, j.status, j.data_hora, j.local_jogo,
+    `SELECT j.id, j.modalidade_id, j.sub_categoria, j.fase, j.rodada, j.status, j.data_hora, j.local_jogo,
             j.campus_1_id, j.campus_2_id, j.atleta_1_id, j.atleta_2_id,
             j.wo, j.vencedor_campus_id,
+            j.rotulo_casa, j.rotulo_fora,
+            j.disputa_pontos_1, j.disputa_pontos_2,
             m.nome AS modalidade, m.genero, m.tipo_confronto,
             c1.nome AS campus_1_nome, c1.nome_exibicao AS campus_1_exibicao, c1.foto_perfil AS foto_casa,
             c2.nome AS campus_2_nome, c2.nome_exibicao AS campus_2_exibicao, c2.foto_perfil AS foto_fora,
@@ -152,7 +194,8 @@ async function obterJogosPorEsporte(esporteNome, genero = null) {
      LEFT JOIN resultados_coletivos rc ON rc.jogo_id = j.id
      LEFT JOIN chaves chv ON chv.id = j.chave_id
      WHERE ${whereClause}
-     ORDER BY j.data_hora ASC, j.id ASC`,
+     ORDER BY CASE WHEN j.fase IN ('Oitavas','Quartas','Semifinal','Final','Terceiro Lugar') THEN 1 ELSE 0 END,
+              j.numero_jogo ASC, j.data_hora ASC, j.id ASC`,
     params
   );
 
@@ -177,11 +220,15 @@ async function obterJogosPorEsporte(esporteNome, genero = null) {
       sets = [];
     }
 
+    const bloqueado = FASES_ELIMINATORIAS.has(j.fase) && j.status !== 'Encerrado'
+      ? !(await faseAnteriorCompleta(j.modalidade_id, j.sub_categoria, j.fase))
+      : false;
+
     return {
       id: j.id,
       fase: j.fase,
       rodada: j.rodada,
-      status: j.status || 'Agendado',
+      status: statusEfetivo(j.status, j.data_hora),
       data: dataHora ? `${String(dataHora.getDate()).padStart(2, '0')}/${String(dataHora.getMonth() + 1).padStart(2, '0')}` : '—',
       horario: dataHora ? `${String(dataHora.getHours()).padStart(2, '0')}:${String(dataHora.getMinutes()).padStart(2, '0')}` : '—',
       modalidade: j.modalidade,
@@ -198,6 +245,10 @@ async function obterJogosPorEsporte(esporteNome, genero = null) {
       atletaCasa: j.atleta_1_nome || null,
       atletaFora: j.atleta_2_nome || null,
       tipoIndividual,
+      rotuloCasa: j.rotulo_casa || null,
+      rotuloFora: j.rotulo_fora || null,
+      disputa_pontos_1: j.disputa_pontos_1,
+      disputa_pontos_2: j.disputa_pontos_2,
       placar: (j.placar_1 != null && j.placar_2 != null) ? `${j.placar_1} x ${j.placar_2}` : null,
       placar_1: j.placar_1,
       placar_2: j.placar_2,
@@ -206,7 +257,8 @@ async function obterJogosPorEsporte(esporteNome, genero = null) {
       wo: Boolean(j.wo),
       vencedor_campus_id: j.vencedor_campus_id || null,
       sets,
-      temSets: obterRegras(j.modalidade).temSets
+      temSets: obterRegras(j.modalidade).temSets,
+      bloqueado
     };
   }));
 
@@ -215,9 +267,11 @@ async function obterJogosPorEsporte(esporteNome, genero = null) {
 
 async function buscarJogoPorId(jogoId) {
   const [rows] = await db.query(
-    `SELECT j.id, j.fase, j.rodada, j.status, j.data_hora, j.local_jogo,
+    `SELECT j.id, j.modalidade_id, j.sub_categoria, j.fase, j.rodada, j.status, j.data_hora, j.local_jogo,
             j.campus_1_id, j.campus_2_id, j.atleta_1_id, j.atleta_2_id,
             j.wo, j.vencedor_campus_id,
+            j.rotulo_casa, j.rotulo_fora,
+            j.disputa_pontos_1, j.disputa_pontos_2,
             m.nome AS modalidade, m.genero, m.tipo_confronto,
             c1.nome AS campus_1_nome, c1.nome_exibicao AS campus_1_exibicao, c1.foto_perfil AS foto_casa,
             c2.nome AS campus_2_nome, c2.nome_exibicao AS campus_2_exibicao, c2.foto_perfil AS foto_fora,
@@ -256,11 +310,15 @@ async function buscarJogoPorId(jogoId) {
     setsRows = [];
   }
 
+  const bloqueado = FASES_ELIMINATORIAS.has(j.fase) && j.status !== 'Encerrado'
+    ? !(await faseAnteriorCompleta(j.modalidade_id, j.sub_categoria, j.fase))
+    : false;
+
   return {
     id: j.id,
     fase: j.fase,
     rodada: j.rodada,
-    status: j.status || 'Agendado',
+    status: statusEfetivo(j.status, j.data_hora),
     data: dataHora ? `${String(dataHora.getDate()).padStart(2, '0')}/${String(dataHora.getMonth() + 1).padStart(2, '0')}` : '—',
     horario: dataHora ? `${String(dataHora.getHours()).padStart(2, '0')}:${String(dataHora.getMinutes()).padStart(2, '0')}` : '—',
     modalidade: j.modalidade,
@@ -277,17 +335,22 @@ async function buscarJogoPorId(jogoId) {
     atletaCasa: j.atleta_1_nome || null,
     atletaFora: j.atleta_2_nome || null,
     tipoIndividual,
+    rotuloCasa: j.rotulo_casa || null,
+    rotuloFora: j.rotulo_fora || null,
+    disputa_pontos_1: j.disputa_pontos_1,
+    disputa_pontos_2: j.disputa_pontos_2,
     placar: (j.placar_1 != null && j.placar_2 != null) ? `${j.placar_1} x ${j.placar_2}` : null,
     placar_1: j.placar_1,
     placar_2: j.placar_2,
     localJogo: j.local_jogo || 'A definir',
     wo: Boolean(j.wo),
     vencedor_campus_id: j.vencedor_campus_id || null,
-    sets: setsRows.map(s => ({ numero: s.numero_set, pontos_1: s.pontos_1, pontos_2: s.pontos_2 }))
+    sets: setsRows.map(s => ({ numero: s.numero_set, pontos_1: s.pontos_1, pontos_2: s.pontos_2 })),
+    bloqueado
   };
 }
 
-async function salvarPlacar(jogoId, { placar1, placar2, status, sets }) {
+async function salvarPlacar(jogoId, { placar1, placar2, status, sets, disputa1, disputa2 }) {
   const id = Number(jogoId || 0);
   if (!id) throw new Error('ID do jogo inválido.');
 
@@ -321,8 +384,8 @@ async function salvarPlacar(jogoId, { placar1, placar2, status, sets }) {
           );
         }
       }
-    } catch (_) {
-      // resultados_por_sets table may not exist yet; sets won't be saved
+    } catch (error) {
+      throw new Error('Falha ao salvar o placar por sets: ' + error.message);
     }
   }
 
@@ -330,10 +393,29 @@ async function salvarPlacar(jogoId, { placar1, placar2, status, sets }) {
     await db.query('UPDATE jogos SET status = ? WHERE id = ?', [status, id]);
   }
 
+  const camposDisputa = [];
+  const valoresDisputa = [];
+  if (disputa1 !== undefined && disputa1 !== null && String(disputa1).trim() !== '') {
+    camposDisputa.push('disputa_pontos_1 = ?');
+    valoresDisputa.push(Number(disputa1));
+  }
+  if (disputa2 !== undefined && disputa2 !== null && String(disputa2).trim() !== '') {
+    camposDisputa.push('disputa_pontos_2 = ?');
+    valoresDisputa.push(Number(disputa2));
+  }
+  if (camposDisputa.length) {
+    valoresDisputa.push(id);
+    await db.query(`UPDATE jogos SET ${camposDisputa.join(', ')} WHERE id = ?`, valoresDisputa);
+  }
+
   try {
     await atualizarClassificacaoAposJogo(id);
   } catch (error) {
     console.error('Erro ao atualizar classificação:', error.message);
+  }
+
+  if (status === 'Encerrado') {
+    await resolverEliminatoriaDoJogo(id);
   }
 }
 
@@ -345,6 +427,24 @@ async function atualizarStatusAutomatico() {
       AND data_hora <= NOW()
       AND publicado = 1
   `);
+}
+
+async function adiarJogo(jogoId, novaData, novaHora) {
+  const id = Number(jogoId || 0);
+  const data = String(novaData || '').trim();
+  const hora = String(novaHora || '').trim();
+
+  if (!id) throw new Error('ID do jogo inválido.');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) throw new Error('Data inválida para o adiamento.');
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(hora)) throw new Error('Horário inválido para o adiamento.');
+
+  const [rows] = await db.query('SELECT status, wo FROM jogos WHERE id = ?', [id]);
+  if (!rows.length) throw new Error('Jogo não encontrado.');
+  if (rows[0].wo) throw new Error('Jogos finalizados por W.O. não podem ser adiados.');
+  if (rows[0].status === 'Encerrado') throw new Error('Este jogo já foi encerrado e não pode ser adiado.');
+
+  const dataHora = `${data} ${hora}:00`;
+  await db.query('UPDATE jogos SET status = ?, data_hora = ? WHERE id = ?', ['Agendado', dataHora, id]);
 }
 
 async function aplicarWO(jogoId, vencedorSelecionado) {
@@ -428,6 +528,8 @@ async function aplicarWO(jogoId, vencedorSelecionado) {
   } catch (error) {
     console.error('Erro ao atualizar classificação (W.O.):', error.message);
   }
+
+  await resolverEliminatoriaDoJogo(id);
 }
 
 module.exports = {
@@ -443,5 +545,6 @@ module.exports = {
   buscarJogoPorId,
   salvarPlacar,
   aplicarWO,
+  adiarJogo,
   atualizarStatusAutomatico
 };

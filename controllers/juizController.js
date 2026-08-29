@@ -9,11 +9,15 @@ function extrairErros(req) {
   return erros.isEmpty() ? null : erros.array().map((e) => e.msg).join('; ');
 }
 
-function juizPodeEditarModalidade(esportesDoJuiz, modalidadeNome) {
+function juizPodeEditarModalidade(esportesDoJuiz, modalidadeNome, modalidadeGenero) {
+  const candidatos = [modalidadeNome];
+  if (modalidadeGenero) candidatos.push(`${modalidadeNome} ${modalidadeGenero}`);
   return esportesDoJuiz.some((esporte) =>
-    modalidadeNome === esporte ||
-    modalidadeNome === `${esporte} Masculino` ||
-    modalidadeNome === `${esporte} Feminino`
+    candidatos.some((candidato) =>
+      esporte === candidato ||
+      `${esporte} Masculino` === candidato ||
+      `${esporte} Feminino` === candidato
+    )
   );
 }
 
@@ -24,10 +28,10 @@ async function obterNomeModalidadePorId(modalidadeId) {
 
 async function obterModalidadeDaProva(provaId) {
   const [rows] = await require('../config/db').query(
-    'SELECT m.nome FROM provas p JOIN modalidades m ON p.modalidade_id = m.id WHERE p.id = ?',
+    'SELECT m.nome, m.genero FROM provas p JOIN modalidades m ON p.modalidade_id = m.id WHERE p.id = ?',
     [Number(provaId)]
   );
-  return rows.length ? rows[0].nome : null;
+  return rows.length ? rows[0] : null;
 }
 
 /* ========== Admin: CRUD de Juízes ========== */
@@ -212,6 +216,18 @@ async function handleSalvarPlacar(req, res) {
     });
   }
 
+  if (jogo.bloqueado) {
+    return res.status(403).render('juiz/placar', {
+      title: 'Atualizar Placar',
+      usuarioLogado: req.user,
+      mostrarFiltros: false,
+      jogo,
+      esporteVoltar: esporteDoJogo,
+      regras,
+      mensagemErro: 'Este jogo ainda não pode ser editado. Aguarde o encerramento da fase anterior.'
+    });
+  }
+
   const { placar1, placar2, status, sets } = req.body;
 
   const erro = extrairErros(req);
@@ -234,8 +250,47 @@ async function handleSalvarPlacar(req, res) {
       .filter(s => s.pontos_1 > 0 || s.pontos_2 > 0);
   }
 
+  const setEmpatado = setsParsed.find((s) => s.pontos_1 === s.pontos_2);
+  if (setEmpatado) {
+    return res.render('juiz/placar', {
+      title: 'Atualizar Placar',
+      usuarioLogado: req.user,
+      mostrarFiltros: false,
+      jogo,
+      esporteVoltar: esporteDoJogo,
+      regras,
+      mensagemErro: `O ${setEmpatado.numero}º set não pode terminar empatado (${setEmpatado.pontos_1} x ${setEmpatado.pontos_2}). Corrija os pontos do set antes de salvar.`
+    });
+  }
+
+  const tiposCartaoValidos = ['amarelo', 'vermelho'];
+  const cartoesValidos = regras.temCartoes && Array.isArray(req.body.cartoes)
+    ? req.body.cartoes
+      .map((c) => ({
+        campus_id: Number(c.campus_id || 0),
+        tipo: String(c.tipo || '').trim().toLowerCase(),
+        jogador_nome: String(c.jogador_nome || '').trim() || null,
+        minuto: c.minuto !== undefined && c.minuto !== '' ? Number(c.minuto) : null
+      }))
+      .filter((c) =>
+        c.campus_id
+        && tiposCartaoValidos.includes(c.tipo)
+        && (c.campus_id === jogo.campus_1_id || c.campus_id === jogo.campus_2_id))
+    : [];
+
   try {
-    await juizService.salvarPlacar(req.params.jogoId, { placar1, placar2, status, sets: setsParsed });
+    if (cartoesValidos.length > 0) {
+      const classificacaoService = require('../services/classificacaoService');
+      await classificacaoService.registrarCartoes(req.params.jogoId, cartoesValidos);
+    }
+    await juizService.salvarPlacar(req.params.jogoId, {
+      placar1,
+      placar2,
+      status,
+      sets: setsParsed,
+      disputa1: req.body.disputa1,
+      disputa2: req.body.disputa2
+    });
   } catch (e) {
     return res.render('juiz/placar', {
       title: 'Atualizar Placar',
@@ -304,11 +359,61 @@ async function handleAplicarWO(req, res) {
   res.redirect('/juiz/' + esporteRedirect + '?ok=W.O.+aplicado+com+sucesso');
 }
 
+async function handleAdiarJogo(req, res) {
+  const jogo = await juizService.buscarJogoPorId(Number(req.params.jogoId));
+  if (!jogo) return res.redirect('/juiz');
+
+  const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
+  const esporteDoJogo = esportes.length === 1 ? esportes[0] : '';
+  const regras = obterRegras(jogo.modalidade);
+
+  const renderizarErro = (mensagemErro, status = null) => {
+    const dados = {
+      title: 'Atualizar Placar',
+      usuarioLogado: req.user,
+      mostrarFiltros: false,
+      jogo,
+      esporteVoltar: esporteDoJogo,
+      regras,
+      mensagemErro
+    };
+    return status ? res.status(status).render('juiz/placar', dados) : res.render('juiz/placar', dados);
+  };
+
+  if (!juizPodeEditarModalidade(esportes, jogo.modalidade)) {
+    return renderizarErro('Este jogo não é da sua modalidade.', 403);
+  }
+
+  if (jogo.bloqueado) {
+    return renderizarErro('Este jogo ainda não pode ser editado. Aguarde o encerramento da fase anterior.', 403);
+  }
+
+  if (jogo.status === 'Encerrado' || jogo.wo) {
+    return renderizarErro('Este jogo já foi finalizado e não pode ser adiado.');
+  }
+
+  const erro = extrairErros(req);
+  if (erro) {
+    return renderizarErro(erro);
+  }
+
+  const { nova_data, nova_hora } = req.body;
+
+  try {
+    await juizService.adiarJogo(req.params.jogoId, nova_data, nova_hora);
+  } catch (e) {
+    return renderizarErro('Erro ao adiar a partida: ' + e.message);
+  }
+
+  const esporteRedirect = esportes.length === 1 ? encodeURIComponent(esportes[0]) : '';
+  res.redirect('/juiz/' + esporteRedirect + '?ok=Partida+adiada+com+sucesso');
+}
+
 /* ========== Juiz: Resultados Individuais (Atletismo / Xadrez) ========== */
 
 async function renderResultados(req, res) {
   const esporte = req.params.esporte;
-  const genero = req.query.genero || null;
+  const genero = req.query.genero || 'Masculino';
   const esportesDoJuiz = await juizService.obterEsportesDoJuiz(req.user.juizId);
 
   const [modalidades] = await require('../config/db').query(
@@ -332,7 +437,7 @@ async function renderResultados(req, res) {
 
   if (ehAtl) {
     const provas = await resultadosIndividuaisService.obterProvasPorModalidade(modalidadeAlvo.id);
-    const classificacao = await resultadosIndividuaisService.obterClassificacaoAtletismo(modalidadeAlvo.id);
+    const classificacao = await resultadosIndividuaisService.obterClassificacaoGeralCampi(modalidadeAlvo.genero);
     return res.render('juiz/resultados', {
       title: esporte,
       usuarioLogado: req.user,
@@ -373,14 +478,15 @@ async function renderResultados(req, res) {
 
 async function handleCriarProva(req, res) {
   const esporte = req.params.esporte;
-  const { modalidade_id, nome, tipo_resultado, ordem } = req.body;
+  const { modalidade_id, nome, tipo_resultado, ordem, formato } = req.body;
   try {
     const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
-    const nomeModalidade = await obterNomeModalidadePorId(modalidade_id);
-    if (!nomeModalidade || !juizPodeEditarModalidade(esportes, nomeModalidade)) {
+    const [modalidadeRows] = await require('../config/db').query('SELECT nome, genero FROM modalidades WHERE id = ?', [Number(modalidade_id)]);
+    const modalidade = modalidadeRows.length ? modalidadeRows[0] : null;
+    if (!modalidade || !juizPodeEditarModalidade(esportes, modalidade.nome, modalidade.genero)) {
       return res.redirect('/juiz/' + encodeURIComponent(esporte) + '/resultados?erro=' + encodeURIComponent('Modalidade fora das suas atribuições.'));
     }
-    await resultadosIndividuaisService.criarProva(Number(modalidade_id), nome, tipo_resultado, Number(ordem) || 0);
+    await resultadosIndividuaisService.criarProva(Number(modalidade_id), nome, tipo_resultado, Number(ordem) || 0, formato);
     res.redirect('/juiz/' + encodeURIComponent(esporte) + '/resultados?ok=Prova+criada');
   } catch (e) {
     res.redirect('/juiz/' + encodeURIComponent(esporte) + '/resultados?erro=' + encodeURIComponent(e.message));
@@ -391,8 +497,8 @@ async function handleExcluirProva(req, res) {
   const esporte = req.params.esporte;
   try {
     const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
-    const nomeModalidade = await obterModalidadeDaProva(req.params.provaId);
-    if (!nomeModalidade || !juizPodeEditarModalidade(esportes, nomeModalidade)) {
+    const modalidade = await obterModalidadeDaProva(req.params.provaId);
+    if (!modalidade || !juizPodeEditarModalidade(esportes, modalidade.nome, modalidade.genero)) {
       return res.redirect('/juiz/' + encodeURIComponent(esporte) + '/resultados?erro=' + encodeURIComponent('Prova fora das suas atribuições.'));
     }
     await resultadosIndividuaisService.excluirProva(Number(req.params.provaId));
@@ -415,9 +521,27 @@ async function renderResultadosProva(req, res) {
     return res.redirect('/juiz/' + encodeURIComponent(esporte) + '/resultados');
   }
   const prova = provaRows[0];
+  const formatoProva = resultadosIndividuaisService.normalizarFormato(prova.formato);
 
-  const atletas = await resultadosIndividuaisService.obterAtletasPorModalidade(prova.modalidade_id);
+  const todosAtletas = await resultadosIndividuaisService.obterAtletasPorModalidade(prova.modalidade_id);
   const resultados = await resultadosIndividuaisService.obterResultadosPorProva(provaId);
+
+  // Exibe somente os atletas inscritos nesta prova (inscrição do atletismo);
+  // provas fora do padrão (nome customizado) mantêm a lista completa.
+  const { resolverSlugDaProva, montarMapaProvasParaInscritos, filtrarInscritosPorProva } = require('../utils/atletismoProvas');
+  let atletas = todosAtletas;
+  let semInscritosNaProva = false;
+  const slugProva = resolverSlugDaProva(prova.nome);
+  if (slugProva && todosAtletas.length) {
+    const mapaProvasInscricao = await montarMapaProvasParaInscritos(todosAtletas);
+    const inscritos = filtrarInscritosPorProva(todosAtletas, mapaProvasInscricao, slugProva);
+    if (inscritos.length) {
+      atletas = inscritos;
+    } else {
+      atletas = [];
+      semInscritosNaProva = true;
+    }
+  }
 
   res.render('juiz/resultadosProva', {
     title: prova.nome,
@@ -425,8 +549,10 @@ async function renderResultadosProva(req, res) {
     mostrarFiltros: false,
     esporte,
     esportesDoJuiz,
-    prova,
+    prova: { ...prova, formato: formatoProva },
+    formatoProva,
     atletas,
+    semInscritosNaProva,
     resultados,
     mensagemSucesso: req.query.ok || null,
     mensagemErro: req.query.erro || null
@@ -439,11 +565,13 @@ async function handleSalvarResultadosProva(req, res) {
   const { resultados } = req.body;
   try {
     const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
-    const nomeModalidade = await obterModalidadeDaProva(provaId);
-    if (!nomeModalidade || !juizPodeEditarModalidade(esportes, nomeModalidade)) {
+    const modalidade = await obterModalidadeDaProva(provaId);
+    if (!modalidade || !juizPodeEditarModalidade(esportes, modalidade.nome, modalidade.genero)) {
       return res.redirect('/juiz/' + encodeURIComponent(esporte) + '/resultados/prova/' + provaId + '?erro=' + encodeURIComponent('Prova fora das suas atribuições.'));
     }
-    await resultadosIndividuaisService.salvarResultadosProva(provaId, resultados || []);
+    const [provaRows] = await require('../config/db').query('SELECT formato FROM provas WHERE id = ?', [provaId]);
+    const formatoProva = resultadosIndividuaisService.normalizarFormato(provaRows.length ? provaRows[0].formato : 'direta');
+    await resultadosIndividuaisService.salvarResultadosProva(provaId, resultados || [], formatoProva);
     res.redirect('/juiz/' + encodeURIComponent(esporte) + '/resultados/prova/' + provaId + '?ok=Resultados+salvos');
   } catch (e) {
     res.redirect('/juiz/' + encodeURIComponent(esporte) + '/resultados/prova/' + provaId + '?erro=' + encodeURIComponent(e.message));
@@ -455,8 +583,9 @@ async function handleSalvarResultadosXadrez(req, res) {
   const { modalidade_id, resultados } = req.body;
   try {
     const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
-    const nomeModalidade = await obterNomeModalidadePorId(modalidade_id);
-    if (!nomeModalidade || !juizPodeEditarModalidade(esportes, nomeModalidade)) {
+    const [modalidadeRows] = await require('../config/db').query('SELECT nome, genero FROM modalidades WHERE id = ?', [Number(modalidade_id)]);
+    const modalidade = modalidadeRows.length ? modalidadeRows[0] : null;
+    if (!modalidade || !juizPodeEditarModalidade(esportes, modalidade.nome, modalidade.genero)) {
       return res.redirect('/juiz/' + encodeURIComponent(esporte) + '/resultados?erro=' + encodeURIComponent('Modalidade fora das suas atribuições.'));
     }
     await resultadosIndividuaisService.salvarResultadosXadrez(Number(modalidade_id), resultados || []);
@@ -478,6 +607,7 @@ module.exports = {
   renderPlacar,
   handleSalvarPlacar,
   handleAplicarWO,
+  handleAdiarJogo,
   renderResultados,
   handleCriarProva,
   handleExcluirProva,
