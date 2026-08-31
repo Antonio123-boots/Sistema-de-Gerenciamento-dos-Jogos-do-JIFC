@@ -6,7 +6,7 @@ if (!JWT_SECRET || String(JWT_SECRET).trim().length < 32) {
   throw new Error('JWT_SECRET ausente ou curto demais no arquivo .env (minimo 32 caracteres). Gere um com: node -e "console.log(require(\'crypto\').randomBytes(48).toString(\'hex\'))"');
 }
 
-const JWT_EXPIRATION = '12h';
+const JWT_EXPIRATION = process.env.JWT_EXPIRATION || '12h';
 
 function extrairToken(req) {
     const cookies = req.headers.cookie ? req.headers.cookie.split(';') : [];

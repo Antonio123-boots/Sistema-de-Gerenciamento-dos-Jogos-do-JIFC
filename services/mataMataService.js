@@ -125,50 +125,46 @@ function interpretarRotulo(rotulo) {
 }
 
 async function classificarChaves(idModalidade, sub, colCasa, colFora) {
+  const { getClassificacaoModalidade } = require('./classificacaoService');
+
   const [chaves] = await db.query(
     'SELECT id, numero_chave FROM chaves WHERE modalidade_id = ? AND sub_categoria = ? ORDER BY numero_chave ASC',
     [idModalidade, sub]
   );
   const resultado = new Map();
   for (const chave of chaves) {
+    // Ordem IDÊNTICA à tabela de classificação exibida (regras de desempate do esporte).
+    const linhas = await getClassificacaoModalidade(idModalidade, chave.id);
+    const classificados = linhas
+      .filter((l) => l.atleta_id || l.campus_id)
+      .map((l) => Number(l.atleta_id || l.campus_id));
+    const detalhes = linhas.map((l) => ({
+      id: Number(l.atleta_id || l.campus_id),
+      jogos: Number(l.jogos_jogados || 0),
+      pontos: Number(l.pontos || 0),
+      vitorias: Number(l.vitorias || 0),
+      pro: Number(l.pontos_pro || 0),
+      contra: Number(l.pontos_contra || 0),
+      sets_ganhos: Number(l.sets_ganhos || 0),
+      sets_perdidos: Number(l.sets_perdidos || 0)
+    }));
+
     const [jogosChave] = await db.query(
-      `SELECT j.${colCasa} AS id_casa, j.${colFora} AS id_fora, j.status, rc.placar_1, rc.placar_2
+      `SELECT j.${colCasa} AS id_casa, j.${colFora} AS id_fora, j.status
        FROM jogos j
-       LEFT JOIN resultados_coletivos rc ON rc.jogo_id = j.id
        WHERE j.modalidade_id = ? AND j.sub_categoria = ? AND j.chave_id = ? AND j.fase = 'Fase de Grupos'`,
       [idModalidade, sub, chave.id]
     );
-    const stats = new Map();
-    const garantir = (id) => {
-      if (!stats.has(id)) stats.set(id, { id, jogos: 0, pontos: 0, vitorias: 0, empates: 0, pro: 0, contra: 0 });
-      return stats.get(id);
-    };
     let completa = jogosChave.length > 0;
     for (const jogo of jogosChave) {
       const casa = jogo.id_casa ? Number(jogo.id_casa) : null;
       const fora = jogo.id_fora ? Number(jogo.id_fora) : null;
-      if (!casa || !fora) { completa = false; continue; }
-      garantir(casa); garantir(fora);
-      if (String(jogo.status) !== 'Encerrado' || jogo.placar_1 == null || jogo.placar_2 == null) {
+      if (!casa || !fora || String(jogo.status) !== 'Encerrado') {
         completa = false;
         continue;
       }
-      const p1 = Number(jogo.placar_1);
-      const p2 = Number(jogo.placar_2);
-      const sCasa = garantir(casa);
-      const sFora = garantir(fora);
-      sCasa.jogos += 1; sFora.jogos += 1;
-      sCasa.pro += p1; sCasa.contra += p2;
-      sFora.pro += p2; sFora.contra += p1;
-      if (p1 > p2) { sCasa.vitorias += 1; sCasa.pontos += 3; } 
-      else if (p2 > p1) { sFora.vitorias += 1; sFora.pontos += 3; } 
-      else { sCasa.empates += 1; sFora.empates += 1; sCasa.pontos += 1; sFora.pontos += 1; }
     }
-    const lista = [...stats.values()].sort((a, b) =>
-      b.pontos - a.pontos || b.vitorias - a.vitorias ||
-      (b.pro - b.contra) - (a.pro - a.contra) || b.pro - a.pro || a.id - b.id
-    );
-    resultado.set(chave.numero_chave, { classificados: lista.map((s) => s.id), completa, detalhes: lista });
+    resultado.set(chave.numero_chave, { classificados, completa, detalhes });
   }
   return resultado;
 }
@@ -372,7 +368,7 @@ async function gerarEliminatoria(modalidadeId, subCategoria) {
         .filter((item) => item.quantidade > 0)
     };
   } catch (error) {
-    try { await conn.rollback(); } catch (_) {}
+    try { await conn.rollback(); } catch (_) { console.warn('Aviso: Falha no rollback em mataMataService:', _.message || _); }
     throw error;
   } finally {
     conn.release();

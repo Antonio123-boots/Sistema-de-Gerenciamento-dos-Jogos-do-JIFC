@@ -22,10 +22,11 @@ async function openPrazos() {
 }
 
 function httpRequest(path, method = 'GET', headers = {}, body = null) {
+  const baseUrl = new URL(process.env.BASE_URL || 'http://localhost:3001');
   return new Promise((resolve, reject) => {
     const options = {
-      hostname: 'localhost',
-      port: 3001,
+      hostname: baseUrl.hostname,
+      port: baseUrl.port,
       path,
       method,
       headers

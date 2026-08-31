@@ -850,6 +850,18 @@ a {
   transform: scale(1.25);
 }
 
+.filtro-rodadas-jogos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.1rem;
+  align-items: center;
+}
+
+.grupo-rodada[hidden] {
+  display: none;
+}
+
 @media (min-width: 768px) and (max-width: 1023.98px) {
   .carrossel-jogos {
     width: min(100%, 40rem);
@@ -860,7 +872,7 @@ a {
     overflow-x: hidden;
     overflow-y: auto;
     scroll-snap-type: y proximity;
-    height: 30rem;
+    height: 46rem;
     padding-right: 2.75rem;
   }
 

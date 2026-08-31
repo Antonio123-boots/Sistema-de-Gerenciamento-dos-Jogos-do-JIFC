@@ -12,7 +12,7 @@ function getCampusModel() {
   return campusModel;
 }
 
-const senhaPadraoCampus = 'jifc2026';
+const senhaPadraoCampus = process.env.DEFAULT_CAMPUS_PASSWORD || 'jifc2026';
 
 async function prepararSenhaParaSalvar(senhaInformada) {
   const senha = String(senhaInformada || senhaPadraoCampus).trim();

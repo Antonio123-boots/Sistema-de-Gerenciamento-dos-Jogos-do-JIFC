@@ -2,9 +2,9 @@ const fs = require('fs');
 const path = require('path');
 const db = require('../config/db');
 
-const BASE = 'http://localhost:3000';
-const ADMIN = { email: 'admin@ifc.edu.br', senha: 'admin123' };
-const SENHA_CAMPUS = 'jifc2026';
+const BASE = process.env.BASE_URL || 'http://localhost:3000';
+const ADMIN = { email: 'admin@ifc.edu.br', senha: process.env.DEFAULT_ADMIN_PASSWORD || 'admin123' };
+const SENHA_CAMPUS = process.env.DEFAULT_CAMPUS_PASSWORD || 'jifc2026';
 const ESTADO_PATH = path.join(__dirname, '..', 'data', 'jifc-state.json');
 
 function dormir(ms) {

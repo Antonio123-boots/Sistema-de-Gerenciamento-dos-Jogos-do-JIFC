@@ -75,7 +75,7 @@ async function getJogosPublicados(filters = {}) {
   const subCategoriaFiltro = normalizarSubCategoriaFiltro(filters.subCategoria);
 
   const query = `
-    SELECT j.id, j.fase, j.status,
+    SELECT j.id, j.fase, j.status, j.rodada, j.chave_id,
            COALESCE(rc.placar_1, 0) AS placar_casa,
            COALESCE(rc.placar_2, 0) AS placar_fora,
            DATE_FORMAT(j.data_hora, '%d/%m') AS data,

@@ -156,7 +156,9 @@ async function garantirSubCategoriaChavesJogos() {
 
   try {
     await pool.query('ALTER TABLE chaves DROP INDEX uq_modalidade_numero_chave');
-  } catch (_) {}
+  } catch (_) {
+    console.warn('Aviso: Falha ao remover indice antigo uq_modalidade_numero_chave (pode nao existir):', _.message || _);
+  }
 
   try {
     await pool.query('ALTER TABLE chaves ADD UNIQUE KEY uq_modalidade_sub_numero (modalidade_id, sub_categoria, numero_chave)');
@@ -295,7 +297,9 @@ async function garantirColunasBateriasResultados() {
 
   try {
     await pool.query('UPDATE resultados_atletismo SET etapa = \'prova\' WHERE etapa IS NULL OR etapa = \'\'');
-  } catch (_) {}
+  } catch (_) {
+    console.warn('Aviso: Falha ao atualizar etapa em resultados_atletismo:', _.message || _);
+  }
 
   try {
     await pool.query('ALTER TABLE resultados_atletismo DROP INDEX uq_prova_atleta');
@@ -359,7 +363,9 @@ async function ensureResultadosAtletismoTable() {
       await pool.query('ALTER TABLE resultados_atletismo DROP FOREIGN KEY resultados_atletismo_ibfk_1');
       await pool.query('ALTER TABLE resultados_atletismo DROP COLUMN jogo_id');
       await pool.query('ALTER TABLE resultados_atletismo ADD UNIQUE KEY uq_prova_atleta (prova_id, atleta_id)');
-    } catch (_) {}
+    } catch (_) {
+      console.warn('Aviso: Falha ao preparar colunas de resultados_atletismo:', _.message || _);
+    }
   }
 }
 

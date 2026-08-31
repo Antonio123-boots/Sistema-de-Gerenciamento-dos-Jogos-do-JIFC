@@ -277,15 +277,52 @@ function adicionarCartao(block) {
   const row = document.createElement('div');
   row.className = 'cartao-row';
   row.style.cssText = 'display:grid; grid-template-columns:auto 1fr auto auto; gap:0.35rem; align-items:center;';
-  row.innerHTML =
-    '<select name="cartoes[' + i + '][tipo]" style="font-size:0.68rem; padding:0.28rem 0.3rem; border-radius:6px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); color:#fff; cursor:pointer;">' +
-      '<option value="amarelo">Amarelo</option>' +
-      '<option value="vermelho">Vermelho</option>' +
-    '</select>' +
-    '<input type="text" name="cartoes[' + i + '][jogador_nome]" placeholder="Nome do jogador" maxlength="120" style="font-size:0.7rem; padding:0.28rem 0.4rem; border-radius:6px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); color:#fff; min-width:0;">' +
-    '<input type="number" name="cartoes[' + i + '][minuto]" placeholder="Min" min="0" max="200" style="font-size:0.68rem; padding:0.28rem 0.2rem; border-radius:6px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); color:#fff; width:52px; text-align:center;">' +
-    '<input type="hidden" name="cartoes[' + i + '][campus_id]" value="' + campusId + '">' +
-    '<button type="button" onclick="this.parentElement.remove()" style="font-size:0.62rem; font-weight:700; padding:0.25rem 0.45rem; border-radius:6px; background:rgba(231,76,60,0.12); border:1px solid rgba(231,76,60,0.3); color:#e74c3c; cursor:pointer; grid-column:span 4; width:100%;">Remover</button>';
+
+  const btnStyle = 'font-size:0.68rem; padding:0.28rem 0.3rem; border-radius:6px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); color:#fff;';
+
+  const select = document.createElement('select');
+  select.name = 'cartoes[' + i + '][tipo]';
+  select.style.cssText = btnStyle + ' cursor:pointer;';
+  const optAmarelo = document.createElement('option');
+  optAmarelo.value = 'amarelo';
+  optAmarelo.textContent = 'Amarelo';
+  const optVermelho = document.createElement('option');
+  optVermelho.value = 'vermelho';
+  optVermelho.textContent = 'Vermelho';
+  select.appendChild(optAmarelo);
+  select.appendChild(optVermelho);
+
+  const inputNome = document.createElement('input');
+  inputNome.type = 'text';
+  inputNome.name = 'cartoes[' + i + '][jogador_nome]';
+  inputNome.placeholder = 'Nome do jogador';
+  inputNome.maxLength = 120;
+  inputNome.style.cssText = btnStyle + ' min-width:0;';
+
+  const inputMinuto = document.createElement('input');
+  inputMinuto.type = 'number';
+  inputMinuto.name = 'cartoes[' + i + '][minuto]';
+  inputMinuto.placeholder = 'Min';
+  inputMinuto.min = '0';
+  inputMinuto.max = '200';
+  inputMinuto.style.cssText = btnStyle + ' width:52px; text-align:center;';
+
+  const inputCampus = document.createElement('input');
+  inputCampus.type = 'hidden';
+  inputCampus.name = 'cartoes[' + i + '][campus_id]';
+  inputCampus.value = campusId;
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.textContent = 'Remover';
+  btn.style.cssText = 'font-size:0.62rem; font-weight:700; padding:0.25rem 0.45rem; border-radius:6px; background:rgba(231,76,60,0.12); border:1px solid rgba(231,76,60,0.3); color:#e74c3c; cursor:pointer; grid-column:span 4; width:100%;';
+  btn.addEventListener('click', function () { row.remove(); });
+
+  row.appendChild(select);
+  row.appendChild(inputNome);
+  row.appendChild(inputMinuto);
+  row.appendChild(inputCampus);
+  row.appendChild(btn);
   rows.appendChild(row);
 }
 

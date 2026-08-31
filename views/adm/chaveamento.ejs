@@ -29,7 +29,6 @@
             <a href="/admin/chaveamento?modalidade=<%= mod.id %>#modalidade" class="<%= modalidadeAtiva.id === mod.id ? 'active-sport premium-active' : '' %>">
               <img src="<%= mod.icone && (mod.icone.startsWith('/') || mod.icone.startsWith('http')) ? mod.icone : (mod.imagem || '/imagens/atletismo1.svg') %>" alt="<%= mod.nome %>" onerror="this.src='/imagens/atletismo1.svg'">
               <span class="sport-card-name"><%= mod.nome %></span>
-              <span class="sport-card-gender"><%= String(mod.genero || '').toUpperCase() %></span>
             </a>
           </li>
         <% }) %>
@@ -316,7 +315,9 @@
         </div>
 
       <% } else { %>
-        <h2>Grupos</h2>
+        <div class="chaveamento-visualizacao">
+          <aside class="painel-tabela">
+            <h2>Tabela de Grupos</h2>
 
         <% if (chavesGeradas && chavesGeradas.length > 0) { %>
           <div class="chaves-container">
@@ -371,18 +372,18 @@
             <p style="font-size: 0.85rem; color: rgba(255,255,255,0.4); margin-top: 0.5rem;">Clique no botão superior "Realizar Sorteio Dinâmico" para rodar a distribuição automática.</p>
           </div>
         <% } %>
-
-      <% } %>
+        </aside>
+        <div class="painel-jogos">
 
       <% const temEliminatoria = typeof fasesEliminatoria !== 'undefined' && fasesEliminatoria && fasesEliminatoria.length > 0; %>
       <% if ((rodadasJogos && rodadasJogos.length > 0) || temEliminatoria) { %>
-        <div class="match-carousel-wrapper" id="match-carousel-<%= modalidadeAtiva.id %>" style="margin-top: 2rem;">
+        <div class="match-carousel-wrapper" id="match-carousel-<%= modalidadeAtiva.id %>" style="margin-top: 0;">
           <div class="match-carousel-header">
             <h2 style="margin: 0;">Confrontos por rodada</h2>
             <div class="round-pills">
               <% if (rodadasJogos && rodadasJogos.length > 0) { %>
                 <% rodadasJogos.forEach((rodada, index) => { %>
-                  <button type="button" class="round-pill <%= index === 0 ? 'active' : '' %>" data-slide-index="<%= index %>"><%= rodada.label %></button>
+                  <button type="button" class="round-pill <%= index === 0 ? 'active' : '' %>" data-slide-index="<%= index %>"><%= index + 1 %>ª Rodada</button>
                 <% }) %>
               <% } %>
               <% if (temEliminatoria) { %>
@@ -529,6 +530,9 @@
             })();
           </script>
         </div>
+      <% } %>
+        </div>
+      </div>
       <% } %>
 
     </main>

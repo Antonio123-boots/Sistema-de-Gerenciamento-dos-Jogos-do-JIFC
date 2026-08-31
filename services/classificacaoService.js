@@ -476,6 +476,8 @@ async function _aplicarClassificacaoJogo(jogoId) {
   const jogo = jogoRows[0];
   if (!jogo) return;
 
+  if (jogo.chave_id == null) return;
+
   const confrontoIndividual = Boolean(jogo.atleta_1_id && jogo.atleta_2_id);
   if (!confrontoIndividual && (!jogo.campus_1_id || !jogo.campus_2_id)) return;
 

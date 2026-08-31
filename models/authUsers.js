@@ -1,14 +1,12 @@
 const argon2 = require('argon2');
 const { readState, writeState } = require('./stateStore');
-const pool = require('../config/db');
-const { listarCampi, senhaPadraoCampus } = require('./campiCatalog');
 const { normalizarFotoPerfil, fotoPadrao } = require('./profileImageStore');
 const juizService = require('../services/juizService');
 
 const SENHAS_HARDcoded = {
-  'admin@ifc.edu.br': 'admin123',
-  'instituicao@ifc.edu.br': 'instituicao123',
-  'juiz@ifc.edu.br': 'juiz123'
+  'admin@ifc.edu.br': process.env.DEFAULT_ADMIN_PASSWORD || 'admin123',
+  'instituicao@ifc.edu.br': process.env.DEFAULT_CAMPUS_PASSWORD || 'jifc2026',
+  'juiz@ifc.edu.br': process.env.DEFAULT_JUIZ_PASSWORD || 'juiz123'
 };
 
 let hashesBase = {};
@@ -132,18 +130,7 @@ async function verificarSenha(usuario, senhaInformada) {
     return argon2.verify(hash, senhaInformada);
   }
 
-  if (hash === senhaInformada) {
-    if (usuario.tipo === 'campus' && usuario.email) {
-      try {
-        const novoHash = await argon2.hash(senhaInformada);
-        await pool.query('UPDATE campus SET senha = ? WHERE email = ?', [novoHash, String(usuario.email).trim().toLowerCase()]);
-      } catch (_) {
-        // migração preguiçosa falhou; login prossegue normalmente
-      }
-    }
-    return true;
-  }
-
+  console.error('[SEGURANCIA] Senha em plaintext detectada para ' + usuario.email + '. Autenticacao recusada. Rode o script de migracao de senha.');
   return false;
 }
 

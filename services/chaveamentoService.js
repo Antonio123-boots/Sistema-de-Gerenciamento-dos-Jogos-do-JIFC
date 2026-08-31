@@ -854,7 +854,9 @@ async function getChavesModalidade(modalidadeId, subCategoria = '') {
           || String(a.nomeCampus || '').localeCompare(String(b.nomeCampus || ''), 'pt-BR')
         );
       });
-    } catch (_) { }
+    } catch (_) {
+      console.warn('Aviso: Falha ao ordenar integrantes do grupo em chaveamentoService:', _.message || _);
+    }
 
     return grupos;
   } catch (error) {

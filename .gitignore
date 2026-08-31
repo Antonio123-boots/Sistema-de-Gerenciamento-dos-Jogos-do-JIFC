@@ -1,6 +1,10 @@
 # Environment variables
 .env
 
+# Scripts de debug (nao devem ir para producao)
+scripts/debug_*.js
+tests/debug_*.js
+
 # Dados sensíveis e estado de runtime
 cookies.txt
 data/jifc-state.json

@@ -81,47 +81,52 @@ async function salvarInscricoes(req, res) {
 }
 
 function renderAtletas(req, res) {
-  const nomeCampus = req.user.nome;
-  const config = adminModel.getConfiguracoes();
-  const hoje = obterDataAtual();
-  const anoEvento = Number(config.ano_evento || new Date().getFullYear());
+  try {
+    const nomeCampus = req.user.nome;
+    const config = adminModel.getConfiguracoes();
+    const hoje = obterDataAtual();
+    const anoEvento = Number(config.ano_evento || new Date().getFullYear());
 
-  const inicio = config.inicio_inscricao_atletas;
-  const fim = config.fim_inscricao_atletas;
-  const prazoAberto = inicio && fim && (hoje >= inicio && hoje <= fim);
-  const atletaEmEdicao = req.query.editar ? campusModel.getAtletaPorId(req.query.editar) : null;
-  const modalidadesInscritas = campusModel.getInscricoes(nomeCampus);
-  const atletas = campusModel.getAtletas(nomeCampus);
-  const atletaFormDraft = atletaFormDrafts.get(req.user.email) || null;
-  const limiteAtletasTotalCampus = Number(config.limite_atletas_total_campus || 0);
-  const quantidadeRegulares = campusModel.getQuantidadeRegulares(nomeCampus);
-  const quantidadePendentes = campusModel.getQuantidadePendentes(nomeCampus);
-  const quantidadeAnalise = campusModel.getQuantidadeAnalise(nomeCampus);
-  const quantidadeReprovados = campusModel.getQuantidadeReprovados(nomeCampus);
+    const inicio = config.inicio_inscricao_atletas;
+    const fim = config.fim_inscricao_atletas;
+    const prazoAberto = inicio && fim && (hoje >= inicio && hoje <= fim);
+    const atletaEmEdicao = req.query.editar ? campusModel.getAtletaPorId(req.query.editar) : null;
+    const modalidadesInscritas = campusModel.getInscricoes(nomeCampus);
+    const atletas = campusModel.getAtletas(nomeCampus);
+    const atletaFormDraft = atletaFormDrafts.get(req.user.email) || null;
+    const limiteAtletasTotalCampus = Number(config.limite_atletas_total_campus || 0);
+    const quantidadeRegulares = campusModel.getQuantidadeRegulares(nomeCampus);
+    const quantidadePendentes = campusModel.getQuantidadePendentes(nomeCampus);
+    const quantidadeAnalise = campusModel.getQuantidadeAnalise(nomeCampus);
+    const quantidadeReprovados = campusModel.getQuantidadeReprovados(nomeCampus);
 
-  res.render('campus/atletas', {
-    title: 'Gerenciar Atletas',
-    usuarioLogado: req.user,
-    mostrarFiltros: false,
-    faseAtual: 'regular',
-    atletas,
-    modalidadesInscritas,
-    atletaEmEdicao,
-    nomeCampus,
-    prazoAberto: prazoAberto,
-    prazos: { inicio, fim },
-    quantidadeRegulares,
-    quantidadePendentes,
-    quantidadeAnalise,
-    quantidadeReprovados,
-    quantidadeTotal: campusModel.getQuantidadeTotal(nomeCampus),
-    limiteAtletasTotalCampus,
-    limiteDisponivelRegulares: campusModel.getQuantidadeDisponivelRegular(nomeCampus, limiteAtletasTotalCampus),
-    anoEvento,
-    atletaFormDraft,
-    mensagemErro: req.query.erro || '',
-    mensagemSucesso: req.query.sucesso || ''
-  });
+    res.render('campus/atletas', {
+      title: 'Gerenciar Atletas',
+      usuarioLogado: req.user,
+      mostrarFiltros: false,
+      faseAtual: 'regular',
+      atletas,
+      modalidadesInscritas,
+      atletaEmEdicao,
+      nomeCampus,
+      prazoAberto: prazoAberto,
+      prazos: { inicio, fim },
+      quantidadeRegulares,
+      quantidadePendentes,
+      quantidadeAnalise,
+      quantidadeReprovados,
+      quantidadeTotal: campusModel.getQuantidadeTotal(nomeCampus),
+      limiteAtletasTotalCampus,
+      limiteDisponivelRegulares: campusModel.getQuantidadeDisponivelRegular(nomeCampus, limiteAtletasTotalCampus),
+      anoEvento,
+      atletaFormDraft,
+      mensagemErro: req.query.erro || '',
+      mensagemSucesso: req.query.sucesso || ''
+    });
+  } catch (error) {
+    console.error('Erro ao renderizar atletas do campus:', error);
+    res.status(500).send('Erro ao carregar lista de atletas.');
+  }
 }
 
 async function cadastrarAtleta(req, res) {
@@ -180,40 +185,45 @@ async function cadastrarAtleta(req, res) {
 }
 
 function editarAtleta(req, res) {
-  const nomeCampus = req.user.nome;
-  const atleta = campusModel.getAtletaPorId(req.params.id);
+  try {
+    const nomeCampus = req.user.nome;
+    const atleta = campusModel.getAtletaPorId(req.params.id);
 
-  if (!atleta || atleta.campus !== nomeCampus) {
-    return res.redirect('/campus/atletas?erro=' + encodeURIComponent('Atleta não encontrado para edição.'));
+    if (!atleta || atleta.campus !== nomeCampus) {
+      return res.redirect('/campus/atletas?erro=' + encodeURIComponent('Atleta não encontrado para edição.'));
+    }
+
+    const config = adminModel.getConfiguracoes();
+    const hoje = obterDataAtual();
+    const inicio = config.inicio_inscricao_atletas;
+    const fim = config.fim_inscricao_atletas;
+    const prazoAberto = inicio && fim && (hoje >= inicio && hoje <= fim);
+
+    return res.render('campus/atletas', {
+      title: 'Gerenciar Atletas',
+      usuarioLogado: req.user,
+      mostrarFiltros: false,
+      faseAtual: 'regular',
+      atletas: campusModel.getAtletas(nomeCampus),
+      modalidadesInscritas: campusModel.getInscricoes(nomeCampus),
+      atletaEmEdicao: atleta,
+      nomeCampus,
+      prazoAberto,
+      prazos: { inicio, fim },
+      quantidadeRegulares: campusModel.getQuantidadeRegulares(nomeCampus),
+      quantidadePendentes: campusModel.getQuantidadePendentes(nomeCampus),
+      quantidadeAnalise: campusModel.getQuantidadeAnalise(nomeCampus),
+      quantidadeReprovados: campusModel.getQuantidadeReprovados(nomeCampus),
+      quantidadeTotal: campusModel.getQuantidadeTotal(nomeCampus),
+      limiteAtletasTotalCampus: Number(config.limite_atletas_total_campus || 0),
+      limiteDisponivelRegulares: campusModel.getQuantidadeDisponivelRegular(nomeCampus, Number(config.limite_atletas_total_campus || 0)),
+      mensagemErro: req.query.erro || '',
+      mensagemSucesso: req.query.sucesso || ''
+    });
+  } catch (error) {
+    console.error('Erro ao renderizar edição de atleta:', error);
+    res.status(500).send('Erro ao carregar formulário de edição.');
   }
-
-  const config = adminModel.getConfiguracoes();
-  const hoje = obterDataAtual();
-  const inicio = config.inicio_inscricao_atletas;
-  const fim = config.fim_inscricao_atletas;
-  const prazoAberto = inicio && fim && (hoje >= inicio && hoje <= fim);
-
-  return res.render('campus/atletas', {
-    title: 'Gerenciar Atletas',
-    usuarioLogado: req.user,
-    mostrarFiltros: false,
-    faseAtual: 'regular',
-    atletas: campusModel.getAtletas(nomeCampus),
-    modalidadesInscritas: campusModel.getInscricoes(nomeCampus),
-    atletaEmEdicao: atleta,
-    nomeCampus,
-    prazoAberto,
-    prazos: { inicio, fim },
-    quantidadeRegulares: campusModel.getQuantidadeRegulares(nomeCampus),
-    quantidadePendentes: campusModel.getQuantidadePendentes(nomeCampus),
-    quantidadeAnalise: campusModel.getQuantidadeAnalise(nomeCampus),
-    quantidadeReprovados: campusModel.getQuantidadeReprovados(nomeCampus),
-    quantidadeTotal: campusModel.getQuantidadeTotal(nomeCampus),
-    limiteAtletasTotalCampus: Number(config.limite_atletas_total_campus || 0),
-    limiteDisponivelRegulares: campusModel.getQuantidadeDisponivelRegular(nomeCampus, Number(config.limite_atletas_total_campus || 0)),
-    mensagemErro: req.query.erro || '',
-    mensagemSucesso: req.query.sucesso || ''
-  });
 }
 
 async function atualizarAtleta(req, res) {
@@ -265,14 +275,19 @@ async function atualizarAtleta(req, res) {
 }
 
 async function excluirAtleta(req, res) {
-  const nomeCampus = req.user.nome;
-  const removido = await campusModel.excluirAtleta(req.params.id, nomeCampus);
+  try {
+    const nomeCampus = req.user.nome;
+    const removido = await campusModel.excluirAtleta(req.params.id, nomeCampus);
 
-  if (!removido) {
-    return res.redirect('/campus/inscricoes?aba=atletas&erro=' + encodeURIComponent('Atleta não encontrado para exclusão.') + '#atletas');
+    if (!removido) {
+      return res.redirect('/campus/inscricoes?aba=atletas&erro=' + encodeURIComponent('Atleta não encontrado para exclusão.') + '#atletas');
+    }
+
+    res.redirect('/campus/inscricoes?aba=atletas&sucesso=' + encodeURIComponent('Atleta excluído com sucesso.') + '#atletas');
+  } catch (error) {
+    console.error('Erro ao excluir atleta:', error);
+    res.redirect('/campus/inscricoes?aba=atletas&erro=' + encodeURIComponent('Erro ao excluir atleta.') + '#atletas');
   }
-
-  res.redirect('/campus/inscricoes?aba=atletas&sucesso=' + encodeURIComponent('Atleta excluído com sucesso.') + '#atletas');
 }
 
 async function substituirAtleta(req, res) {

@@ -37,27 +37,37 @@ async function obterModalidadeDaProva(provaId) {
 /* ========== Admin: CRUD de Juízes ========== */
 
 async function renderListar(req, res) {
-  const juizes = await juizService.listarJuizes();
-  res.render('adm/juizes', {
-    title: 'Gerenciar Juízes',
-    usuarioLogado: req.user,
-    mostrarFiltros: false,
-    juizes,
-    mensagemSucesso: req.query.ok || null,
-    mensagemErro: req.query.erro || null
-  });
+  try {
+    const juizes = await juizService.listarJuizes();
+    res.render('adm/juizes', {
+      title: 'Gerenciar Juízes',
+      usuarioLogado: req.user,
+      mostrarFiltros: false,
+      juizes,
+      mensagemSucesso: req.query.ok || null,
+      mensagemErro: req.query.erro || null
+    });
+  } catch (err) {
+    console.error('Erro ao listar juízes:', err);
+    res.status(500).send('Erro ao carregar lista de juízes.');
+  }
 }
 
 async function renderCadastrar(req, res) {
-  const esportes = await juizService.obterEsportesUnicos();
-  res.render('adm/cadastrarJuiz', {
-    title: 'Cadastrar Juiz',
-    usuarioLogado: req.user,
-    mostrarFiltros: false,
-    esportes,
-    juizEdicao: null,
-    mensagemErro: null
-  });
+  try {
+    const esportes = await juizService.obterEsportesUnicos();
+    res.render('adm/cadastrarJuiz', {
+      title: 'Cadastrar Juiz',
+      usuarioLogado: req.user,
+      mostrarFiltros: false,
+      esportes,
+      juizEdicao: null,
+      mensagemErro: null
+    });
+  } catch (err) {
+    console.error('Erro ao renderizar cadastro de juiz:', err);
+    res.status(500).send('Erro ao carregar formulário de cadastro.');
+  }
 }
 
 async function handleCadastrar(req, res) {
@@ -92,17 +102,22 @@ async function handleCadastrar(req, res) {
 }
 
 async function renderEditar(req, res) {
-  const juiz = await juizService.buscarJuizPorId(Number(req.params.id));
-  if (!juiz) return res.redirect('/admin/juizes?erro=Juiz não encontrado');
-  const esportes = await juizService.obterEsportesUnicos();
-  res.render('adm/cadastrarJuiz', {
-    title: 'Editar Juiz',
-    usuarioLogado: req.user,
-    mostrarFiltros: false,
-    esportes,
-    juizEdicao: juiz,
-    mensagemErro: null
-  });
+  try {
+    const juiz = await juizService.buscarJuizPorId(Number(req.params.id));
+    if (!juiz) return res.redirect('/admin/juizes?erro=Juiz não encontrado');
+    const esportes = await juizService.obterEsportesUnicos();
+    res.render('adm/cadastrarJuiz', {
+      title: 'Editar Juiz',
+      usuarioLogado: req.user,
+      mostrarFiltros: false,
+      esportes,
+      juizEdicao: juiz,
+      mensagemErro: null
+    });
+  } catch (err) {
+    console.error('Erro ao renderizar edição de juiz:', err);
+    res.status(500).send('Erro ao carregar formulário de edição.');
+  }
 }
 
 async function handleEditar(req, res) {
@@ -120,80 +135,114 @@ async function handleEditar(req, res) {
     });
   }
 
-  const { nome, email, senha, esportes } = req.body;
-  await juizService.atualizarJuiz(Number(req.params.id), { nome, email, senha, esportes });
-  res.redirect('/admin/juizes?ok=Alterações salvas');
+  try {
+    const { nome, email, senha, esportes } = req.body;
+    await juizService.atualizarJuiz(Number(req.params.id), { nome, email, senha, esportes });
+    res.redirect('/admin/juizes?ok=Alterações salvas');
+  } catch (err) {
+    console.error('Erro ao atualizar juiz:', err);
+    const esportes = await juizService.obterEsportesUnicos();
+    const juiz = await juizService.buscarJuizPorId(Number(req.params.id));
+    res.render('adm/cadastrarJuiz', {
+      title: 'Editar Juiz',
+      usuarioLogado: req.user,
+      mostrarFiltros: false,
+      esportes,
+      juizEdicao: juiz,
+      mensagemErro: 'Erro ao salvar alterações. Tente novamente.'
+    });
+  }
 }
 
 async function handleExcluir(req, res) {
-  await juizService.excluirJuiz(Number(req.params.id));
-  res.redirect('/admin/juizes?ok=Juiz removido');
+  try {
+    await juizService.excluirJuiz(Number(req.params.id));
+    res.redirect('/admin/juizes?ok=Juiz removido');
+  } catch (err) {
+    console.error('Erro ao excluir juiz:', err);
+    res.redirect('/admin/juizes?erro=Erro ao remover juiz');
+  }
 }
 
 /* ========== Juiz: Perfil + Jogos + Placar ========== */
 
 async function renderPerfil(req, res) {
-  const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
-  if (esportes.length === 1) {
-    return res.redirect('/juiz/' + encodeURIComponent(esportes[0]));
+  try {
+    const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
+    if (esportes.length === 1) {
+      return res.redirect('/juiz/' + encodeURIComponent(esportes[0]));
+    }
+    res.render('juiz/perfil', {
+      title: 'Painel do Juiz',
+      usuarioLogado: req.user,
+      mostrarFiltros: false,
+      esportes
+    });
+  } catch (err) {
+    console.error('Erro ao renderizar perfil do juiz:', err);
+    res.status(500).send('Erro ao carregar perfil.');
   }
-  res.render('juiz/perfil', {
-    title: 'Painel do Juiz',
-    usuarioLogado: req.user,
-    mostrarFiltros: false,
-    esportes
-  });
 }
 
 async function renderJogos(req, res) {
-  const esporte = req.params.esporte;
-  const genero = req.query.genero || null;
+  try {
+    const esporte = req.params.esporte;
+    const genero = req.query.genero || null;
 
-  if (resultadosIndividuaisService.ehEsporteIndividual(esporte)) {
-    return res.redirect('/juiz/' + encodeURIComponent(esporte) + '/resultados' + (genero ? '?genero=' + encodeURIComponent(genero) : ''));
+    if (resultadosIndividuaisService.ehEsporteIndividual(esporte)) {
+      return res.redirect('/juiz/' + encodeURIComponent(esporte) + '/resultados' + (genero ? '?genero=' + encodeURIComponent(genero) : ''));
+    }
+
+    await juizService.atualizarStatusAutomatico();
+    let jogos = await juizService.obterJogosPorEsporte(esporte, genero);
+
+    const mostrarFiltroTipo = ehTenisDeMesa(esporte);
+    const tipoFiltro = mostrarFiltroTipo ? normalizarSubCategoriaFiltro(req.query.tipo) : '';
+    if (tipoFiltro) {
+      jogos = jogos.filter((jogo) => (tipoFiltro === 'individual' ? jogo.tipoIndividual : !jogo.tipoIndividual));
+    }
+
+    const esportesDoJuiz = await juizService.obterEsportesDoJuiz(req.user.juizId);
+    res.render('juiz/jogos', {
+      title: esporte,
+      usuarioLogado: req.user,
+      mostrarFiltros: false,
+      esporte,
+      jogos,
+      esportesDoJuiz,
+      generoFiltro: genero,
+      mostrarFiltroTipo,
+      tipoFiltro,
+      mensagemSucesso: req.query.ok || null
+    });
+  } catch (err) {
+    console.error('Erro ao listar jogos do juiz:', err);
+    res.status(500).send('Erro ao carregar lista de jogos.');
   }
-
-  await juizService.atualizarStatusAutomatico();
-  let jogos = await juizService.obterJogosPorEsporte(esporte, genero);
-
-  const mostrarFiltroTipo = ehTenisDeMesa(esporte);
-  const tipoFiltro = mostrarFiltroTipo ? normalizarSubCategoriaFiltro(req.query.tipo) : '';
-  if (tipoFiltro) {
-    jogos = jogos.filter((jogo) => (tipoFiltro === 'individual' ? jogo.tipoIndividual : !jogo.tipoIndividual));
-  }
-
-  const esportesDoJuiz = await juizService.obterEsportesDoJuiz(req.user.juizId);
-  res.render('juiz/jogos', {
-    title: esporte,
-    usuarioLogado: req.user,
-    mostrarFiltros: false,
-    esporte,
-    jogos,
-    esportesDoJuiz,
-    generoFiltro: genero,
-    mostrarFiltroTipo,
-    tipoFiltro,
-    mensagemSucesso: req.query.ok || null
-  });
 }
 
 async function renderPlacar(req, res) {
-  const jogo = await juizService.buscarJogoPorId(Number(req.params.jogoId));
-  if (!jogo) return res.redirect('/juiz');
+  try {
+    const jogo = await juizService.buscarJogoPorId(Number(req.params.jogoId));
+    if (!jogo) return res.redirect('/juiz');
 
-  const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
-  const esporteDoJogo = esportes.length === 1 ? esportes[0] : '';
-  const regras = obterRegras(jogo.modalidade);
+    const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
+    const esporteDoJogo = esportes.length === 1 ? esportes[0] : '';
+    const regras = obterRegras(jogo.modalidade);
 
-  res.render('juiz/placar', {
-    title: 'Atualizar Placar',
-    usuarioLogado: req.user,
-    mostrarFiltros: false,
-    jogo,
-    esporteVoltar: esporteDoJogo,
-    regras,
-    mensagemErro: null
-  });
+    res.render('juiz/placar', {
+      title: 'Atualizar Placar',
+      usuarioLogado: req.user,
+      mostrarFiltros: false,
+      jogo,
+      esporteVoltar: esporteDoJogo,
+      regras,
+      mensagemErro: null
+    });
+  } catch (err) {
+    console.error('Erro ao renderizar placar:', err);
+    res.status(500).send('Erro ao carregar placar.');
+  }
 }
 
 async function handleSalvarPlacar(req, res) {
@@ -412,68 +461,73 @@ async function handleAdiarJogo(req, res) {
 /* ========== Juiz: Resultados Individuais (Atletismo / Xadrez) ========== */
 
 async function renderResultados(req, res) {
-  const esporte = req.params.esporte;
-  const genero = req.query.genero || 'Masculino';
-  const esportesDoJuiz = await juizService.obterEsportesDoJuiz(req.user.juizId);
+  try {
+    const esporte = req.params.esporte;
+    const genero = req.query.genero || 'Masculino';
+    const esportesDoJuiz = await juizService.obterEsportesDoJuiz(req.user.juizId);
 
-  const [modalidades] = await require('../config/db').query(
-    "SELECT id, nome, genero FROM modalidades WHERE nome = ? OR nome = CONCAT(?, ' Masculino') OR nome = CONCAT(?, ' Feminino')",
-    [esporte, esporte, esporte]
-  );
+    const [modalidades] = await require('../config/db').query(
+      "SELECT id, nome, genero FROM modalidades WHERE nome = ? OR nome = CONCAT(?, ' Masculino') OR nome = CONCAT(?, ' Feminino')",
+      [esporte, esporte, esporte]
+    );
 
-  let modalidadeAlvo = null;
-  if (genero) {
-    modalidadeAlvo = modalidades.find(m => m.genero === genero);
-  }
-  if (!modalidadeAlvo && modalidades.length) {
-    modalidadeAlvo = modalidades[0];
-  }
-  if (!modalidadeAlvo) {
+    let modalidadeAlvo = null;
+    if (genero) {
+      modalidadeAlvo = modalidades.find(m => m.genero === genero);
+    }
+    if (!modalidadeAlvo && modalidades.length) {
+      modalidadeAlvo = modalidades[0];
+    }
+    if (!modalidadeAlvo) {
+      return res.redirect('/juiz/' + encodeURIComponent(esporte));
+    }
+
+    const ehAtl = resultadosIndividuaisService.ehAtletismo(esporte + ' ' + (genero || ''));
+    const ehXad = resultadosIndividuaisService.ehXadrez(esporte + ' ' + (genero || ''));
+
+    if (ehAtl) {
+      const provas = await resultadosIndividuaisService.obterProvasPorModalidade(modalidadeAlvo.id);
+      const classificacao = await resultadosIndividuaisService.obterClassificacaoGeralCampi(modalidadeAlvo.genero);
+      return res.render('juiz/resultados', {
+        title: esporte,
+        usuarioLogado: req.user,
+        mostrarFiltros: false,
+        esporte,
+        esportesDoJuiz,
+        generoFiltro: genero,
+        tipoEsporte: 'atletismo',
+        modalidade: modalidadeAlvo,
+        provas,
+        classificacao,
+        mensagemSucesso: req.query.ok || null,
+        mensagemErro: req.query.erro || null
+      });
+    }
+
+    if (ehXad) {
+      const atletas = await resultadosIndividuaisService.obterAtletasPorModalidade(modalidadeAlvo.id);
+      const resultados = await resultadosIndividuaisService.obterResultadosXadrez(modalidadeAlvo.id);
+      return res.render('juiz/resultados', {
+        title: esporte,
+        usuarioLogado: req.user,
+        mostrarFiltros: false,
+        esporte,
+        esportesDoJuiz,
+        generoFiltro: genero,
+        tipoEsporte: 'xadrez',
+        modalidade: modalidadeAlvo,
+        atletas,
+        resultados,
+        mensagemSucesso: req.query.ok || null,
+        mensagemErro: req.query.erro || null
+      });
+    }
+
     return res.redirect('/juiz/' + encodeURIComponent(esporte));
+  } catch (err) {
+    console.error('Erro ao renderizar resultados individuais:', err);
+    res.status(500).send('Erro ao carregar resultados.');
   }
-
-  const ehAtl = resultadosIndividuaisService.ehAtletismo(esporte + ' ' + (genero || ''));
-  const ehXad = resultadosIndividuaisService.ehXadrez(esporte + ' ' + (genero || ''));
-
-  if (ehAtl) {
-    const provas = await resultadosIndividuaisService.obterProvasPorModalidade(modalidadeAlvo.id);
-    const classificacao = await resultadosIndividuaisService.obterClassificacaoGeralCampi(modalidadeAlvo.genero);
-    return res.render('juiz/resultados', {
-      title: esporte,
-      usuarioLogado: req.user,
-      mostrarFiltros: false,
-      esporte,
-      esportesDoJuiz,
-      generoFiltro: genero,
-      tipoEsporte: 'atletismo',
-      modalidade: modalidadeAlvo,
-      provas,
-      classificacao,
-      mensagemSucesso: req.query.ok || null,
-      mensagemErro: req.query.erro || null
-    });
-  }
-
-  if (ehXad) {
-    const atletas = await resultadosIndividuaisService.obterAtletasPorModalidade(modalidadeAlvo.id);
-    const resultados = await resultadosIndividuaisService.obterResultadosXadrez(modalidadeAlvo.id);
-    return res.render('juiz/resultados', {
-      title: esporte,
-      usuarioLogado: req.user,
-      mostrarFiltros: false,
-      esporte,
-      esportesDoJuiz,
-      generoFiltro: genero,
-      tipoEsporte: 'xadrez',
-      modalidade: modalidadeAlvo,
-      atletas,
-      resultados,
-      mensagemSucesso: req.query.ok || null,
-      mensagemErro: req.query.erro || null
-    });
-  }
-
-  return res.redirect('/juiz/' + encodeURIComponent(esporte));
 }
 
 async function handleCriarProva(req, res) {
@@ -509,54 +563,57 @@ async function handleExcluirProva(req, res) {
 }
 
 async function renderResultadosProva(req, res) {
-  const esporte = req.params.esporte;
-  const provaId = Number(req.params.provaId);
-  const esportesDoJuiz = await juizService.obterEsportesDoJuiz(req.user.juizId);
+  try {
+    const esporte = req.params.esporte;
+    const provaId = Number(req.params.provaId);
+    const esportesDoJuiz = await juizService.obterEsportesDoJuiz(req.user.juizId);
 
-  const [provaRows] = await require('../config/db').query(
-    'SELECT p.*, m.nome AS modalidade_nome FROM provas p JOIN modalidades m ON p.modalidade_id = m.id WHERE p.id = ?',
-    [provaId]
-  );
-  if (!provaRows.length) {
-    return res.redirect('/juiz/' + encodeURIComponent(esporte) + '/resultados');
-  }
-  const prova = provaRows[0];
-  const formatoProva = resultadosIndividuaisService.normalizarFormato(prova.formato);
-
-  const todosAtletas = await resultadosIndividuaisService.obterAtletasPorModalidade(prova.modalidade_id);
-  const resultados = await resultadosIndividuaisService.obterResultadosPorProva(provaId);
-
-  // Exibe somente os atletas inscritos nesta prova (inscrição do atletismo);
-  // provas fora do padrão (nome customizado) mantêm a lista completa.
-  const { resolverSlugDaProva, montarMapaProvasParaInscritos, filtrarInscritosPorProva } = require('../utils/atletismoProvas');
-  let atletas = todosAtletas;
-  let semInscritosNaProva = false;
-  const slugProva = resolverSlugDaProva(prova.nome);
-  if (slugProva && todosAtletas.length) {
-    const mapaProvasInscricao = await montarMapaProvasParaInscritos(todosAtletas);
-    const inscritos = filtrarInscritosPorProva(todosAtletas, mapaProvasInscricao, slugProva);
-    if (inscritos.length) {
-      atletas = inscritos;
-    } else {
-      atletas = [];
-      semInscritosNaProva = true;
+    const [provaRows] = await require('../config/db').query(
+      'SELECT p.*, m.nome AS modalidade_nome FROM provas p JOIN modalidades m ON p.modalidade_id = m.id WHERE p.id = ?',
+      [provaId]
+    );
+    if (!provaRows.length) {
+      return res.redirect('/juiz/' + encodeURIComponent(esporte) + '/resultados');
     }
-  }
+    const prova = provaRows[0];
+    const formatoProva = resultadosIndividuaisService.normalizarFormato(prova.formato);
 
-  res.render('juiz/resultadosProva', {
-    title: prova.nome,
-    usuarioLogado: req.user,
-    mostrarFiltros: false,
-    esporte,
-    esportesDoJuiz,
-    prova: { ...prova, formato: formatoProva },
-    formatoProva,
-    atletas,
-    semInscritosNaProva,
-    resultados,
-    mensagemSucesso: req.query.ok || null,
-    mensagemErro: req.query.erro || null
-  });
+    const todosAtletas = await resultadosIndividuaisService.obterAtletasPorModalidade(prova.modalidade_id);
+    const resultados = await resultadosIndividuaisService.obterResultadosPorProva(provaId);
+
+    const { resolverSlugDaProva, montarMapaProvasParaInscritos, filtrarInscritosPorProva } = require('../utils/atletismoProvas');
+    let atletas = todosAtletas;
+    let semInscritosNaProva = false;
+    const slugProva = resolverSlugDaProva(prova.nome);
+    if (slugProva && todosAtletas.length) {
+      const mapaProvasInscricao = await montarMapaProvasParaInscritos(todosAtletas);
+      const inscritos = filtrarInscritosPorProva(todosAtletas, mapaProvasInscricao, slugProva);
+      if (inscritos.length) {
+        atletas = inscritos;
+      } else {
+        atletas = [];
+        semInscritosNaProva = true;
+      }
+    }
+
+    res.render('juiz/resultadosProva', {
+      title: prova.nome,
+      usuarioLogado: req.user,
+      mostrarFiltros: false,
+      esporte,
+      esportesDoJuiz,
+      prova: { ...prova, formato: formatoProva },
+      formatoProva,
+      atletas,
+      semInscritosNaProva,
+      resultados,
+      mensagemSucesso: req.query.ok || null,
+      mensagemErro: req.query.erro || null
+    });
+  } catch (err) {
+    console.error('Erro ao renderizar resultados da prova:', err);
+    res.status(500).send('Erro ao carregar resultados da prova.');
+  }
 }
 
 async function handleSalvarResultadosProva(req, res) {
