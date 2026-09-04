@@ -3,7 +3,6 @@
         <div class="teams-hero__content">
             <span class="teams-kicker">JIFC <%= typeof anoJifc !== 'undefined' ? anoJifc : '2026' %></span>
             <h1>Campi participantes</h1>
-            <p>Escolha um campus para abrir o perfil completo.</p>
         </div>
         <a href="/" class="teams-back-link">Voltar ao início</a>
     </header>
@@ -14,7 +13,7 @@
                 <% const fotoCampus = campus.fotoPerfil || campus.foto_perfil || ''; %>
                 <div class="team-card__media" style="--campus-color: <%= campus.cor || '#ece42d' %>">
                     <% if (fotoCampus) { %>
-                        <img src="<%= fotoCampus %>" alt="Foto de <%= campus.nomeExibicao %>">
+                        <img src="<%= fotoCampus %>" alt="Foto de <%= campus.nomeExibicao %>" class="campus-photo campus-photo--real">
                     <% } else { %>
                         <div class="team-card__initials"><%= campus.logoTexto %></div>
                     <% } %>

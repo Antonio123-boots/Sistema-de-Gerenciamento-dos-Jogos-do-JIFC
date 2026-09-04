@@ -1,6 +1,8 @@
 <%
   const temSets = typeof regras !== 'undefined' && regras && regras.temSets;
   const setsSalvos = (jogo.sets || []);
+  const fotoCasaReal = !!(jogo.fotoCasa && jogo.fotoCasa !== '/imagens/avatar.svg');
+  const fotoForaReal = !!(jogo.fotoFora && jogo.fotoFora !== '/imagens/avatar.svg');
 %>
 
 <section class="panel-card" style="max-width:520px; margin:1rem auto;">
@@ -37,7 +39,7 @@
 
     <div style="display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); gap:0.75rem; align-items:center; flex:1;">
       <div style="text-align:center; min-width:0;">
-        <img src="<%= jogo.fotoCasa || '/imagens/avatar.svg' %>" alt="Foto do campus <%= jogo.casa %>" style="width:48px; height:48px; object-fit:cover; border-radius:50%; margin:0 auto 0.55rem; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.08); display:block;">
+        <img src="<%= jogo.fotoCasa || '/imagens/avatar.svg' %>" alt="Foto do campus <%= jogo.casa %>" class="campus-photo campus-photo--md campus-photo--badge <%= fotoCasaReal ? 'campus-photo--real' : 'campus-photo--default' %>" style="margin:0 auto 0.55rem;">
         <div style="font-size:0.75rem; color:#fff; font-weight:600; line-height:1.2; word-break:break-word;"><%= (jogo.casa && jogo.casa !== 'Atleta não informado' && jogo.casa !== 'Campus não informado') ? jogo.casa : (jogo.rotuloCasa || 'A Definir') %></div>
       </div>
 
@@ -48,7 +50,7 @@
       </div>
 
       <div style="text-align:center; min-width:0;">
-        <img src="<%= jogo.fotoFora || '/imagens/avatar.svg' %>" alt="Foto do campus <%= jogo.fora %>" style="width:48px; height:48px; object-fit:cover; border-radius:50%; margin:0 auto 0.55rem; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.08); display:block;">
+        <img src="<%= jogo.fotoFora || '/imagens/avatar.svg' %>" alt="Foto do campus <%= jogo.fora %>" class="campus-photo campus-photo--md campus-photo--badge <%= fotoForaReal ? 'campus-photo--real' : 'campus-photo--default' %>" style="margin:0 auto 0.55rem;">
         <div style="font-size:0.75rem; color:#fff; font-weight:600; line-height:1.2; word-break:break-word;"><%= (jogo.fora && jogo.fora !== 'Atleta não informado' && jogo.fora !== 'Campus não informado') ? jogo.fora : (jogo.rotuloFora || 'A Definir') %></div>
       </div>
     </div>

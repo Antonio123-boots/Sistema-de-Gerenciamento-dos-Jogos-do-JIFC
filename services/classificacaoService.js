@@ -1,15 +1,17 @@
 const db = require('../config/db');
 const { obterRegras, normalizarNome } = require('../utils/sportClassificationRules');
 const { garantirSubCategoriaChavesJogos } = require('../config/ensureSchema');
+const { isModalidadeTenisMesa } = require('./modalidadeService');
 
 async function buscarJogosDoGrupo(modalidadeId, chaveId) {
   const [jogos] = await db.query(`
-    SELECT j.campus_1_id, j.campus_2_id, j.wo, j.vencedor_campus_id,
+    SELECT j.campus_1_id, j.campus_2_id, j.atleta_1_id, j.atleta_2_id, j.wo, j.vencedor_campus_id,
            rc.placar_1, rc.placar_2
     FROM jogos j
     LEFT JOIN resultados_coletivos rc ON rc.jogo_id = j.id
     WHERE j.modalidade_id = ? AND j.chave_id = ?
-      AND j.campus_1_id IS NOT NULL AND j.campus_2_id IS NOT NULL
+      AND ((j.campus_1_id IS NOT NULL AND j.campus_2_id IS NOT NULL)
+        OR (j.atleta_1_id IS NOT NULL AND j.atleta_2_id IS NOT NULL))
       AND rc.jogo_id IS NOT NULL
       AND (j.status IS NULL OR j.status <> 'Cancelado')
   `, [modalidadeId, chaveId]);
@@ -19,8 +21,8 @@ async function buscarJogosDoGrupo(modalidadeId, chaveId) {
 function construirMapaConfrontos(jogos) {
   const mapa = new Map();
   for (const jogo of jogos) {
-    const c1 = Number(jogo.campus_1_id);
-    const c2 = Number(jogo.campus_2_id);
+    const c1 = Number(jogo.campus_1_id || jogo.atleta_1_id);
+    const c2 = Number(jogo.campus_2_id || jogo.atleta_2_id);
     const p1 = Number(jogo.placar_1 || 0);
     const p2 = Number(jogo.placar_2 || 0);
 
@@ -77,32 +79,38 @@ function calcularSaldoGolsEmpatadas(campusIds, jogos) {
   return saldoMap;
 }
 
-function compararComDesempate(a, b, regras, mapaConfrontos, jogos) {
-  const criterios = regras.criteriosDesempate || ['pontos', 'vitorias', 'saldo_gols'];
+function obterIdParticipante(participante) {
+  return Number(participante.campus_id || participante.atleta_id || 0);
+}
 
-  for (const criterio of criterios) {
-    const resultado = aplicarCriterio(a, b, criterio, regras, mapaConfrontos, jogos);
+function compararComDesempate(a, b, regras, mapaConfrontos, jogos, criterios = regras.criteriosDesempate, participantesEmpatados = null) {
+  const criteriosAplicaveis = criterios || ['pontos', 'vitorias', 'saldo_gols'];
+
+  for (const criterio of criteriosAplicaveis) {
+    const resultado = aplicarCriterio(a, b, criterio, regras, mapaConfrontos, jogos, participantesEmpatados);
     if (resultado !== 0) return resultado;
   }
   return 0;
 }
 
-function aplicarCriterio(a, b, criterio, regras, mapaConfrontos, jogos) {
+function aplicarCriterio(a, b, criterio, regras, mapaConfrontos, jogos, participantesEmpatados = null) {
   switch (criterio) {
     case 'pontos':
       return (b.pontos || 0) - (a.pontos || 0);
 
     case 'confronto_direto': {
-      const kAB = `${a.campus_id}-${b.campus_id}`;
-      const kBA = `${b.campus_id}-${a.campus_id}`;
+      const idA = obterIdParticipante(a);
+      const idB = obterIdParticipante(b);
+      const kAB = `${idA}-${idB}`;
+      const kBA = `${idB}-${idA}`;
       const sAB = mapaConfrontos.get(kAB);
       const sBA = mapaConfrontos.get(kBA);
       if (!sAB || !sBA) return 0;
-      if (sAB.vitorias !== sBA.vitorias) return sAB.vitorias - sBA.vitorias;
+      if (sAB.vitorias !== sBA.vitorias) return sBA.vitorias - sAB.vitorias;
       const saldoAB = sAB.golsPro - sAB.golsContra;
       const saldoBA = sBA.golsPro - sBA.golsContra;
-      if (saldoAB !== saldoBA) return saldoAB - saldoBA;
-      if (sAB.golsPro !== sBA.golsPro) return sAB.golsPro - sBA.golsPro;
+      if (saldoAB !== saldoBA) return saldoBA - saldoAB;
+      if (sAB.golsPro !== sBA.golsPro) return sBA.golsPro - sAB.golsPro;
       return 0;
     }
 
@@ -122,10 +130,12 @@ function aplicarCriterio(a, b, criterio, regras, mapaConfrontos, jogos) {
     }
 
     case 'saldo_gols_empatadas': {
-      const campusIds = [...new Set(jogos.map(j => [Number(j.campus_1_id), Number(j.campus_2_id)]).flat())];
+      const campusIds = participantesEmpatados && participantesEmpatados.length
+        ? participantesEmpatados.map(obterIdParticipante)
+        : [obterIdParticipante(a), obterIdParticipante(b)];
       const saldoMap = calcularSaldoGolsEmpatadas(campusIds, jogos);
-      const sA = saldoMap.get(a.campus_id) || { saldo: 0 };
-      const sB = saldoMap.get(b.campus_id) || { saldo: 0 };
+      const sA = saldoMap.get(obterIdParticipante(a)) || { saldo: 0 };
+      const sB = saldoMap.get(obterIdParticipante(b)) || { saldo: 0 };
       return sB.saldo - sA.saldo;
     }
 
@@ -145,9 +155,15 @@ function aplicarCriterio(a, b, criterio, regras, mapaConfrontos, jogos) {
     }
 
     case 'sancoes': {
-      const pontuacaoSancao = (r) => (r.cartoes_amarelos || 0) * 1 + (r.cartoes_vermelhos || 0) * 3;
+      const pontuacaoSancao = (r) => (r.cartoes_amarelos || 0) * 1 + (r.cartoes_vermelhos || 0) * 3 + (r.excluicoes_2min || 0) * 1;
       return pontuacaoSancao(a) - pontuacaoSancao(b);
     }
+
+    case 'menor_cartoes_vermelhos':
+      return (a.cartoes_vermelhos || 0) - (b.cartoes_vermelhos || 0);
+
+    case 'menor_cartoes_amarelos':
+      return (a.cartoes_amarelos || 0) - (b.cartoes_amarelos || 0);
 
     case 'sorteio':
       return 0;
@@ -155,6 +171,41 @@ function aplicarCriterio(a, b, criterio, regras, mapaConfrontos, jogos) {
     default:
       return 0;
   }
+}
+
+function ordenarGrupoComDesempate(grupo, regras, jogos) {
+  if (!regras.criteriosDesempate) {
+    return grupo.sort(regras.ordenarPor);
+  }
+
+  const mapaConfrontos = construirMapaConfrontos(jogos);
+  const pontos = new Map(grupo.map((item) => [item, Number(item.pontos || 0)]));
+  const gruposPorPontos = [];
+
+  for (const item of grupo) {
+    const pontosItem = pontos.get(item);
+    let grupoPontos = gruposPorPontos.find((itens) => pontos.get(itens[0]) === pontosItem);
+    if (!grupoPontos) {
+      grupoPontos = [];
+      gruposPorPontos.push(grupoPontos);
+    }
+    grupoPontos.push(item);
+  }
+
+  gruposPorPontos.sort((a, b) => pontos.get(b[0]) - pontos.get(a[0]));
+  const criteriosSemConfronto = regras.criteriosDesempate.filter((criterio) => criterio !== 'confronto_direto');
+  for (const grupoPontos of gruposPorPontos) {
+    const criterios = grupoPontos.length >= 3 ? criteriosSemConfronto : regras.criteriosDesempate;
+    grupoPontos.sort((a, b) => {
+      const resultado = compararComDesempate(a, b, regras, mapaConfrontos, jogos, criterios, grupoPontos);
+      if (resultado !== 0) return resultado;
+      return obterIdParticipante(a) - obterIdParticipante(b);
+    });
+  }
+
+  grupo.length = 0;
+  gruposPorPontos.forEach((grupoPontos) => grupo.push(...grupoPontos));
+  return grupo;
 }
 
 async function sincronizarClassificacaoGruposModalidade(modalidadeId) {
@@ -170,12 +221,14 @@ async function sincronizarClassificacaoGruposModalidade(modalidadeId) {
     return;
   }
 
-  const [modalidadeRows] = await db.query('SELECT nome, tipo_confronto FROM modalidades WHERE id = ?', [id]);
+  const [modalidadeRows] = await db.query('SELECT nome, tipo_confronto, genero FROM modalidades WHERE id = ?', [id]);
   const modalidade = modalidadeRows[0] || {};
   const nomeModalidade = String(modalidade.nome || '');
+  const generoModalidade = String(modalidade.genero || '').trim();
   const modalidadeIndividual = String(modalidade.tipo_confronto || '').trim() === 'Individual'
     || /atletismo/i.test(nomeModalidade)
-    || /xadrez/i.test(nomeModalidade);
+    || /xadrez/i.test(nomeModalidade)
+    || isModalidadeTenisMesa(nomeModalidade);
 
   for (const chave of chaves) {
     await db.query('DELETE FROM classificacao_grupos WHERE modalidade_id = ? AND chave_id = ?', [id, chave.id]);
@@ -188,7 +241,9 @@ async function sincronizarClassificacaoGruposModalidade(modalidadeId) {
         FROM jogos j
         JOIN atletas a ON a.id = j.atleta_1_id OR a.id = j.atleta_2_id
         JOIN campus c ON c.id = a.campus_id
+        JOIN modalidades m ON m.id = j.modalidade_id
         WHERE j.modalidade_id = ? AND j.chave_id = ?
+          AND (m.genero IS NULL OR m.genero = '' OR a.genero = m.genero)
         ORDER BY a.nome ASC
       `, [id, chave.id]);
 
@@ -443,13 +498,8 @@ async function getClassificacaoModalidade(modalidadeId, chaveId = null, opcoes =
 
     const resultadoOrdenado = [];
     for (const [chaveIdGrupo, grupo] of gruposMap) {
-      if (regras.criteriosDesempate && regras.criteriosDesempate.includes('confronto_direto')) {
-        const jogos = await buscarJogosDoGrupo(modalidadeId, chaveIdGrupo);
-        const mapaConfrontos = construirMapaConfrontos(jogos);
-        grupo.sort((a, b) => compararComDesempate(a, b, regras, mapaConfrontos, jogos));
-      } else {
-        grupo.sort(regras.ordenarPor);
-      }
+      const jogos = await buscarJogosDoGrupo(modalidadeId, chaveIdGrupo);
+      ordenarGrupoComDesempate(grupo, regras, jogos);
       resultadoOrdenado.push(...grupo);
     }
 
@@ -699,6 +749,9 @@ async function recalcularTodasClassificacoes() {
 }
 
 module.exports = {
+  construirMapaConfrontos,
+  compararComDesempate,
+  ordenarGrupoComDesempate,
   sincronizarClassificacaoGruposModalidade,
   getResumoInscricoes,
   getClassificacaoModalidade,

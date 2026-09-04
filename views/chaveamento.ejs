@@ -13,7 +13,7 @@
           <li class="modalidade-item">
             <a href="/chaveamento?modalidade=<%= mod.id %>" class="<%= modalidadeAtiva.id === mod.id ? 'active-sport' : '' %>">
               <span class="modalidade-icon">
-                <img src="<%= mod.icone && (mod.icone.startsWith('/') || mod.icone.startsWith('http')) ? mod.icone : (mod.imagem || '/imagens/atletismo1.svg') %>" alt="<%= mod.nome %>" style="width: 26px; height: 26px; object-fit: cover; border-radius: 50%;">
+                <img src="<%= mod.icone && (mod.icone.startsWith('/') || mod.icone.startsWith('http')) ? mod.icone : (mod.imagem || '/imagens/atletismo1.svg') %>" alt="<%= mod.nome %>" class="sport-icon" style="width: 26px; height: 26px; border-radius: 50%;">
               </span>
               <span><%= mod.nome %></span>
             </a>
@@ -47,6 +47,20 @@
             </ul>
           </div>
         <% }) %>
+        <% if (atletasAtletismo && atletasAtletismo.length > 0) { %>
+          <div class="chave-card">
+            <div class="chave-title">Atletas inscritos nas equipes</div>
+            <p class="panel-subtitle" style="margin-bottom: 1rem;">Atletas dos campi inscritos no atletismo.</p>
+            <ul class="chave-equipes-list">
+              <% atletasAtletismo.forEach((atleta, index) => { %>
+                <li class="chave-equipe-item">
+                  <span><span class="chave-equipe-pos">#<%= index + 1 %></span> <%= atleta.nome %></span>
+                  <span class="item-subtext"><%= atleta.campus %></span>
+                </li>
+              <% }) %>
+            </ul>
+          </div>
+        <% } %>
       </div>
     <% } %>
 

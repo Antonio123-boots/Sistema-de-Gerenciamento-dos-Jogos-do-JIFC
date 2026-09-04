@@ -28,8 +28,8 @@ app.set('layout', 'layout');
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use(bodyParser.json({ limit: '1mb' }));
-app.use(bodyParser.urlencoded({ extended: true, limit: '1mb' }));
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 app.use(methodOverride('_method'));
 app.use(cookieParser());
 
@@ -63,7 +63,7 @@ app.use('/admin', adminRoutes);
 app.use('/juiz', juizRoutes);
 
 function startServer(port) {
-    const server = app.listen(port, () => {
+    const server = app.listen(port, '0.0.0.0', () => {
         console.log(`Server is running on port ${port}`);
         require('./config/db').getConnection()
             .then((conn) => {

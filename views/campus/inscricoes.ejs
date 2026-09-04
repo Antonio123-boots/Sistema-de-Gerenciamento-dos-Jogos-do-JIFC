@@ -137,7 +137,7 @@
               %>
                 <div class="mini-card" style="display: flex; flex-direction: column; gap: 0.9rem; padding: 1rem 1.1rem;">
                   <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.5rem;">
-                    <img src="<%= esporte.icone && (esporte.icone.startsWith('/') || esporte.icone.startsWith('http')) ? esporte.icone : (esporte.imagem || '/imagens/atletismo1.svg') %>" alt="Ícone <%= esporte.nome %>" style="width: 28px; height: 28px; object-fit: cover; border-radius: 50%;">
+                    <img src="<%= esporte.icone && (esporte.icone.startsWith('/') || esporte.icone.startsWith('http')) ? esporte.icone : (esporte.imagem || '/imagens/atletismo1.svg') %>" alt="Ícone <%= esporte.nome %>" class="sport-icon" style="width: 28px; height: 28px; border-radius: 50%;">
                     <strong style="color: #ffffff; font-size: 1rem;"><%= esporte.nome %></strong>
                   </div>
                   <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem;">
@@ -205,15 +205,6 @@
               <input type="text" name="cpf" placeholder="Ex: 123.456.789-00" value="<%= cpfFormulario %>" class="premium-text-input" inputmode="numeric" maxlength="14" autocomplete="off">
             </label>
 
-            <label>
-              Situação
-              <select name="status" required class="premium-text-input" style="height: 43px; background: #1c1d3b; color: white;">
-                <option value="Analise" <%= statusFormulario === 'Analise' ? 'selected' : '' %>>Em análise</option>
-                <option value="Pendente" <%= statusFormulario === 'Pendente' ? 'selected' : '' %>>Pendente</option>
-                <option value="Regular" <%= statusFormulario === 'Regular' ? 'selected' : '' %>>Regular</option>
-              </select>
-            </label>
-
             <div style="grid-column: 1 / -1;">
               <span style="display:block; margin-bottom: 0.5rem;">Modalidades</span>
               <% if (modalidadesSalvas.length > 0) { %>
@@ -268,10 +259,6 @@
             </div>
 
             <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; grid-column: 1 / -1;">
-              <label style="display: flex; align-items: center; gap: 0.55rem; color: rgba(255,255,255,0.75); font-size: 0.95rem;">
-                <input type="checkbox" name="validarImediatamente" value="true">
-                Validar imediatamente
-              </label>
               <button type="submit" class="btn btn-success primary-save-btn" style="border: none; height: 43px; align-self: end;">
                 <%= textoFormularioAtleta %>
               </button>

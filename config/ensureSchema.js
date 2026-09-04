@@ -157,7 +157,7 @@ async function garantirSubCategoriaChavesJogos() {
   try {
     await pool.query('ALTER TABLE chaves DROP INDEX uq_modalidade_numero_chave');
   } catch (_) {
-    console.warn('Aviso: Falha ao remover indice antigo uq_modalidade_numero_chave (pode nao existir):', _.message || _);
+    // Índice antigo já removido/inexistente: ignora silenciosamente
   }
 
   try {
@@ -265,6 +265,26 @@ async function ensureClassificacaoCartoesColumns() {
 async function ensureProvasFormatoColumn() {
   try {
     await pool.query("ALTER TABLE provas ADD COLUMN formato VARCHAR(20) DEFAULT 'direta'");
+  } catch (error) {
+    if (!/Duplicate column|already exists/i.test(error.message || '')) {
+      throw error;
+    }
+  }
+}
+
+async function ensureProvasPublicadoColumn() {
+  try {
+    await pool.query("ALTER TABLE provas ADD COLUMN publicado TINYINT(1) DEFAULT 0");
+  } catch (error) {
+    if (!/Duplicate column|already exists/i.test(error.message || '')) {
+      throw error;
+    }
+  }
+}
+
+async function ensureResultadosXadrezPublicadoColumn() {
+  try {
+    await pool.query("ALTER TABLE resultados_xadrez ADD COLUMN publicado TINYINT(1) DEFAULT 0");
   } catch (error) {
     if (!/Duplicate column|already exists/i.test(error.message || '')) {
       throw error;
@@ -382,6 +402,21 @@ async function ensureResultadosXadrezTable() {
       FOREIGN KEY (modalidade_id) REFERENCES modalidades(id) ON DELETE CASCADE,
       FOREIGN KEY (atleta_id) REFERENCES atletas(id) ON DELETE CASCADE,
       UNIQUE KEY uq_modalidade_atleta (modalidade_id, atleta_id)
+    )
+  `);
+}
+
+async function ensureBoletinsTable() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS boletins_finais (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      ano_jifc INT NOT NULL,
+      resumo_json JSON DEFAULT NULL,
+      modalidades_json JSON DEFAULT NULL,
+      ranking_json JSON DEFAULT NULL,
+      criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_ano_jifc (ano_jifc)
     )
   `);
 }
@@ -541,9 +576,12 @@ async function ensureSchema() {
   await ensureClassificacaoCartoesColumns();
   await ensureProvasTable();
   await ensureProvasFormatoColumn();
+  await ensureProvasPublicadoColumn();
   await ensureResultadosAtletismoTable();
   await garantirColunasBateriasResultados();
   await ensureResultadosXadrezTable();
+  await ensureResultadosXadrezPublicadoColumn();
+  await ensureBoletinsTable();
   await ensureAtletasProvasColumn();
   await sincronizarProvasPadraoAtletismo();
   await sincronizarProvasAtletismoDoState();
@@ -556,4 +594,4 @@ async function ensureSchema() {
   }
 }
 
-module.exports = { ensureSchema, ensureCampusTable, ensureJogoPublicadoColumn, ensureJogoWoColumn, ensureMataMataColumns, garantirSubCategoriaChavesJogos, ensureJuizModalidadeTable, ensureCartoesTable, ensureResultadosPorSetsTable, ensureClassificacaoCartoesColumns, ensureProvasTable, ensureResultadosAtletismoTable, ensureResultadosXadrezTable, ensureAtletasProvasColumn, sincronizarProvasAtletismoDoState, sincronizarProvasPadraoAtletismo };
+module.exports = { ensureSchema, ensureCampusTable, ensureJogoPublicadoColumn, ensureJogoWoColumn, ensureMataMataColumns, garantirSubCategoriaChavesJogos, ensureJuizModalidadeTable, ensureCartoesTable, ensureResultadosPorSetsTable, ensureClassificacaoCartoesColumns, ensureProvasTable, ensureResultadosAtletismoTable, ensureResultadosXadrezTable, ensureAtletasProvasColumn, ensureProvasPublicadoColumn, ensureResultadosXadrezPublicadoColumn, sincronizarProvasAtletismoDoState, sincronizarProvasPadraoAtletismo };

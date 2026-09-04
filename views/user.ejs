@@ -23,6 +23,8 @@
     const ehTabelaDireta = ehAtletismo || ehXadrez || !(Array.isArray(grupos) && grupos.length);
     const labelGrupo = ehAtletismo ? 'Categoria' : (ehXadrez ? 'Classificação' : 'Grupo');
     const deveAgruparPorGenero = !(ehAtletismo || ehXadrez);
+    const temDadosAtletismo = Boolean(typeof classificacaoAtletismoPorGenero === 'object' && classificacaoAtletismoPorGenero && Object.keys(classificacaoAtletismoPorGenero).length > 0);
+    const temDadosXadrez = Boolean(typeof classificacaoXadrezPorGenero === 'object' && classificacaoXadrezPorGenero && Object.keys(classificacaoXadrezPorGenero).length > 0);
     
     const ehSets = regrasEsporte.temSets;
     const ehCartoes = regrasEsporte.temCartoes;
@@ -111,6 +113,7 @@
                                         <% participacoes.forEach((integrante, idx) => { %>
                                             <% const nomeCampus = integrante.nome || integrante.participante_nome || 'Campus'; %>
                                             <% const fotoCampus = integrante.foto || integrante.participante_foto || integrante.foto_perfil || '/imagens/avatar.svg'; %>
+                                            <% const fotoReal = fotoCampus && fotoCampus !== '/imagens/avatar.svg'; %>
                                             <% const pontos = Number(integrante.pontos || 0); %>
                                             <% const jogos = Number(integrante.jogos_jogados || 0); %>
                                             <% const vitorias = Number(integrante.vitorias || 0); %>
@@ -127,7 +130,7 @@
                                             <div style="display:grid; grid-template-columns:<%= mostraPontuacao ? '30px minmax(0, 1.9fr) repeat(' + totalColunasExtra + ', minmax(0, 0.56fr))' : '30px minmax(0, 2.1fr) minmax(0, 1.1fr)' %>; align-items:center; gap:0.12rem; font-size:0.62rem; color:#b8c2cc; padding:0.32rem 0.24rem; border-top:1px solid rgba(255,255,255,0.06);">
                                                 <div style="font-weight:700; color:#dfe3e8; text-align:center;"><%= idx + 1 %></div>
                                                 <div style="display:flex; align-items:center; gap:0.3rem; min-width:0; overflow:hidden;">
-                                                    <img src="<%= fotoCampus %>" alt="Foto do campus <%= nomeCampus %>" style="width:18px; height:18px; object-fit:cover; border-radius:50%; display:block; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); flex-shrink:0;">
+                                                    <img src="<%= fotoCampus %>" alt="Foto do campus <%= nomeCampus %>" class="campus-photo campus-photo--xs campus-photo--badge <%= fotoReal ? 'campus-photo--real' : 'campus-photo--default' %>">
                                                     <span style="color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:0.62rem;"><%= nomeCampus %></span>
                                                 </div>
                                                 <% if (mostraPontuacao) { %>
@@ -175,14 +178,6 @@
                     const provaFiltroAtual = (typeof provaFiltroSelecionada !== 'undefined' && String(provaFiltroSelecionada || '').trim())
                         ? String(provaFiltroSelecionada).trim()
                         : (provasDisponiveisHome[0] ? provasDisponiveisHome[0].slug : '');
-                    // Um card por gênero para a prova selecionada
-                    const cartoesProvaHome = [];
-                    generosComProvasCard.forEach((generoGrupo) => {
-                        const provaDoGenero = (mapaProvasGenero[generoGrupo] || []).find((prova) => prova.slug === provaFiltroAtual);
-                        if (provaDoGenero) {
-                            cartoesProvaHome.push({ genero: generoGrupo, prova: provaDoGenero });
-                        }
-                    });
                     const corGeneroCard = (g) => (String(g).toLowerCase() === 'feminino'
                         ? { bg: 'rgba(241,148,138,0.1)', bd: 'rgba(241,148,138,0.35)', tx: '#f5b7b1' }
                         : { bg: 'rgba(93,173,226,0.1)', bd: 'rgba(93,173,226,0.35)', tx: '#aed6f1' });
@@ -194,6 +189,14 @@
                         params.set('prova', slugProva);
                         return '/?' + params.toString() + '#classificacao-atletismo';
                     };
+                    const eh100m = (prova) => String(prova && prova.slug || '').trim() === '100m';
+                    const cartoesProvaHome = [];
+                    generosComProvasCard.forEach((generoGrupo) => {
+                        const provaDoGenero = (mapaProvasGenero[generoGrupo] || []).find((prova) => prova.slug && String(prova.slug).trim() === provaFiltroAtual);
+                        if (provaDoGenero) {
+                            cartoesProvaHome.push({ genero: generoGrupo, prova: provaDoGenero });
+                        }
+                    });
                 %>
                 <div id="classificacao-atletismo" style="margin-bottom:1.2rem;">
                     <div style="display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0.3rem 0.4rem; border-bottom:1px solid rgba(255,255,255,0.07); margin-bottom:0.6rem;">
@@ -201,49 +204,206 @@
                     </div>
 
                     <% if (provasDisponiveisHome.length > 0) { %>
-                        <div style="display:flex; flex-wrap:wrap; gap:0.35rem; margin-bottom:0.8rem;">
+                        <div class="filtro-categorias-atletismo filtro-provas-home">
                             <% provasDisponiveisHome.forEach((prova) => { %>
-                                <a href="<%= construirLinkProva(prova.slug) %>" style="font-size:0.75rem; font-weight:700; text-decoration:none; padding:0.38rem 0.85rem; border-radius:999px; border:1px solid <%= provaFiltroAtual === prova.slug ? 'rgba(88,214,141,0.5)' : 'rgba(255,255,255,0.12)' %>; background:<%= provaFiltroAtual === prova.slug ? 'rgba(88,214,141,0.12)' : 'rgba(255,255,255,0.04)' %>; color:<%= provaFiltroAtual === prova.slug ? '#58d68d' : '#cfd8dc' %>;"><%= prova.nome %></a>
+                                <a href="<%= construirLinkProva(prova.slug) %>" class="filtro-categoria <%= provaFiltroAtual === prova.slug ? 'filtro-categoria-ativo' : '' %>"><%= prova.nome %></a>
                             <% }) %>
                         </div>
 
-                        <% cartoesProvaHome.forEach(({ genero, prova }) => { %>
-                            <% const coresCardProva = corGeneroCard(genero); %>
-                            <div style="margin-bottom:0.7rem;">
-                                <div style="display:flex; align-items:center; gap:0.45rem; padding:0.32rem 0.2rem; color:#cfd8dc; font-size:0.78rem; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; border-bottom:1px solid rgba(255,255,255,0.06); margin-bottom:0.3rem;">
-                                    <span style="font-size:0.62rem; font-weight:700; letter-spacing:0.03em; padding:0.16rem 0.55rem; border-radius:999px; background:<%= coresCardProva.bg %>; border:1px solid <%= coresCardProva.bd %>; color:<%= coresCardProva.tx %>;"><%= genero %></span>
-                                    <span><%= prova.nome %></span>
-                                    <span style="color:#8a9ab5; text-transform:none; font-weight:400;">· <%= prova.atletas.length %> atleta(s)</span>
-                                </div>
-                                <div class="tabela-scroll tabela-scroll--media" style="border:1px solid rgba(255,255,255,0.08); border-radius:10px; background:rgba(255,255,255,0.02);">
-                                    <div style="display:grid; grid-template-columns:38px minmax(0,1.6fr) minmax(0,1.1fr) 56px; align-items:center; gap:0.25rem; font-size:0.8rem; color:#b8c2cc; padding:0.45rem 0.35rem 0.4rem; border-bottom:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02);">
-                                        <div style="font-weight:700; color:#dfe3e8; text-align:center;">#</div>
-                                        <div style="font-weight:700; color:#dfe3e8; padding-left:0.1rem;">Atleta</div>
-                                        <div style="font-weight:700; color:#dfe3e8; text-align:left;">Campus</div>
-                                        <div style="font-weight:700; color:#58d68d; text-align:center;">PTS</div>
+                        <% if (cartoesProvaHome.length > 0) { %>
+                            <% cartoesProvaHome.forEach(({ genero, prova }) => { %>
+                                <%
+                                    const coresCardProva = corGeneroCard(genero);
+                                    const provaEh100m = eh100m(prova);
+                                    const ehRevezamento = ['4x100m', '4x400m'].includes(String(prova.slug || '').trim());
+                                    const atletasProva = (Array.isArray(prova.atletas) ? prova.atletas : []).slice(0, ehRevezamento ? 6 : 200);
+                                    const bateriasProva = !ehRevezamento
+                                        ? Array.from({ length: Math.ceil(atletasProva.length / 8) }, (_, indiceBateria) => atletasProva.slice(indiceBateria * 8, (indiceBateria + 1) * 8))
+                                        : [];
+                                    const gruposRevezamento = ehRevezamento ? (() => {
+                                        const grupos = [];
+                                        const indice = {};
+                                        atletasProva.forEach((at) => {
+                                            const chave = String(at.campus || '—').trim() || '—';
+                                            if (!(chave in indice)) {
+                                                indice[chave] = grupos.length;
+                                                grupos.push({ campus: chave, atletas: [], resultadoTotal: '' , pontosTotal: 0 });
+                                            }
+                                            const grupo = grupos[indice[chave]];
+                                            grupo.atletas.push(at);
+                                            if (at.resultado) grupo.resultadoTotal = at.resultado;
+                                            if (Number(at.pontos || 0) > 0) grupo.pontosTotal = Number(at.pontos);
+                                        });
+                                        return grupos;
+                                    })() : [];
+                                %>
+                                <div style="margin-bottom:0.7rem;">
+                                    <div style="display:flex; align-items:center; gap:0.45rem; padding:0.32rem 0.2rem; color:#cfd8dc; font-size:0.78rem; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; border-bottom:1px solid rgba(255,255,255,0.06); margin-bottom:0.3rem;">
+                                        <span style="font-size:0.62rem; font-weight:700; letter-spacing:0.03em; padding:0.16rem 0.55rem; border-radius:999px; background:<%= coresCardProva.bg %>; border:1px solid <%= coresCardProva.bd %>; color:<%= coresCardProva.tx %>;"><%= genero %></span>
+                                        <span><%= prova.nome %></span>
+                                        <span style="color:#8a9ab5; text-transform:none; font-weight:400;">· <%= (Array.isArray(prova.atletas) ? prova.atletas : []).length %> atleta(s)</span>
+                                        <% if (provaEh100m) { %>
+                                            <span style="margin-left:auto; font-size:0.62rem; font-weight:700; letter-spacing:0.03em; padding:0.16rem 0.55rem; border-radius:999px; background:rgba(88,214,141,0.1); border:1px solid rgba(88,214,141,0.35); color:#58d68d;">Pontuação na Final</span>
+                                        <% } %>
                                     </div>
-                                    <% prova.atletas.forEach((atleta, idx) => { %>
-                                        <div style="display:grid; grid-template-columns:38px minmax(0,1.6fr) minmax(0,1.1fr) 56px; align-items:center; gap:0.25rem; font-size:0.8rem; color:#b8c2cc; padding:0.48rem 0.35rem; border-top:1px solid rgba(255,255,255,0.06);">
-                                            <div style="font-weight:700; color:#dfe3e8; text-align:center;"><%= idx + 1 %></div>
-                                            <div style="color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= atleta.nome || 'Atleta sem nome' %></div>
-                                            <div style="color:rgba(255,255,255,0.6); font-size:0.75rem; overflow:hidden; text-overflow:ellipsis;"><%= atleta.campus || '—' %></div>
-                                            <% if (Number(atleta.pontos || 0) > 0) { %>
-                                                <div style="text-align:center; font-weight:700; color:#58d68d;" title="<%= atleta.posicao ? (atleta.posicao + 'º lugar') : '' %>"><%= Number(atleta.pontos) %></div>
-                                            <% } else { %>
-                                                <div style="text-align:center; color:#6c757d;">—</div>
-                                            <% } %>
-                                        </div>
-                                    <% }) %>
-                                    <% if (!prova.atletas.length) { %>
-                                        <div style="padding:0.6rem 0.35rem; font-size:0.75rem; color:#8a9ab5; text-align:center;">Sem atletas inscritos nesta prova.</div>
-                                    <% } %>
+                                    <div class="tabela-scroll tabela-scroll--media" style="border:1px solid rgba(255,255,255,0.08); border-radius:10px; background:rgba(255,255,255,0.02);">
+                                        <% if (provaEh100m) { %>
+                                            <div style="display:grid; grid-template-columns:minmax(0,0.55fr) minmax(0,2fr) minmax(0,1.4fr) minmax(0,1fr); align-items:center; gap:0.25rem; font-size:0.8rem; color:#b8c2cc; padding:0.45rem 0.35rem 0.4rem; border-bottom:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02);">
+                                                <div style="font-weight:700; color:#dfe3e8; text-align:center;">#</div>
+                                                <div style="font-weight:700; color:#dfe3e8; padding-left:0.1rem;">Atleta</div>
+                                                <div style="font-weight:700; color:#dfe3e8; text-align:left;">Campus</div>
+                                                <div style="font-weight:700; color:#dfe3e8; text-align:center;">Tempo</div>
+                                            </div>
+                                            <% bateriasProva.forEach((bateria, indiceBateria) => { %>
+                                                <div style="padding:0.45rem 0.6rem; color:#8a9ab5; font-size:0.7rem; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; border-bottom:1px solid rgba(255,255,255,0.06);">Bateria <%= indiceBateria + 1 %> </div>
+                                                <% bateria.forEach((atleta, idx) => { %>
+                                                <div style="display:grid; grid-template-columns:minmax(0,0.55fr) minmax(0,2fr) minmax(0,1.4fr) minmax(0,1fr); align-items:center; gap:0.25rem; font-size:0.8rem; color:#b8c2cc; padding:0.48rem 0.35rem; border-top:1px solid rgba(255,255,255,0.06);">
+                                                    <div style="font-weight:700; color:#dfe3e8; text-align:center;"><%= idx + 1 %></div>
+                                                    <div style="color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= atleta.nome || 'Atleta sem nome' %></div>
+                                                    <div style="color:rgba(255,255,255,0.6); font-size:0.75rem; overflow:hidden; text-overflow:ellipsis;"><%= atleta.campus || '—' %></div>
+                                                    <div style="text-align:center; font-family:monospace; color:rgba(255,255,255,0.85);"><%= atleta.resultado || '—' %></div>
+                                                </div>
+                                                <% }) %>
+                                            <% }) %>
+                                        <% } else if (ehRevezamento) { %>
+                                            <div style="display:grid; grid-template-columns:minmax(0,0.5fr) minmax(0,2.2fr) minmax(0,1fr) minmax(0,0.7fr); align-items:center; gap:0.25rem; font-size:0.8rem; color:#b8c2cc; padding:0.45rem 0.35rem 0.4rem; border-bottom:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02);">
+                                                <div style="font-weight:700; color:#dfe3e8; text-align:center;">#</div>
+                                                <div style="font-weight:700; color:#dfe3e8; padding-left:0.1rem;">Campus</div>
+                                                <div style="font-weight:700; color:#dfe3e8; text-align:center;">Resultado</div>
+                                                <div style="font-weight:700; color:#58d68d; text-align:center;">PTS</div>
+                                            </div>
+                                            <% gruposRevezamento.forEach((grupoRev, idxG) => { %>
+                                                <div style="display:grid; grid-template-columns:minmax(0,0.5fr) minmax(0,2.2fr) minmax(0,1fr) minmax(0,0.7fr); align-items:start; gap:0.25rem; font-size:0.8rem; color:#b8c2cc; padding:0.48rem 0.35rem; border-top:1px solid rgba(255,255,255,0.06); <%= idxG < 3 ? 'background:rgba(88,214,141,0.04);' : '' %>">
+                                                    <div style="font-weight:700; color:<%= idxG < 3 ? '#58d68d' : '#dfe3e8' %>; text-align:center; padding-top:0.1rem;"><%= idxG + 1 %></div>
+                                                    <div style="min-width:0;">
+                                                        <div style="color:#fff; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= grupoRev.campus %></div>
+                                                        <div style="margin-top:0.25rem; display:flex; flex-direction:column; gap:0.1rem;">
+                                                            <% grupoRev.atletas.forEach((atletaRev, idxAt) => { %>
+                                                                <div style="font-size:0.74rem; color:#cbd5e1; line-height:1.35; overflow:hidden; text-overflow:ellipsis;"><span style="color:#58d68d; font-weight:600; margin-right:0.3rem;"><%= idxAt + 1 %>.</span><%= atletaRev.nome || 'Atleta sem nome' %></div>
+                                                            <% }) %>
+                                                        </div>
+                                                    </div>
+                                                    <div style="text-align:center; font-family:monospace; color:rgba(255,255,255,0.85); padding-top:0.1rem;"><%= grupoRev.resultadoTotal || '—' %></div>
+                                                    <% if (grupoRev.pontosTotal > 0) { %>
+                                                        <div style="text-align:center; font-weight:700; color:#58d68d; padding-top:0.1rem;"><%= grupoRev.pontosTotal %></div>
+                                                    <% } else { %>
+                                                        <div style="text-align:center; color:#6c757d; padding-top:0.1rem;">—</div>
+                                                    <% } %>
+                                                </div>
+                                            <% }) %>
+                                        <% } else { %>
+                                            <div style="display:grid; grid-template-columns:minmax(0,0.5fr) minmax(0,1.9fr) minmax(0,1.3fr) minmax(0,1fr) minmax(0,0.7fr); align-items:center; gap:0.25rem; font-size:0.8rem; color:#b8c2cc; padding:0.45rem 0.35rem 0.4rem; border-bottom:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02);">
+                                                <div style="font-weight:700; color:#dfe3e8; text-align:center;">#</div>
+                                                <div style="font-weight:700; color:#dfe3e8; padding-left:0.1rem;">Atleta</div>
+                                                <div style="font-weight:700; color:#dfe3e8; text-align:left;">Campus</div>
+                                                <div style="font-weight:700; color:#dfe3e8; text-align:center;">Resultado</div>
+                                                <div style="font-weight:700; color:#58d68d; text-align:center;">PTS</div>
+                                            </div>
+                                            <% bateriasProva.forEach((bateria, indiceBateria) => { %>
+                                                <div style="padding:0.45rem 0.6rem; color:#8a9ab5; font-size:0.7rem; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; border-bottom:1px solid rgba(255,255,255,0.06);">Bateria <%= indiceBateria + 1 %> · 8 raias</div>
+                                                <% bateria.forEach((atleta, idx) => { %>
+                                                <div style="display:grid; grid-template-columns:minmax(0,0.5fr) minmax(0,1.9fr) minmax(0,1.3fr) minmax(0,1fr) minmax(0,0.7fr); align-items:center; gap:0.25rem; font-size:0.8rem; color:#b8c2cc; padding:0.48rem 0.35rem; border-top:1px solid rgba(255,255,255,0.06);">
+                                                    <div style="font-weight:700; color:#dfe3e8; text-align:center;"><%= idx + 1 %></div>
+                                                    <div style="color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= atleta.nome || 'Atleta sem nome' %></div>
+                                                    <div style="color:rgba(255,255,255,0.6); font-size:0.75rem; overflow:hidden; text-overflow:ellipsis;"><%= atleta.campus || '—' %></div>
+                                                    <div style="text-align:center; color:rgba(255,255,255,0.85);"><%= atleta.resultado || '—' %></div>
+                                                    <% if (Number(atleta.pontos || 0) > 0) { %>
+                                                        <div style="text-align:center; font-weight:700; color:#58d68d;" title="<%= atleta.posicao ? (atleta.posicao + 'º lugar') : '' %>"><%= Number(atleta.pontos) %></div>
+                                                    <% } else { %>
+                                                        <div style="text-align:center; color:#6c757d;">—</div>
+                                                    <% } %>
+                                                </div>
+                                                <% }) %>
+                                            <% }) %>
+                                        <% } %>
+                                        <% if (!(Array.isArray(prova.atletas) && prova.atletas.length)) { %>
+                                            <div style="padding:0.6rem 0.35rem; font-size:0.75rem; color:#8a9ab5; text-align:center;">Sem atletas inscritos nesta prova.</div>
+                                        <% } %>
+                                    </div>
                                 </div>
-                            </div>
-                        <% }) %>
+                            <% }) %>
+                        <% } else { %>
+                            <div style="padding:0.6rem 0.3rem; font-size:0.75rem; color:#8a9ab5;">Nenhum atleta inscrito no atletismo ainda.</div>
+                        <% } %>
                     <% } else { %>
                         <div style="padding:0.6rem 0.3rem; font-size:0.75rem; color:#8a9ab5;">Nenhum atleta inscrito no atletismo ainda.</div>
                     <% } %>
                 </div>
+
+                <% if (provaFiltroAtual === '100m') { %>
+                <div style="margin-bottom:1.2rem;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; padding:0.5rem 0.3rem 0.4rem; border-bottom:1px solid rgba(255,255,255,0.07); margin-bottom:0.6rem;">
+                        <div style="font-size:0.85rem; color:#dfe3e8; font-weight:700; text-transform:uppercase; letter-spacing:0.04em;">Finais</div>
+                    </div>
+                    <%
+                        const mapaFinaisGeneros = (typeof resultadosFinaisAtletismo === 'object' && resultadosFinaisAtletismo) ? resultadosFinaisAtletismo : {};
+                        const ordemGenerosFinais = ['Masculino', 'Feminino'];
+                        const provasFinaisMap = new Map();
+                        (Array.isArray(provasAtletismo) ? provasAtletismo : []).forEach((provaFinal) => {
+                            if (provaFinal && provaFinal.slug) provasFinaisMap.set(provaFinal.slug, provaFinal.nome || provaFinal.slug);
+                        });
+                        Object.values(mapaFinaisGeneros).forEach((porSlugFinal) => {
+                            if (!porSlugFinal || typeof porSlugFinal !== 'object') return;
+                            Object.keys(porSlugFinal).forEach((slugProvaFinal) => {
+                                if (!provasFinaisMap.has(slugProvaFinal)) provasFinaisMap.set(slugProvaFinal, slugProvaFinal);
+                            });
+                        });
+                        const generosComFinais = [
+                            ...ordemGenerosFinais.filter((g) => {
+                                const porSlugFinal = mapaFinaisGeneros[g] || {};
+                                return [...provasFinaisMap.keys()].some((slugProvaFinal) => Array.isArray(porSlugFinal[slugProvaFinal]) && porSlugFinal[slugProvaFinal].length > 0);
+                            }),
+                            ...Object.keys(mapaFinaisGeneros).filter((g) => !ordemGenerosFinais.includes(g) && Object.values(mapaFinaisGeneros[g] || {}).some((linhasProva) => Array.isArray(linhasProva) && linhasProva.length > 0))
+                        ];
+                    %>
+                    <% if (generosComFinais.length > 0) { %>
+                        <% generosComFinais.forEach((generoFinal) => { %>
+                            <% const porSlugFinal = mapaFinaisGeneros[generoFinal] || {}; %>
+                            <% const slugsFinais = [...provasFinaisMap.keys()].filter((slugProvaFinal) => Array.isArray(porSlugFinal[slugProvaFinal]) && porSlugFinal[slugProvaFinal].length > 0); %>
+                            <% slugsFinais.forEach((slugProvaFinal) => { %>
+                                <%
+                                    const provaFinalNome = provasFinaisMap.get(slugProvaFinal) || slugProvaFinal;
+                                    const linhasFinais = porSlugFinal[slugProvaFinal];
+                                    const coresFinalGenero = String(generoFinal).toLowerCase() === 'feminino'
+                                        ? { bg: 'rgba(241,148,138,0.1)', bd: 'rgba(241,148,138,0.35)', tx: '#f5b7b1' }
+                                        : { bg: 'rgba(93,173,226,0.1)', bd: 'rgba(93,173,226,0.35)', tx: '#aed6f1' };
+                                %>
+                                <div style="margin-bottom:0.7rem;">
+                                    <div style="display:flex; align-items:center; gap:0.45rem; padding:0.32rem 0.2rem; color:#cfd8dc; font-size:0.78rem; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; border-bottom:1px solid rgba(255,255,255,0.06); margin-bottom:0.3rem;">
+                                        <span style="font-size:0.62rem; font-weight:700; letter-spacing:0.03em; padding:0.16rem 0.55rem; border-radius:999px; background:<%= coresFinalGenero.bg %>; border:1px solid <%= coresFinalGenero.bd %>; color:<%= coresFinalGenero.tx %>;"><%= generoFinal %></span>
+                                        <span><%= provaFinalNome %></span>
+                                        <span style="margin-left:auto; font-size:0.62rem; font-weight:800; letter-spacing:0.03em; padding:0.16rem 0.55rem; border-radius:999px; background:rgba(88,214,141,0.12); border:1px solid rgba(88,214,141,0.4); color:#58d68d;">Final</span>
+                                    </div>
+                                    <div class="tabela-scroll tabela-scroll--media" style="border:1px solid rgba(88,214,141,0.25); border-radius:10px; background:rgba(88,214,141,0.03);">
+                                        <div style="display:grid; grid-template-columns:minmax(0,0.5fr) minmax(0,1.8fr) minmax(0,1.2fr) minmax(0,1fr) minmax(0,0.7fr); align-items:center; gap:0.25rem; font-size:0.8rem; color:#b8c2cc; padding:0.45rem 0.35rem 0.4rem; border-bottom:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02);">
+                                            <div style="font-weight:700; color:#dfe3e8; text-align:center;">#</div>
+                                            <div style="font-weight:700; color:#dfe3e8; padding-left:0.1rem;">Atleta</div>
+                                            <div style="font-weight:700; color:#dfe3e8; text-align:left;">Campus</div>
+                                            <div style="font-weight:700; color:#dfe3e8; text-align:center;">Tempo</div>
+                                            <div style="font-weight:700; color:#58d68d; text-align:center;">PTS</div>
+                                        </div>
+                                        <% linhasFinais.forEach((linhaFinal) => { %>
+                                            <div style="display:grid; grid-template-columns:minmax(0,0.5fr) minmax(0,1.8fr) minmax(0,1.2fr) minmax(0,1fr) minmax(0,0.7fr); align-items:center; gap:0.25rem; font-size:0.8rem; color:#b8c2cc; padding:0.48rem 0.35rem; border-top:1px solid rgba(255,255,255,0.06);">
+                                                <div style="font-weight:700; color:<%= linhaFinal.posicao && linhaFinal.posicao <= 3 ? '#58d68d' : '#dfe3e8' %>; text-align:center;"><%= linhaFinal.posicao ? (linhaFinal.posicao + 'º') : '—' %></div>
+                                                <div style="color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= linhaFinal.nome || 'Atleta sem nome' %></div>
+                                                <div style="color:rgba(255,255,255,0.6); font-size:0.75rem; overflow:hidden; text-overflow:ellipsis;"><%= linhaFinal.campus || '—' %></div>
+                                                <div style="text-align:center; font-family:monospace; color:rgba(255,255,255,0.85);"><%= linhaFinal.tempo || '—' %></div>
+                                                <% if (Number(linhaFinal.pontos || 0) > 0) { %>
+                                                    <div style="text-align:center; font-weight:700; color:#58d68d;"><%= Number(linhaFinal.pontos) %></div>
+                                                <% } else { %>
+                                                    <div style="text-align:center; color:#6c757d;">—</div>
+                                                <% } %>
+                                            </div>
+                                        <% }) %>
+                                    </div>
+                                </div>
+                            <% }) %>
+                        <% }) %>
+                    <% } else { %>
+                        <div style="padding:0.6rem 0.3rem; font-size:0.75rem; color:#8a9ab5;">Nenhuma final lançada ainda.</div>
+                    <% } %>
+                </div>
+                <% } %>
             <% } else if (!ehXadrez) { %>
                 <%
                     const gruposBaseTabela = Array.isArray(grupos) && grupos.length ? grupos : [];
@@ -299,6 +459,7 @@
                                 <% participacoes.forEach((integrante, idx) => { %>
                                     <% const nomeCampus = integrante.nome || integrante.participante_nome || 'Campus'; %>
                                     <% const fotoCampus = integrante.foto || integrante.participante_foto || integrante.foto_perfil || '/imagens/avatar.svg'; %>
+                                    <% const fotoReal = fotoCampus && fotoCampus !== '/imagens/avatar.svg'; %>
                                     <% const pontos = Number(integrante.pontos || 0); %>
                                     <% const jogos = Number(integrante.jogos_jogados || 0); %>
                                     <% const vitorias = Number(integrante.vitorias || 0); %>
@@ -315,7 +476,7 @@
                                     <div style="display:grid; grid-template-columns:<%= mostraPontuacao ? '38px minmax(0, 1.9fr) repeat(' + totalColunasExtra + ', minmax(0, 0.56fr))' : '38px minmax(0, 2.1fr) minmax(0, 1.1fr)' %>; align-items:center; gap:0.25rem; font-size:0.8rem; color:#b8c2cc; padding:0.48rem 0.35rem; border-top:1px solid rgba(255,255,255,0.06);">
                                         <div style="font-weight:700; color:#dfe3e8; text-align:center;"><%= idx + 1 %></div>
                                         <div style="display:flex; align-items:center; gap:0.4rem; min-width:0; overflow:hidden;">
-                                            <img src="<%= fotoCampus %>" alt="Foto do campus <%= nomeCampus %>" style="width:22px; height:22px; object-fit:cover; border-radius:50%; display:block; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); flex-shrink:0;">
+                                            <img src="<%= fotoCampus %>" alt="Foto do campus <%= nomeCampus %>" class="campus-photo campus-photo--sm campus-photo--badge <%= fotoReal ? 'campus-photo--real' : 'campus-photo--default' %>">
                                             <span style="color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:0.8rem;"><%= nomeCampus %></span>
                                         </div>
                                         <% if (mostraPontuacao) { %>
@@ -352,8 +513,7 @@
                 </div>
             <% } %>
 
-            <% if (temClassificacaoIndividual) { %>
-                <div style="margin-top:0.75rem; border-top:1px solid rgba(255,255,255,0.07); padding-top:0.75rem;">
+            <% if (temClassificacaoIndividual && tipoClassificacaoIndividual !== 'xadrez') { %>
                     <div style="font-size:0.85rem; color:#dfe3e8; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:0.5rem;">
                         Classificação Geral
                     </div>
@@ -381,7 +541,7 @@
                         <% } %>
                         <div class="tabela-scroll tabela-scroll--media" style="border:1px solid rgba(255,255,255,0.08); border-radius:10px; background:rgba(255,255,255,0.02); <%= secaoGeral.genero && secoesGeralTabela.length > 1 ? 'margin-bottom:0.9rem;' : '' %>">
                             <% if (tipoClassificacaoIndividual === 'atletismo') { %>
-                                <div style="display:grid; grid-template-columns:34px minmax(0,1.6fr) minmax(0,0.9fr) 48px; align-items:center; gap:0.25rem; font-size:0.8rem; color:#b8c2cc; padding:0.45rem 0.35rem 0.4rem; border-bottom:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02);">
+                                <div style="display:grid; grid-template-columns:minmax(0,0.5fr) minmax(0,2fr) minmax(0,1.1fr) minmax(0,0.7fr); align-items:center; gap:0.25rem; font-size:0.8rem; color:#b8c2cc; padding:0.45rem 0.35rem 0.4rem; border-bottom:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02);">
                                     <div style="font-weight:700; color:#dfe3e8; text-align:center;">#</div>
                                     <div style="font-weight:700; color:#dfe3e8; padding-left:0.1rem;">Campus</div>
                                     <div style="font-weight:700; color:#dfe3e8; text-align:center;">Provas</div>
@@ -395,34 +555,17 @@
                                     <div style="font-weight:700; color:#58d68d; text-align:center;">PTS</div>
                                 </div>
                             <% } %>
-                            <% if (tipoClassificacaoIndividual === 'xadrez') { %>
-                                <div style="display:grid; grid-template-columns:34px minmax(0,1.5fr) minmax(0,1fr) repeat(4,34px); align-items:center; gap:0.25rem; font-size:0.8rem; color:#b8c2cc; padding:0.28rem 0.35rem; border-bottom:1px solid rgba(255,255,255,0.06); background:rgba(255,255,255,0.01);">
-                                    <div></div><div></div><div></div>
-                                    <div style="text-align:center; font-weight:700; color:#dfe3e8;">V</div>
-                                    <div style="text-align:center; font-weight:700; color:#dfe3e8;">D</div>
-                                    <div style="text-align:center; font-weight:700; color:#dfe3e8;">E</div>
-                                </div>
-                            <% } %>
                             <% secaoGeral.dados.forEach((c, idx) => { %>
+                            <% const fotoRealAtletismo = (c.foto_perfil && c.foto_perfil !== '/imagens/avatar.svg'); %>
                             <% if (tipoClassificacaoIndividual === 'atletismo') { %>
-                                <div style="display:grid; grid-template-columns:34px minmax(0,1.6fr) minmax(0,0.9fr) 48px; align-items:center; gap:0.25rem; font-size:0.8rem; padding:0.48rem 0.35rem; border-top:1px solid rgba(255,255,255,0.06); <%= idx < 3 ? 'background:rgba(88,214,141,0.04);' : '' %>">
+                                <div style="display:grid; grid-template-columns:minmax(0,0.5fr) minmax(0,2fr) minmax(0,1.1fr) minmax(0,0.7fr); align-items:center; gap:0.25rem; font-size:0.8rem; padding:0.48rem 0.35rem; border-top:1px solid rgba(255,255,255,0.06); <%= idx < 3 ? 'background:rgba(88,214,141,0.04);' : '' %>">
                                     <div style="font-weight:700; color:#dfe3e8; text-align:center;"><%= idx + 1 %>º</div>
                                     <div style="display:flex; align-items:center; gap:0.4rem; min-width:0;">
-                                        <img src="<%= c.foto_perfil || '/imagens/avatar.svg' %>" alt="Foto do campus <%= c.campus_nome || '' %>" style="width:22px; height:22px; object-fit:cover; border-radius:50%; display:block; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.05); flex-shrink:0;">
+                                        <img src="<%= c.foto_perfil || '/imagens/avatar.svg' %>" alt="Foto do campus <%= c.campus_nome || '' %>" class="campus-photo campus-photo--sm campus-photo--badge <%= fotoRealAtletismo ? 'campus-photo--real' : 'campus-photo--default' %>">
                                         <span style="color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= c.campus_nome || 'Campus sem nome' %></span>
                                     </div>
                                     <div style="text-align:center; color:rgba(255,255,255,0.6);"><%= Number(c.provas_pontuadas || 0) %></div>
                                     <div style="text-align:center; font-weight:700; color:#58d68d;"><%= Number(c.pontos || 0) %></div>
-                                </div>
-                            <% } else if (tipoClassificacaoIndividual === 'xadrez') { %>
-                                <div style="display:grid; grid-template-columns:34px minmax(0,1.5fr) minmax(0,1fr) repeat(4,34px); align-items:center; gap:0.25rem; font-size:0.8rem; padding:0.48rem 0.35rem; border-top:1px solid rgba(255,255,255,0.06); <%= idx < 3 ? 'background:rgba(88,214,141,0.04);' : '' %>">
-                                    <div style="font-weight:700; color:#dfe3e8; text-align:center;"><%= idx + 1 %>º</div>
-                                    <div style="color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= c.atleta_nome %></div>
-                                    <div style="color:rgba(255,255,255,0.6); font-size:0.75rem;"><%= c.campus_nome %></div>
-                                    <div style="text-align:center; font-weight:700; color:#58d68d;"><%= c.pontuacao || 0 %></div>
-                                    <div style="text-align:center; color:#58d68d;"><%= c.vitorias || 0 %></div>
-                                    <div style="text-align:center; color:#f1948a;"><%= c.derrotas || 0 %></div>
-                                    <div style="text-align:center; color:#f5b041;"><%= c.empates || 0 %></div>
                                 </div>
                             <% } else { %>
                                 <div style="display:grid; grid-template-columns:34px minmax(0,1.5fr) minmax(0,1fr) 48px; align-items:center; gap:0.25rem; font-size:0.8rem; padding:0.48rem 0.35rem; border-top:1px solid rgba(255,255,255,0.06); <%= idx < 3 ? 'background:rgba(88,214,141,0.04);' : '' %>">
@@ -435,38 +578,35 @@
                             <% }); %>
                         </div>
                     <% }); %>
-                </div>
             <% } %>
         </aside>
     <% } %>
 
 
-    <details class="painel-jogos" open>
-        <summary class="painel-jogos__cabecalho">
-            <span class="painel-jogos__titulo">
-                <% if (Array.isArray(jogos) && jogos.length > 0) { %>Jogos (<%= jogos.length %>)<% } else if (ehAtletismo || ehXadrez) { %>Resultados<% } else { %>Jogos<% } %>
-            </span>
-            <span class="painel-jogos__dica" aria-hidden="true"></span>
-            <span class="painel-jogos__seta" aria-hidden="true">&#9662;</span>
-        </summary>
+    <div class="painel-jogos">
 
         <div style="width:100%;">
             <% if (Array.isArray(jogos) && jogos.length > 0) { %>
                 <% if (temEsporteAtivo) {
-                    const ehRodada1 = (j) => String(j.fase || '').trim() === 'Fase de Grupos' && Number(j.rodada || 1) === 1;
-                    const ehRodada2 = (j) => String(j.fase || '').trim() === 'Fase de Grupos' && Number(j.rodada || 1) === 2;
-                    const ehRodada3 = (j) => String(j.fase || '').trim() === 'Fase de Grupos' && Number(j.rodada || 1) === 3;
-                    const ehEliminatoria = (j) => String(j.fase || '').trim() !== 'Fase de Grupos';
+                    const ehGrupo = (j) => String(j.fase || '').trim() === 'Fase de Grupos';
+                    const ehEliminatoria = (j) => !ehGrupo(j);
+                    const numerosRodadas = [...new Set(jogos.filter(ehGrupo).map((j) => Number(j.rodada || 1)))].filter((n) => Number.isFinite(n) && n > 0).sort((a, b) => a - b);
+                    const gruposRodadas = numerosRodadas.map((num) => ({
+                        chave: String(num),
+                        label: num + 'ª Rodada',
+                        jogos: jogos.filter((j) => ehGrupo(j) && Number(j.rodada || 1) === num)
+                    }));
                     const gruposJogos = [
-                        { chave: '1', label: '1ª Rodada', jogos: jogos.filter(ehRodada1) },
-                        { chave: '2', label: '2ª Rodada', jogos: jogos.filter(ehRodada2) },
-                        { chave: '3', label: '3ª Rodada', jogos: jogos.filter(ehRodada3) },
+                        ...gruposRodadas,
                         { chave: 'E', label: 'Eliminatórias', jogos: jogos.filter(ehEliminatoria) }
                     ].filter((grupo) => grupo.jogos.length > 0);
                 %>
                     <div class="filtro-rodadas-jogos" id="filtroRodadasJogos">
                         <% gruposJogos.forEach((grupo, gi) => { %>
-                            <button type="button" class="round-pill rodada-pill <%= gi === 0 ? 'active' : '' %>" data-rodada="<%= grupo.chave %>"><%= grupo.label %></button>
+                            <button type="button" class="round-pill rodada-pill <%= gi === 0 ? 'active' : '' %>" data-rodada="<%= grupo.chave %>">
+                                <span class="rodada-indice"><%= grupo.chave === 'E' ? 'E' : grupo.chave %></span>
+                                <span class="rodada-nome"><%= grupo.chave === 'E' ? 'Eliminatórias' : 'Rodada' %></span>
+                            </button>
                         <% }) %>
                     </div>
                     <% gruposJogos.forEach((grupo, gi) => { %>
@@ -490,78 +630,6 @@
                 <% } %>
         <% } else if (ehAtletismo || ehXadrez) { %>
             <% if (ehAtletismo) { %>
-                <%
-                    const mapaFinaisGeneros = (typeof resultadosFinaisAtletismo === 'object' && resultadosFinaisAtletismo) ? resultadosFinaisAtletismo : {};
-                    const ordemGenerosFinais = ['Masculino', 'Feminino'];
-                    const provasFinaisMap = new Map();
-                    (Array.isArray(provasAtletismo) ? provasAtletismo : []).forEach((provaFinal) => {
-                        if (provaFinal && provaFinal.slug) provasFinaisMap.set(provaFinal.slug, provaFinal.nome || provaFinal.slug);
-                    });
-                    Object.values(mapaFinaisGeneros).forEach((porSlugFinal) => {
-                        if (!porSlugFinal || typeof porSlugFinal !== 'object') return;
-                        Object.keys(porSlugFinal).forEach((slugProvaFinal) => {
-                            if (!provasFinaisMap.has(slugProvaFinal)) provasFinaisMap.set(slugProvaFinal, slugProvaFinal);
-                        });
-                    });
-                    const generosComFinais = [
-                        ...ordemGenerosFinais.filter((g) => {
-                            const porSlugFinal = mapaFinaisGeneros[g] || {};
-                            return [...provasFinaisMap.keys()].some((slugProvaFinal) => Array.isArray(porSlugFinal[slugProvaFinal]) && porSlugFinal[slugProvaFinal].length > 0);
-                        }),
-                        ...Object.keys(mapaFinaisGeneros).filter((g) => !ordemGenerosFinais.includes(g) && Object.values(mapaFinaisGeneros[g] || {}).some((linhasProva) => Array.isArray(linhasProva) && linhasProva.length > 0))
-                    ];
-                %>
-                <div style="margin-bottom:0.5rem;">
-                    <div style="font-size:0.85rem; color:#dfe3e8; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; padding:0.5rem 0.3rem 0.4rem; border-bottom:1px solid rgba(255,255,255,0.07); margin-bottom:0.7rem;">Resultados por Prova</div>
-                    <% if (generosComFinais.length > 0) { %>
-                        <% generosComFinais.forEach((generoFinal) => { %>
-                            <% const porSlugFinal = mapaFinaisGeneros[generoFinal] || {}; %>
-                            <% const slugsFinais = [...provasFinaisMap.keys()].filter((slugProvaFinal) => Array.isArray(porSlugFinal[slugProvaFinal]) && porSlugFinal[slugProvaFinal].length > 0); %>
-                            <% slugsFinais.forEach((slugProvaFinal) => { %>
-                                <%
-                                    const provaFinalNome = provasFinaisMap.get(slugProvaFinal) || slugProvaFinal;
-                                    const linhasFinais = porSlugFinal[slugProvaFinal];
-                                    const coresFinalGenero = String(generoFinal).toLowerCase() === 'feminino'
-                                        ? { bg: 'rgba(241,148,138,0.1)', bd: 'rgba(241,148,138,0.35)', tx: '#f5b7b1' }
-                                        : { bg: 'rgba(93,173,226,0.1)', bd: 'rgba(93,173,226,0.35)', tx: '#aed6f1' };
-                                %>
-                                <div style="margin-bottom:0.7rem;">
-                                    <div style="display:flex; align-items:center; gap:0.45rem; padding:0.32rem 0.2rem; color:#cfd8dc; font-size:0.78rem; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; border-bottom:1px solid rgba(255,255,255,0.06); margin-bottom:0.3rem;">
-                                        <span style="font-size:0.62rem; font-weight:700; letter-spacing:0.03em; padding:0.16rem 0.55rem; border-radius:999px; background:<%= coresFinalGenero.bg %>; border:1px solid <%= coresFinalGenero.bd %>; color:<%= coresFinalGenero.tx %>;"><%= generoFinal %></span>
-                                        <span><%= provaFinalNome %></span>
-                                        <span style="margin-left:auto; font-size:0.62rem; font-weight:800; letter-spacing:0.03em; padding:0.16rem 0.55rem; border-radius:999px; background:rgba(88,214,141,0.12); border:1px solid rgba(88,214,141,0.4); color:#58d68d;">Final</span>
-                                    </div>
-                                    <div class="tabela-scroll tabela-scroll--media" style="border:1px solid rgba(88,214,141,0.25); border-radius:10px; background:rgba(88,214,141,0.03);">
-                                        <div style="display:grid; grid-template-columns:38px minmax(0,1.6fr) minmax(0,1.1fr) 74px 56px; align-items:center; gap:0.25rem; font-size:0.8rem; color:#b8c2cc; padding:0.45rem 0.35rem 0.4rem; border-bottom:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02);">
-                                            <div style="font-weight:700; color:#dfe3e8; text-align:center;">#</div>
-                                            <div style="font-weight:700; color:#dfe3e8; padding-left:0.1rem;">Atleta</div>
-                                            <div style="font-weight:700; color:#dfe3e8; text-align:left;">Campus</div>
-                                            <div style="font-weight:700; color:#dfe3e8; text-align:center;">Tempo</div>
-                                            <div style="font-weight:700; color:#58d68d; text-align:center;">PTS</div>
-                                        </div>
-                                        <% linhasFinais.forEach((linhaFinal) => { %>
-                                            <div style="display:grid; grid-template-columns:38px minmax(0,1.6fr) minmax(0,1.1fr) 74px 56px; align-items:center; gap:0.25rem; font-size:0.8rem; color:#b8c2cc; padding:0.48rem 0.35rem; border-top:1px solid rgba(255,255,255,0.06);">
-                                                <div style="font-weight:700; color:<%= linhaFinal.posicao && linhaFinal.posicao <= 3 ? '#58d68d' : '#dfe3e8' %>; text-align:center;"><%= linhaFinal.posicao ? (linhaFinal.posicao + 'º') : '—' %></div>
-                                                <div style="color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= linhaFinal.nome || 'Atleta sem nome' %></div>
-                                                <div style="color:rgba(255,255,255,0.6); font-size:0.75rem; overflow:hidden; text-overflow:ellipsis;"><%= linhaFinal.campus || '—' %></div>
-                                                <div style="text-align:center; font-family:monospace; color:rgba(255,255,255,0.85);"><%= linhaFinal.tempo || '—' %></div>
-                                                <% if (Number(linhaFinal.pontos || 0) > 0) { %>
-                                                    <div style="text-align:center; font-weight:700; color:#58d68d;"><%= Number(linhaFinal.pontos) %></div>
-                                                <% } else { %>
-                                                    <div style="text-align:center; color:#6c757d;">—</div>
-                                                <% } %>
-                                            </div>
-                                        <% }) %>
-                                    </div>
-                                </div>
-                            <% }) %>
-                        <% }) %>
-                    <% } else { %>
-                        <article class="panel-card" style="text-align:center; padding:1.5rem;">
-                            <p class="panel-subtitle" style="margin:0;">Nenhum resultado lançado ainda.</p>
-                        </article>
-                    <% } %>
-                </div>
             <% } else { %>
                 <%
                     const mapaXadrezGeneros = (typeof classificacaoXadrezPorGenero === 'object' && classificacaoXadrezPorGenero) ? classificacaoXadrezPorGenero : {};
@@ -572,22 +640,25 @@
                     ];
                     const temResultadoXadrez = generosXadrez.some((g) => (mapaXadrezGeneros[g] || []).some((linhaXadrez) => Number(linhaXadrez.pontuacao || 0) > 0 || Number(linhaXadrez.vitorias || 0) > 0 || Number(linhaXadrez.derrotas || 0) > 0 || Number(linhaXadrez.empates || 0) > 0));
                 %>
-                <div style="margin-bottom:0.5rem;">
-                    <div style="font-size:0.85rem; color:#dfe3e8; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; padding:0.5rem 0.3rem 0.4rem; border-bottom:1px solid rgba(255,255,255,0.07); margin-bottom:0.7rem;">Resultados</div>
                     <% if (temResultadoXadrez) { %>
-                        <div class="tabela-scroll tabela-scroll--larga" style="border:1px solid rgba(255,255,255,0.08); border-radius:10px; background:rgba(255,255,255,0.02);">
-                            <div style="display:grid; grid-template-columns:34px minmax(0,1.5fr) minmax(0,1fr) repeat(4,34px); align-items:center; gap:0.25rem; font-size:0.8rem; color:#b8c2cc; padding:0.45rem 0.35rem 0.4rem; border-bottom:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02);">
-                                <div style="font-weight:700; color:#dfe3e8; text-align:center;">#</div>
-                                <div style="font-weight:700; color:#dfe3e8; padding-left:0.1rem;">Atleta</div>
-                                <div style="font-weight:700; color:#dfe3e8; text-align:left;">Campus</div>
-                                <div style="font-weight:700; color:#58d68d; text-align:center;">PTS</div>
-                                <div style="font-weight:700; color:#58d68d; text-align:center;">V</div>
-                                <div style="font-weight:700; color:#f1948a; text-align:center;">D</div>
-                                <div style="font-weight:700; color:#f5b041; text-align:center;">E</div>
-                            </div>
-                            <% generosXadrez.forEach((generoXadrez) => { %>
-                                <% (mapaXadrezGeneros[generoXadrez] || []).forEach((linhaXadrez, idxXadrez) => { %>
-                                    <div style="display:grid; grid-template-columns:34px minmax(0,1.5fr) minmax(0,1fr) repeat(4,34px); align-items:center; gap:0.25rem; font-size:0.8rem; padding:0.48rem 0.35rem; border-top:1px solid rgba(255,255,255,0.06); <%= idxXadrez < 3 ? 'background:rgba(88,214,141,0.04);' : '' %>">
+                        <% generosXadrez.forEach((generoXadrez) => { %>
+                            <% const resultadosGeneroXadrez = mapaXadrezGeneros[generoXadrez] || []; %>
+                            <% if (resultadosGeneroXadrez.length > 0) { %>
+                                <div style="font-size:0.82rem; color:#dfe3e8; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; margin:0.85rem 0 0.45rem;">
+                                    <%= generoXadrez %>
+                                </div>
+                                <div class="tabela-scroll tabela-scroll--larga" style="border:1px solid rgba(255,255,255,0.08); border-radius:10px; background:rgba(255,255,255,0.02); margin-bottom:0.9rem;">
+                                    <div style="display:grid; grid-template-columns:minmax(0,0.5fr) minmax(0,1.6fr) minmax(0,1.1fr) repeat(4,minmax(0,0.65fr)); align-items:center; gap:0.25rem; font-size:0.8rem; color:#b8c2cc; padding:0.45rem 0.35rem 0.4rem; border-bottom:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.02);">
+                                        <div style="font-weight:700; color:#dfe3e8; text-align:center;">#</div>
+                                        <div style="font-weight:700; color:#dfe3e8; padding-left:0.1rem;">Atleta</div>
+                                        <div style="font-weight:700; color:#dfe3e8; text-align:left;">Campus</div>
+                                        <div style="font-weight:700; color:#58d68d; text-align:center;">PTS</div>
+                                        <div style="font-weight:700; color:#58d68d; text-align:center;">V</div>
+                                        <div style="font-weight:700; color:#f1948a; text-align:center;">D</div>
+                                        <div style="font-weight:700; color:#f5b041; text-align:center;">E</div>
+                                    </div>
+                                    <% resultadosGeneroXadrez.forEach((linhaXadrez, idxXadrez) => { %>
+                                    <div style="display:grid; grid-template-columns:minmax(0,0.5fr) minmax(0,1.6fr) minmax(0,1.1fr) repeat(4,minmax(0,0.65fr)); align-items:center; gap:0.25rem; font-size:0.8rem; padding:0.48rem 0.35rem; border-top:1px solid rgba(255,255,255,0.06); <%= idxXadrez < 3 ? 'background:rgba(88,214,141,0.04);' : '' %>">
                                         <div style="font-weight:700; color:#dfe3e8; text-align:center;"><%= idxXadrez + 1 %>º</div>
                                         <div style="color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= linhaXadrez.atleta_nome %></div>
                                         <div style="color:rgba(255,255,255,0.6); font-size:0.75rem; overflow:hidden; text-overflow:ellipsis;"><%= linhaXadrez.campus_nome %></div>
@@ -596,15 +667,15 @@
                                         <div style="text-align:center; color:#f1948a;"><%= linhaXadrez.derrotas || 0 %></div>
                                         <div style="text-align:center; color:#f5b041;"><%= linhaXadrez.empates || 0 %></div>
                                     </div>
-                                <% }) %>
-                            <% }) %>
-                        </div>
+                                    <% }) %>
+                                </div>
+                            <% } %>
+                        <% }) %>
                     <% } else { %>
                         <article class="panel-card" style="text-align:center; padding:1.5rem;">
                             <p class="panel-subtitle" style="margin:0;">Nenhum resultado lançado ainda.</p>
                         </article>
                     <% } %>
-                </div>
             <% } %>
         <% } else { %>
             <article class="panel-card" style="text-align:center; padding:1.5rem;">
@@ -612,7 +683,7 @@
             </article>
         <% } %>
         </div>
-    </details>
+    </div>
 
     <script>
         (function () {

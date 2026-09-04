@@ -50,6 +50,16 @@
     border-radius: 16px;
     border: 3px solid #ece42d;
     background: rgba(255, 255, 255, 0.05);
+    object-fit: cover;
+    object-position: center;
+    aspect-ratio: 1 / 1;
+    display: block;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.institution-img:hover {
+    transform: scale(1.04);
+    box-shadow: 0 6px 20px rgba(236, 228, 45, 0.2);
 }
 
 .institution-logo {
@@ -368,10 +378,20 @@
 }
 
 .team-card__media img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    max-width: 76%;
+    max-height: 78%;
+    width: auto;
+    height: auto;
+    aspect-ratio: auto;
+    object-fit: contain;
+    object-position: center;
+    flex-shrink: 0;
     display: block;
+    transition: transform 0.3s ease;
+}
+
+.team-card:hover .team-card__media img {
+    transform: scale(1.05);
 }
 
 .team-card__initials {

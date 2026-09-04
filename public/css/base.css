@@ -235,7 +235,9 @@ body {
 .active-sport {
     background: rgba(236, 228, 45, 0.18) !important;
     color: #fff !important;
-    border: 1px solid rgba(236, 228, 45, 0.35);
+    border: none;
+    box-shadow: none;
+    outline: none;
 }
 
 /* ==========================================================================

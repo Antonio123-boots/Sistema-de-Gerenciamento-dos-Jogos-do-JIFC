@@ -38,6 +38,7 @@
 
 .institution-details {
   flex-grow: 1;
+  min-width: 0;
 }
 
 .institution-title {
@@ -51,6 +52,7 @@
   color: rgba(255, 255, 255, 0.7);
   font-size: 0.95rem;
   margin-bottom: 0.25rem;
+  overflow-wrap: anywhere;
 }
 
 .badge-row {
@@ -113,6 +115,30 @@
 
 .admin-nav-card:hover {
   background: rgba(255, 255, 255, 0.07);
+}
+
+.profile-edit-actions,
+.profile-form-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.profile-edit-actions {
+  margin: 0 0 1rem;
+}
+
+.profile-edit-panel {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.profile-form-actions {
+  margin-top: 0.8rem;
 }
 
 .campus-panel-grid {
@@ -279,4 +305,18 @@
   justify-content: space-between;
   gap: 1rem;
   flex-wrap: wrap;
+}
+
+/* Foto de perfil: exibir a imagem inteira, sem borda desnecessária nem recorte redondo */
+.institution-avatar-image {
+  border: none;
+  border-radius: 0;
+  object-fit: cover;
+  object-position: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.institution-avatar-image:hover {
+  transform: scale(1.04);
+  box-shadow: 0 6px 20px rgba(236, 228, 45, 0.2);
 }

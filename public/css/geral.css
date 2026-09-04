@@ -84,18 +84,25 @@ a {
   border-radius: 999px;
   color: #fff;
   transition: all 0.2s ease;
+  outline: none;
 }
 
 .modalidade-item a:hover,
 .modalidade-item.is-active a {
   background: rgba(236, 228, 45, 0.14);
-  border: 1px solid rgba(236, 228, 45, 0.36);
   color: #fff;
   transform: none;
 }
 
-.modalidade-item.is-active a {
-  box-shadow: 0 0 0 1px rgba(236, 228, 45, 0.35), 0 8px 16px rgba(236, 228, 45, 0.12);
+/* Remove a borda/anel quadrado ao selecionar — mantém apenas o fundo arredondado */
+.modalidade-item a,
+.modalidade-item.is-active a,
+.modalidade-item a:focus,
+.modalidade-item a:focus-visible {
+  border: none;
+  border-radius: 999px;
+  box-shadow: none;
+  outline: none;
 }
 
 .dia-item {
@@ -137,12 +144,156 @@ a {
   color: rgba(255, 255, 255, 0.6);
 }
 
+/* ==========================================================================
+   SISTEMA UNIFICADO DE IMAGENS
+   - Classes padronizadas para todas as imagens do projeto
+   - Garante tamanhos consistentes, qualidade e sem cortes indesejados
+   ========================================================================== */
+
+/* Base global: todas as imagens do projeto receem qualidade e consistência */
+img {
+  image-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --- Classe base para fotos de campus/perfil --- */
+.campus-photo {
+  display: block;
+  flex-shrink: 0;
+  object-fit: cover;
+  object-position: center;
+  aspect-ratio: 1 / 1;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
+  will-change: transform;
+}
+
+/* Variante: foto real (upload do usuário) — cantos arredondados elegantes */
+.campus-photo--real {
+  border-radius: 12px;
+}
+
+/* Variante: avatar padrão (SVG fallback) — circular */
+.campus-photo--default {
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Tamanhos padronizados */
+.campus-photo--xs {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+}
+
+.campus-photo--sm {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+
+.campus-photo--md {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+}
+
+.campus-photo--lg {
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+}
+
+.campus-photo--xl {
+  width: 110px;
+  height: 110px;
+  border-radius: 16px;
+}
+
+/* Logo do campus contido (sem degradê) — mesmo formato das abas /equipes */
+.campus-photo--badge {
+  object-fit: contain;
+  object-position: center;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  box-sizing: border-box;
+}
+.campus-photo--badge.campus-photo--xs {
+  width: 26px;
+  height: 26px;
+}
+.campus-photo--badge.campus-photo--md {
+  width: 58px;
+  height: 58px;
+}
+.campus-photo--badge.campus-photo--sm {
+  width: 36px;
+  height: 36px;
+}
+.campus-photo--badge.campus-photo--lg {
+  width: 72px;
+  height: 72px;
+  border-radius: 14px;
+}
+.campus-photo--badge:hover {
+  transform: scale(1.06);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+/* Hover dinâmico: leve elevação e brilho */
+.campus-photo:hover {
+  transform: scale(1.06);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+/* Tamanhos xs/sm não precisam de hover tão forte */
+.campus-photo--xs:hover,
+.campus-photo--sm:hover {
+  transform: scale(1.12);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+/* Ícones de modalidade (nav bar e admin) — não circular */
+.sport-icon {
+  display: block;
+  object-fit: contain;
+  object-position: center;
+  transition: filter 0.3s ease, transform 0.25s ease;
+  will-change: filter;
+}
+
+.sport-icon:hover {
+  transform: scale(1.08);
+}
+
+/* Avatar do header */
 .avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
   object-fit: cover;
+  object-position: center;
+  aspect-ratio: 1 / 1;
   border: 2px solid #ece42d;
+  display: block;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.avatar:hover {
+  transform: scale(1.08);
+  box-shadow: 0 2px 12px rgba(236, 228, 45, 0.25);
+}
+
+/* Compat: manter classes antigas funcionando */
+.campus-avatar,
+.institution-img,
+.institution-avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  aspect-ratio: 1 / 1;
+  display: block;
 }
 
 .login-btn {
@@ -767,19 +918,33 @@ a {
 .carrossel-jogos {
   position: relative;
   width: 100%;
+  min-width: 0;
 }
 
 .carrossel-trilho {
   display: flex;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
-  gap: 1rem;
-  scrollbar-width: none;
+  gap: 0.75rem;
+  padding: 0.15rem 0.2rem 0.6rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(236, 228, 45, 0.45) transparent;
+  scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
 }
 
 .carrossel-trilho::-webkit-scrollbar {
-  display: none;
+  height: 5px;
+  width: 5px;
+}
+
+.carrossel-trilho::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.carrossel-trilho::-webkit-scrollbar-thumb {
+  background: rgba(236, 228, 45, 0.45);
+  border-radius: 999px;
 }
 
 .carrossel-trilho > .panel-card {
@@ -795,8 +960,8 @@ a {
   top: 50%;
   transform: translateY(-50%);
   z-index: 5;
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.18);
   background: rgba(10, 14, 20, 0.75);
@@ -820,18 +985,18 @@ a {
 }
 
 .carrossel-anterior {
-  left: -0.4rem;
+  left: 0.15rem;
 }
 
 .carrossel-proximo {
-  right: -0.4rem;
+  right: 0.15rem;
 }
 
 .carrossel-dots {
   display: flex;
   justify-content: center;
   gap: 0.4rem;
-  margin-top: 0.9rem;
+  margin-top: 0.55rem;
 }
 
 .carrossel-dot {
@@ -851,11 +1016,141 @@ a {
 }
 
 .filtro-rodadas-jogos {
+  position: relative;
+  display: flex;
+  gap: 0.45rem;
+  margin-bottom: 1.35rem;
+  padding: 0.35rem;
+  overflow-x: auto;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: rgba(12, 14, 34, 0.42);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(236, 228, 45, 0.45) transparent;
+}
+
+.filtro-categorias-atletismo {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1.1rem;
+  gap: 0.8rem;
+  padding: 0.45rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: rgba(12, 14, 34, 0.42);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.filtro-categorias-atletismo .filtro-categoria {
+  display: inline-flex;
+  flex: 1 1 8rem;
+  min-height: 2.65rem;
   align-items: center;
+  justify-content: center;
+  padding: 0.62rem 0.9rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.67);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.filtro-categorias-atletismo .filtro-categoria:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+}
+
+.filtro-categorias-atletismo .filtro-categoria-ativo {
+  border-color: rgba(236, 228, 45, 0.42);
+  background: linear-gradient(135deg, rgba(236, 228, 45, 0.2), rgba(236, 228, 45, 0.08));
+  color: #fff;
+  box-shadow: 0 5px 14px rgba(236, 228, 45, 0.1);
+}
+
+.filtro-provas-home {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  margin-bottom: 1.1rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(236, 228, 45, 0.45) transparent;
+}
+
+.filtro-provas-home .filtro-categoria {
+  flex: 0 0 auto;
+  min-height: 2.2rem;
+  padding: 0.42rem 0.7rem;
+  font-size: 0.72rem;
+}
+
+.filtro-rodadas-jogos .rodada-pill {
+  display: inline-flex;
+  flex: 1 0 auto;
+  min-width: 8.25rem;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.62rem 0.9rem;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.67);
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  transition: background 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.filtro-rodadas-jogos .rodada-pill:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+
+}
+
+.filtro-rodadas-jogos .rodada-pill.active {
+  border-color: rgba(236, 228, 45, 0.42);
+  background: linear-gradient(135deg, rgba(236, 228, 45, 0.2), rgba(236, 228, 45, 0.08));
+  color: #fff;
+  box-shadow: 0 5px 14px rgba(236, 228, 45, 0.1);
+}
+
+.rodada-indice {
+  display: inline-grid;
+  width: 1.6rem;
+  height: 1.6rem;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  border-radius: 7px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.rodada-pill.active .rodada-indice {
+  border-color: rgba(236, 228, 45, 0.55);
+  background: #ece42d;
+  color: #17192f;
+}
+
+.rodada-nome {
+  font-weight: 700;
+}
+
+.filtro-rodadas-jogos .rodada-pill[data-rodada="E"] .rodada-indice {
+  border-radius: 50%;
+  color: #f5b041;
+}
+
+.filtro-rodadas-jogos .rodada-pill[data-rodada="E"].active .rodada-indice {
+  background: #f5b041;
+  border-color: #f5b041;
+  color: #17192f;
 }
 
 .grupo-rodada[hidden] {
@@ -872,8 +1167,9 @@ a {
     overflow-x: hidden;
     overflow-y: auto;
     scroll-snap-type: y proximity;
-    height: 46rem;
-    padding-right: 2.75rem;
+    height: 38rem;
+    padding: 0.15rem 2.5rem 0.6rem 0.2rem;
+    scrollbar-color: rgba(236, 228, 45, 0.45) transparent;
   }
 
   .carrossel-trilho > .panel-card {
@@ -886,7 +1182,7 @@ a {
   .carrossel-anterior,
   .carrossel-proximo {
     left: auto;
-    right: 0.35rem;
+    right: 0.2rem;
     top: auto;
     transform: none;
   }
@@ -909,10 +1205,12 @@ a {
     display: grid;
     grid-template-columns: 1fr;
     gap: 1rem;
-    overflow: visible;
+    overflow-y: auto;
+    max-height: 90rem;
     height: auto !important;
     scroll-snap-type: none;
-    padding-right: 0;
+    padding: 0.15rem 0.35rem 0.65rem 0.2rem;
+    scrollbar-width: thin;
   }
 
   .carrossel-trilho > .panel-card {

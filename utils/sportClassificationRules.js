@@ -11,6 +11,17 @@
     cartaoVermelho: -3,
     temSets: false,
     temCartoes: true,
+    criteriosDesempate: [
+      'pontos',
+      'confronto_direto',
+      'vitorias',
+      'saldo_gols',
+      'maior_gols_feitos',
+      'menor_gols_sofridos',
+      'menor_cartoes_vermelhos',
+      'menor_cartoes_amarelos',
+      'sorteio'
+    ],
     ordenarPor: (a, b) => {
       if (b.pontos !== a.pontos) return b.pontos - a.pontos;
       if (b.vitorias !== a.vitorias) return b.vitorias - a.vitorias;
@@ -18,9 +29,7 @@
       const saldoB = b.pontos_pro - b.pontos_contra;
       if (saldoB !== saldoA) return saldoB - saldoA;
       if (b.pontos_pro !== a.pontos_pro) return b.pontos_pro - a.pontos_pro;
-      const fpA = (a.cartoes_amarelos || 0) * 1 + (a.cartoes_vermelhos || 0) * 3;
-      const fpB = (b.cartoes_amarelos || 0) * 1 + (b.cartoes_vermelhos || 0) * 3;
-      return fpA - fpB;
+      return 0;
     }
   },
   handebol: {
@@ -164,6 +173,7 @@
     temSets: true,
     temCartoes: false,
     criteriosDesempate: [
+      'confronto_direto',
       'vitorias',
       'sets_average',
       'pontos_average',

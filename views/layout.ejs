@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#1c1d3b">
     <title>JIFC - Jogos Internos</title>
-    <link rel="stylesheet" href="/css/geral.css?v=12">
+    <link rel="stylesheet" href="/css/geral.css?v=18">
     <link rel="stylesheet" href="/css/login.css">
     <link rel="stylesheet" href="/css/perfil.css">
     <link rel="stylesheet" href="/css/cadastroCampus.css">
     <link rel="stylesheet" href="/css/banirCampus.css">
     <link rel="stylesheet" href="/css/chaveamento.css">
-    <link rel="stylesheet" href="/css/responsive.css?v=5">
+    <link rel="stylesheet" href="/css/responsive.css?v=6">
 </head>
 <body>
 
@@ -24,11 +24,6 @@
                 <div class="nav-buttons">
                     <a href="/equipes" class="nav-btn">EQUIPES</a>
                     <% if (typeof usuarioLogado !== 'undefined' && usuarioLogado) { %>
-                        <% if (usuarioLogado.tipo === 'admin') { %>
-                            <a href="/admin/configurar" class="nav-btn">JIFC <%= typeof anoJifc !== 'undefined' ? anoJifc : '2026' %></a>
-                            <a href="/admin/chaveamento" class="nav-btn">CHAVEAMENTO</a>
-                            <a href="/admin/juizes" class="nav-btn">JUIZES</a>
-                        <% } %>
                         <% if (usuarioLogado.tipo === 'juiz') { %>
                             <a href="/juiz" class="nav-btn">MEUS JOGOS</a>
                         <% } %>
@@ -42,9 +37,10 @@
             <div class="menu-right">
                 <% if (typeof usuarioLogado !== 'undefined' && usuarioLogado) { %>
                     <% const avatarLayout = usuarioLogado.fotoPerfil || '/imagens/avatar.svg'; %>
+                    <% const avatarReal = !!((usuarioLogado.fotoPerfil || '') && (usuarioLogado.fotoPerfil || '') !== '/imagens/avatar.svg'); %>
                     <% const perfilHref = usuarioLogado.tipo === 'juiz' ? '/juiz' : '/perfil'; %>
                     <div class="perfil" style="display:flex; align-items:center; gap:0.6rem;">
-                        <a href="<%= perfilHref %>"><img src="<%= avatarLayout %>" alt="perfil" class="avatar"></a>
+                        <a href="<%= perfilHref %>"><img src="<%= avatarLayout %>" alt="perfil" class="avatar campus-photo <%= avatarReal ? 'campus-photo--real' : 'campus-photo--default' %>"></a>
                         <% if (usuarioLogado.tipo === 'juiz') { %>
                             <a href="/auth/logout" class="nav-btn" style="font-size:0.7rem;">SAIR</a>
                         <% } %>
@@ -88,20 +84,20 @@
                         %>
                             <li class="modalidade-item <%= isActive ? 'is-active active-sport' : '' %>">
                                 <a href="<%= href %>" class="<%= isActive ? 'active-sport' : '' %>">
-                                    <img src="<%= imagem %>" style="height: 35px;" alt="<%= nomeBase %>">
+                                    <img src="<%= imagem %>" class="sport-icon" style="height: 35px;" alt="<%= nomeBase %>">
                                     <span><%= nomeBase.toUpperCase() %></span>
                                 </a>
                             </li>
                         <% }); %>
                     <% } else { %>
-                        <li class="modalidade-item"><a href="/"><img src="/imagens/atletismo1.svg" style="height: 35px;"><span>ATLETISMO</span></a></li>
-                        <li class="modalidade-item"><a href="/"><img src="/imagens/basquete1.svg" style="height: 35px;"><span>BASQUETE</span></a></li>
-                        <li class="modalidade-item"><a href="/"><img src="/imagens/futsal1.svg" style="height: 35px;"><span>FUTSAL</span></a></li>
-                        <li class="modalidade-item"><a href="/"><img src="/imagens/handebol1.svg" style="height: 35px;"><span>HANDEBOL</span></a></li>
-                        <li class="modalidade-item"><a href="/"><img src="/imagens/tenisdemesa1.svg" style="height: 35px;"><span>TÊNIS DE MESA</span></a></li>
-                        <li class="modalidade-item"><a href="/"><img src="/imagens/volei1.svg" style="height: 35px;"><span>VOLEIBOL</span></a></li>
-                        <li class="modalidade-item"><a href="/"><img src="/imagens/areia1.svg" style="height: 35px;"><span>VOLEI DE PRAIA</span></a></li>
-                        <li class="modalidade-item"><a href="/"><img src="/imagens/xadrez1.svg" style="height: 35px;"><span>XADREZ</span></a></li>
+                        <li class="modalidade-item"><a href="/"><img src="/imagens/atletismo1.svg" class="sport-icon" style="height: 35px;"><span>ATLETISMO</span></a></li>
+                        <li class="modalidade-item"><a href="/"><img src="/imagens/basquete1.svg" class="sport-icon" style="height: 35px;"><span>BASQUETE</span></a></li>
+                        <li class="modalidade-item"><a href="/"><img src="/imagens/futsal1.svg" class="sport-icon" style="height: 35px;"><span>FUTSAL</span></a></li>
+                        <li class="modalidade-item"><a href="/"><img src="/imagens/handebol1.svg" class="sport-icon" style="height: 35px;"><span>HANDEBOL</span></a></li>
+                        <li class="modalidade-item"><a href="/"><img src="/imagens/tenisdemesa1.svg" class="sport-icon" style="height: 35px;"><span>TÊNIS DE MESA</span></a></li>
+                        <li class="modalidade-item"><a href="/"><img src="/imagens/volei1.svg" class="sport-icon" style="height: 35px;"><span>VOLEIBOL</span></a></li>
+                        <li class="modalidade-item"><a href="/"><img src="/imagens/areia1.svg" class="sport-icon" style="height: 35px;"><span>VOLEI DE PRAIA</span></a></li>
+                        <li class="modalidade-item"><a href="/"><img src="/imagens/xadrez1.svg" class="sport-icon" style="height: 35px;"><span>XADREZ</span></a></li>
                     <% } %>
                 </ul>
             </div>

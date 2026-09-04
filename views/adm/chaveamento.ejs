@@ -1,7 +1,7 @@
 <section class="panel-card">
   <div class="profile-header">
     <div>
-      <h1>Painel de Chaveamento JIFC <%= typeof anoJifc !== 'undefined' ? anoJifc : '2026' %></h1>
+      <h1>JIFC <%= typeof anoJifc !== 'undefined' ? anoJifc : '2026' %></h1>
     </div>
     <div>
       <% if (inscricoesAbertas) { %>
@@ -27,7 +27,7 @@
         <% listaModalidadesCompleta.forEach((mod) => { %>
           <li class="modalidade-item compact premium-item">
             <a href="/admin/chaveamento?modalidade=<%= mod.id %>#modalidade" class="<%= modalidadeAtiva.id === mod.id ? 'active-sport premium-active' : '' %>">
-              <img src="<%= mod.icone && (mod.icone.startsWith('/') || mod.icone.startsWith('http')) ? mod.icone : (mod.imagem || '/imagens/atletismo1.svg') %>" alt="<%= mod.nome %>" onerror="this.src='/imagens/atletismo1.svg'">
+              <img src="<%= mod.icone && (mod.icone.startsWith('/') || mod.icone.startsWith('http')) ? mod.icone : (mod.imagem || '/imagens/atletismo1.svg') %>" alt="<%= mod.nome %>" class="sport-icon" onerror="this.src='/imagens/atletismo1.svg'">
               <span class="sport-card-name"><%= mod.nome %></span>
             </a>
           </li>
@@ -76,20 +76,24 @@
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <input type="hidden" name="modalidadeId" value="<%= modalidadeAtiva.id %>">
         <input type="hidden" name="subCategoria" value="<%= subCategoriaAtiva %>">
+        <input type="hidden" name="forcar" value="1">
       </form>
-      <% if (rodadasJogos && rodadasJogos.length > 0) { %>
-        <button id="confirm-publish-button" type="button" class="btn btn-secondary">Publicar Jogos</button>
-      <% } %>
       <form id="publish-draw-form" action="/admin/chaveamento/publicar" method="POST" style="display: inline-block;">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <input type="hidden" name="modalidadeId" value="<%= modalidadeAtiva.id %>">
         <input type="hidden" name="subCategoria" value="<%= subCategoriaAtiva %>">
       </form>
+      <form id="publish-all-form" action="/admin/chaveamento/publicar-tudo" method="POST" style="display: inline-block;">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="modalidadeId" value="<%= modalidadeAtiva.id %>">
+        <input type="hidden" name="subCategoria" value="<%= subCategoriaAtiva %>">
+        <button type="button" id="confirm-publish-all-button" class="btn btn-primary">Publicar</button>
+      </form>
       <form id="cancel-draw-form" action="/admin/chaveamento/cancelar" method="POST" style="display: inline-block;">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <input type="hidden" name="modalidadeId" value="<%= modalidadeAtiva.id %>">
         <input type="hidden" name="subCategoria" value="<%= subCategoriaAtiva %>">
-        <button type="submit" class="btn btn-danger" onclick="return confirm('Cancelar TODOS os sorteios (exceto atletismo e xadrez)? ATENCAO: todos os jogos, resultados e classificações das demais modalidades serao apagados. Esta acao nao pode ser desfeita.');">Cancelar Sorteio</button>
+        <button type="submit" class="btn btn-danger">Cancelar</button>
       </form>
 
       <div id="generate-draw-modal" class="confirm-modal-overlay" hidden>
@@ -108,7 +112,7 @@
         <div class="confirm-modal-card" role="dialog" aria-modal="true" aria-labelledby="cancel-draw-title">
           <div class="confirm-modal-icon">🗑️</div>
           <h3 id="cancel-draw-title">Cancelar sorteio?</h3>
-          <p>Essa ação apagará todos os sorteios já gerados para os esportes com chaves, exceto Atletismo e Xadrez.</p>
+          <p>Essa ação apagará todos os sorteios já gerados, incluindo resultados de Atletismo e Xadrez.</p>
           <div class="confirm-modal-actions">
             <button type="button" class="btn btn-ghost" data-modal-cancel>Cancelar</button>
             <button type="button" class="btn btn-danger" data-modal-confirm>Confirmar</button>
@@ -120,10 +124,22 @@
         <div class="confirm-modal-card" role="dialog" aria-modal="true" aria-labelledby="publish-draw-title">
           <div class="confirm-modal-icon">✅</div>
           <h3 id="publish-draw-title">Confirmar publicação?</h3>
-          <p>Essa ação publicará todos os jogos gerados e tornará o calendário oficial visível para o público.</p>
+          <p>Essa ação publicará os dados de <strong><%= modalidadeAtiva.nome %></strong> e tornará tudo visível para o público.</p>
           <div class="confirm-modal-actions">
             <button type="button" class="btn btn-ghost" data-publish-cancel>Cancelar</button>
             <button type="button" class="btn btn-primary" data-publish-confirm>Confirmar</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="publish-all-modal" class="confirm-modal-overlay" hidden>
+        <div class="confirm-modal-card" role="dialog" aria-modal="true" aria-labelledby="publish-all-title">
+          <div class="confirm-modal-icon">📢</div>
+          <h3 id="publish-all-title">Publicar todos os jogos?</h3>
+          <p>Essa ação publicará os jogos de <strong>todas as modalidades</strong>, incluindo Atletismo e Xadrez, tornando tudo visível para o público.</p>
+          <div class="confirm-modal-actions">
+            <button type="button" class="btn btn-ghost" data-publish-all-cancel>Cancelar</button>
+            <button type="button" class="btn btn-primary" data-publish-all-confirm>Confirmar</button>
           </div>
         </div>
       </div>
@@ -138,6 +154,9 @@
           const publishButton = document.getElementById('confirm-publish-button');
           const publishForm = document.getElementById('publish-draw-form');
           const publishModal = document.getElementById('publish-draw-modal');
+          const publishAllButton = document.getElementById('confirm-publish-all-button');
+          const publishAllForm = document.getElementById('publish-all-form');
+          const publishAllModal = document.getElementById('publish-all-modal');
 
           if (generateButton && generateForm && generateModal) {
             generateButton.addEventListener('click', function () {
@@ -187,24 +206,45 @@
               publishForm.submit();
             });
           }
+
+          if (publishAllButton && publishAllForm && publishAllModal) {
+            publishAllButton.addEventListener('click', function () {
+              publishAllModal.hidden = false;
+              publishAllModal.classList.add('active');
+            });
+
+            publishAllModal.querySelector('[data-publish-all-cancel]')?.addEventListener('click', function () {
+              publishAllModal.hidden = true;
+              publishAllModal.classList.remove('active');
+            });
+
+            publishAllModal.querySelector('[data-publish-all-confirm]')?.addEventListener('click', function () {
+              publishAllForm.submit();
+            });
+          }
         })();
       </script>
     </div>
   </div>
   <% if (mensagemErro) { %>
-    <section class="panel-card" style="margin-top:1rem; border:1px solid rgba(255,107,107,0.35); background:rgba(255,107,107,0.08);">
+    <section class="panel-card feedback-msg" id="feedback-erro" style="margin-top:1rem; border:1px solid rgba(255,107,107,0.35); background:rgba(255,107,107,0.08);">
       <div class="welcome-card" style="padding:1rem; background:transparent; border:none; color:#fff;">
         <p class="panel-subtitle" style="color:#ffb3b3;"><strong>Erro:</strong> <%= mensagemErro %></p>
       </div>
     </section>
   <% } %>
   <% if (mensagemSucesso) { %>
-    <section class="panel-card" style="margin-top:1rem; border:1px solid rgba(75,255,135,0.3); background:rgba(75,255,135,0.08);">
+    <section class="panel-card feedback-msg" id="feedback-sucesso" style="margin-top:1rem; border:1px solid rgba(75,255,135,0.3); background:rgba(75,255,135,0.08);">
       <div class="welcome-card" style="padding:1rem; background:transparent; border:none; color:#fff;">
         <p class="panel-subtitle" style="color:#d4ffd4;"><strong>Sucesso:</strong> <%= mensagemSucesso %></p>
       </div>
     </section>
   <% } %>
+  <script>
+    document.querySelectorAll('.feedback-msg').forEach(function (el) {
+      setTimeout(function () { if (el && el.parentNode) el.style.display = 'none'; }, 20000);
+    });
+  </script>
   <% if (!inscricoesAbertas && !permitirGerarSorteio) { %>
     <section class="panel-card" style="margin-top:1rem; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03);">
       <div class="welcome-card" style="padding:1rem; background:transparent; border:none;">
@@ -223,9 +263,9 @@
         <div class="atletismo-layout" style="margin-bottom: 1.5rem;">
           <div class="chave-card" style="padding: 1rem;">
             <div class="chave-title" style="font-size: 0.95rem; margin-bottom: 0.75rem;">Categorias</div>
-            <div style="display:flex; flex-direction:column; gap:0.5rem;">
+            <div class="filtro-categorias-atletismo">
               <% provasAtletismo.forEach((prova) => { %>
-                <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=<%= prova.slug %>#modalidade" class="btn <%= prova.ativa ? 'btn-success' : 'btn-ghost' %>" style="justify-content:center; text-align:center;">
+                <a href="/admin/chaveamento?modalidade=<%= modalidadeAtiva.id %>&sub=<%= prova.slug %>#modalidade" class="filtro-categoria <%= prova.ativa ? 'filtro-categoria-ativo' : '' %>">
                   <%= prova.nomeProva %>
                 </a>
               <% }) %>
@@ -262,6 +302,21 @@
                   <% } %>
                 </tbody>
               </table>
+              </div>
+              <div class="chave-card atletismo-inscritos-card">
+                <div class="chave-title">Atletas das equipes inscritas</div>
+                <p class="panel-subtitle" style="margin: 0 0 1rem; font-size: 0.8rem;">Atletas dos campi que participam desta categoria.</p>
+                <ul class="chave-equipes-list">
+                  <% (inscritosPendentes || []).forEach((atleta, index) => { %>
+                    <li class="chave-equipe-item">
+                      <span><span class="chave-equipe-pos">#<%= index + 1 %></span> <strong><%= atleta.nomeAtleta || atleta.nome %></strong></span>
+                      <span class="item-subtext"><%= atleta.nomeCampus || atleta.campus || 'Campus não informado' %></span>
+                    </li>
+                  <% }) %>
+                  <% if (!inscritosPendentes || inscritosPendentes.length === 0) { %>
+                    <li class="feedback-empty">Nenhum atleta encontrado nas equipes inscritas.</li>
+                  <% } %>
+                </ul>
               </div>
             <% } else { %>
 
@@ -315,9 +370,12 @@
         </div>
 
       <% } else { %>
-        <div class="chaveamento-visualizacao">
+        <% const temSorteioGerado = chavesGeradas && chavesGeradas.length > 0; %>
+        <% const temConfrontos = (rodadasJogos && rodadasJogos.length > 0) || ((typeof fasesEliminatoria !== 'undefined') && fasesEliminatoria && fasesEliminatoria.length > 0); %>
+        <div class="chaveamento-visualizacao <%= !temConfrontos ? 'sem-sorteio' : '' %>">
           <aside class="painel-tabela">
-            <h2>Tabela de Grupos</h2>
+            <% if (temSorteioGerado) { %>
+            <% } %>
 
         <% if (chavesGeradas && chavesGeradas.length > 0) { %>
           <div class="chaves-container">
@@ -344,11 +402,10 @@
           </div>
         <% } else if (inscritosPendentes && inscritosPendentes.length > 0) { %>
           <div class="welcome-card" style="padding: 2rem;">
-            <h3 style="margin: 0 0 1rem;">Inscrições Confirmadas</h3>
+            <h3 style="margin: 0 0 1rem;">Campis Inscritos</h3>
             <% if (isIndividualModalidade) { %>
               <p style="margin-bottom: 1rem; color: rgba(255,255,255,0.7);">Atletas já inscritos nesta modalidade estão disponíveis para análise. O sorteio será gerado na data agendada.</p>
             <% } else { %>
-              <p style="margin-bottom: 1rem; color: rgba(255,255,255,0.7);">Campi já inscritos nesta modalidade estão disponíveis para análise. O sorteio será gerado na data agendada.</p>
             <% } %>
             <ul class="chave-equipes-list">
               <% inscritosPendentes.forEach((inscrito, idx) => { %>
@@ -373,13 +430,14 @@
           </div>
         <% } %>
         </aside>
+        <% if (temConfrontos) { %>
         <div class="painel-jogos">
 
       <% const temEliminatoria = typeof fasesEliminatoria !== 'undefined' && fasesEliminatoria && fasesEliminatoria.length > 0; %>
       <% if ((rodadasJogos && rodadasJogos.length > 0) || temEliminatoria) { %>
         <div class="match-carousel-wrapper" id="match-carousel-<%= modalidadeAtiva.id %>" style="margin-top: 0;">
           <div class="match-carousel-header">
-            <h2 style="margin: 0;">Confrontos por rodada</h2>
+            <h2>Confrontos por rodada</h2>
             <div class="round-pills">
               <% if (rodadasJogos && rodadasJogos.length > 0) { %>
                 <% rodadasJogos.forEach((rodada, index) => { %>
@@ -530,6 +588,7 @@
             })();
           </script>
         </div>
+      <% } %>
       <% } %>
         </div>
       </div>

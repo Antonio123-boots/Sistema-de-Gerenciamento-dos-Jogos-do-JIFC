@@ -85,8 +85,11 @@ async function getJogosPublicados(filters = {}) {
            j.rotulo_casa, j.rotulo_fora,
            c1.nome AS casa, c2.nome AS fora,
            c1.nome_exibicao AS casa_exibicao, c2.nome_exibicao AS fora_exibicao,
+           c1.cidade AS cidade_casa, c2.cidade AS cidade_fora,
            c1.foto_perfil AS foto_casa,
            c2.foto_perfil AS foto_fora,
+           c1.cor AS cor_casa,
+           c2.cor AS cor_fora,
            a1.nome AS atletaCasa, a2.nome AS atletaFora,
            j.local_jogo AS local_jogo,
            m.nome AS modalidade,
@@ -98,10 +101,10 @@ async function getJogosPublicados(filters = {}) {
            j.disputa_pontos_1, j.disputa_pontos_2
     FROM jogos j
     JOIN modalidades m ON j.modalidade_id = m.id
-    LEFT JOIN campus c1 ON j.campus_1_id = c1.id
-    LEFT JOIN campus c2 ON j.campus_2_id = c2.id
     LEFT JOIN atletas a1 ON j.atleta_1_id = a1.id
     LEFT JOIN atletas a2 ON j.atleta_2_id = a2.id
+    LEFT JOIN campus c1 ON c1.id = COALESCE(j.campus_1_id, a1.campus_id)
+    LEFT JOIN campus c2 ON c2.id = COALESCE(j.campus_2_id, a2.campus_id)
     LEFT JOIN resultados_coletivos rc ON rc.jogo_id = j.id
     WHERE j.publicado = 1
     ORDER BY j.data_hora ASC, j.id ASC`;
@@ -129,6 +132,8 @@ async function getJogosPublicados(filters = {}) {
         modalidadeSlug: modalidadeSlugCompleta,
         modalidadeBaseSlug: modalidadeBaseSlug,
         subCategoria: classificarSubCategoriaJogo(nomeModalidade, linha.atleta_1_id, linha.atleta_2_id),
+        cidadeCasa: linha.cidade_casa || linha.casa_exibicao || linha.casa || null,
+        cidadeFora: linha.cidade_fora || linha.fora_exibicao || linha.fora || null,
         casa: linha.casa_exibicao || linha.casa || linha.atletaCasa || null,
         fora: linha.fora_exibicao || linha.fora || linha.atletaFora || null,
         rotuloCasa: linha.rotulo_casa || null,
@@ -137,6 +142,8 @@ async function getJogosPublicados(filters = {}) {
         disputa_pontos_2: linha.disputa_pontos_2,
         fotoCasa: linha.foto_casa || '/imagens/avatar.svg',
         fotoFora: linha.foto_fora || '/imagens/avatar.svg',
+        corCasa: linha.cor_casa || null,
+        corFora: linha.cor_fora || null,
         sets
       };
     }));
@@ -178,6 +185,10 @@ async function publicarJogosModalidade(modalidadeId) {
 
   await ensureJogoPublicadoColumn();
   await db.query('UPDATE jogos SET publicado = 1 WHERE modalidade_id = ?', [id]);
+
+  const { publicarModalidadeIndividual } = require('./resultadosIndividuaisService');
+  await publicarModalidadeIndividual(id);
+
   const { sincronizarClassificacaoGruposModalidade } = require('./classificacaoService');
   await sincronizarClassificacaoGruposModalidade(id);
 }
@@ -185,6 +196,9 @@ async function publicarJogosModalidade(modalidadeId) {
 async function publicarTodosJogos() {
   await ensureJogoPublicadoColumn();
   await db.query('UPDATE jogos SET publicado = 1');
+
+  const { publicarTodasModalidadesIndividuais } = require('./resultadosIndividuaisService');
+  await publicarTodasModalidadesIndividuais();
 
   const { sincronizarClassificacaoGruposModalidade } = require('./classificacaoService');
   const [modalidades] = await db.query('SELECT id FROM modalidades ORDER BY id ASC');
@@ -200,8 +214,6 @@ function agruparJogosPorRodadas(jogos = []) {
   }
 
   const rodadasMap = new Map();
-  const totalRodadas = 3;
-
   lista.forEach((jogo) => {
     const rodadaNumero = Number(jogo?.rodada || jogo?.rodadaNumero || 0);
     const rodadaDaFase = Number.isFinite(rodadaNumero) && rodadaNumero > 0
@@ -222,9 +234,7 @@ function agruparJogosPorRodadas(jogos = []) {
   });
 
   const rodadas = [];
-  const rodadaMaxima = Number.isFinite(totalRodadas) && totalRodadas > 0
-    ? totalRodadas
-    : Math.max(1, ...Array.from(rodadasMap.keys()));
+  const rodadaMaxima = Math.max(1, ...Array.from(rodadasMap.keys()));
 
   for (let rodadaIndex = 1; rodadaIndex <= rodadaMaxima; rodadaIndex += 1) {
     const jogosDaRodada = (rodadasMap.get(rodadaIndex) || []).slice().sort((a, b) => {

@@ -47,10 +47,14 @@ router.get('/chaveamento/campus/:id', adminController.renderResumoCampus);
 router.post('/chaveamento/gerar', adminController.gerarChaveamento);
 router.post('/chaveamento/limpar', adminController.limparChaveamento);
 router.post('/chaveamento/publicar', adminController.publicarChaveamento);
+router.post('/chaveamento/publicar-tudo', adminController.publicarTodosJogos);
 router.post('/chaveamento/eliminatoria/gerar', adminController.gerarEliminatoria);
 router.post('/chaveamento/cancelar', adminController.cancelarSorteio);
 router.get('/chaveamento/exportar', adminController.exportResumoInscricoes);
 router.post('/chaveamento/jogo/:jogoId/salvar', jogoValidation, adminController.salvarJogoChaveamento);
+router.get('/boletins', adminController.renderBoletins);
+router.get('/boletins/:ano', adminController.renderBoletimAno);
+router.post('/boletins/gerar', adminController.gerarBoletimFinal);
 
 router.get('/juizes', juizController.renderListar);
 router.get('/juizes/cadastrar', juizController.renderCadastrar);

@@ -1,6 +1,7 @@
 const argon2 = require('argon2');
 const { readState, writeState } = require('./stateStore');
 const { normalizarFotoPerfil, fotoPadrao } = require('./profileImageStore');
+const { listarCampi } = require('./campiCatalog');
 const juizService = require('../services/juizService');
 
 const SENHAS_HARDcoded = {

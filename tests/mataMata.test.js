@@ -25,7 +25,7 @@ assert.throws(() => montarEstruturaEliminatoria('sequencial', 0), /pelo menos 2 
   assert.equal(e.jogos.length, 4);
   assert.deepEqual(e.jogos.map(j => j.fase), ['Semifinal', 'Semifinal', 'Terceiro Lugar', 'Final']);
   assert.deepEqual(e.jogos.map(j => j.rotuloCasa + ' x ' + j.rotuloFora),
-    ['1A x 2B', '1B x 2A', 'D1 x D2', 'V1 x V2']);
+    ['1A x 2B', '2A x 1B', 'D1 x D2', 'V1 x V2']);
   assert.deepEqual(e.resumo.semifinais, [1, 2]);
   assert.equal(e.resumo.final, 4);
 }
@@ -37,7 +37,7 @@ assert.throws(() => montarEstruturaEliminatoria('sequencial', 0), /pelo menos 2 
   const qf = e.jogos.slice(0, 4);
   assert.ok(qf.every(j => j.fase === 'Quartas'));
   assert.deepEqual(qf.map(j => j.rotuloCasa + ' x ' + j.rotuloFora),
-    ['1A x T2', '1C x 2A', '1B x T1', '2B x 2C']);
+    ['P1 x T2', 'P2 x T1', 'P3 x 2A', '2B x 2C']);
   const sf = e.jogos.slice(4, 6);
   assert.ok(sf.every(j => j.fase === 'Semifinal'));
   assert.deepEqual(sf.map(j => j.rotuloCasa + ' x ' + j.rotuloFora), ['V1 x V2', 'V3 x V4']);
@@ -55,7 +55,7 @@ assert.throws(() => montarEstruturaEliminatoria('sequencial', 0), /pelo menos 2 
   assert.equal(e.jogos.length, 8);
   // jogos 1-2 formam o lado A/C; jogos 3-4 o lado B/D
   assert.deepEqual(e.jogos.slice(0, 4).map(j => j.rotuloCasa + ' x ' + j.rotuloFora),
-    ['1A x 2C', '1C x 2A', '1B x 2D', '1D x 2B']);
+    ['1A x 2C', '2A x 1C', '1B x 2D', '2B x 1D']);
   // semis fundem pares da mesma metade: lado A/C (jogos 1,2) vs lado B/D (jogos 3,4)
   assert.deepEqual(e.jogos.slice(4, 6).map(j => j.rotuloCasa + ' x ' + j.rotuloFora), ['V1 x V2', 'V3 x V4']);
   assert.equal(e.resumo.final, 8);
@@ -65,7 +65,7 @@ assert.throws(() => montarEstruturaEliminatoria('sequencial', 0), /pelo menos 2 
 {
   const e = montarEstruturaEliminatoria('sequencial', 4);
   assert.deepEqual(e.jogos.slice(0, 4).map(j => j.rotuloCasa + ' x ' + j.rotuloFora),
-    ['1A x 2B', '1B x 2A', '1C x 2D', '1D x 2C']);
+    ['1A x 2B', '2A x 1B', '1C x 2D', '2C x 1D']);
   assert.deepEqual(e.jogos.slice(4, 6).map(j => j.rotuloCasa + ' x ' + j.rotuloFora), ['V1 x V2', 'V3 x V4']);
 }
 
@@ -76,10 +76,10 @@ assert.throws(() => montarEstruturaEliminatoria('sequencial', 0), /pelo menos 2 
   const oitavas = e.jogos.slice(0, 8);
   assert.ok(oitavas.every(j => j.fase === 'Oitavas'));
   assert.deepEqual(oitavas.map(j => j.rotuloCasa + ' x ' + j.rotuloFora), [
-    '1A x 2B', '1B x 2A',
-    '1C x 2D', '1D x 2C',
-    '1E x 2F', '1F x 2E',
-    '1G x 2H', '1H x 2G'
+    '1A x 2B', '2A x 1B',
+    '1C x 2D', '2C x 1D',
+    '1E x 2F', '2E x 1F',
+    '1G x 2H', '2G x 1H'
   ]);
   const quartas = e.jogos.slice(8, 12);
   assert.ok(quartas.every(j => j.fase === 'Quartas'));
@@ -99,10 +99,10 @@ assert.throws(() => montarEstruturaEliminatoria('sequencial', 0), /pelo menos 2 
   const e = montarEstruturaEliminatoria('alternado', 8);
   assert.equal(e.jogos.length, 16);
   assert.deepEqual(e.jogos.slice(0, 8).map(j => j.rotuloCasa + ' x ' + j.rotuloFora), [
-    '1A x 2C', '1C x 2A',
-    '1E x 2G', '1G x 2E',
-    '1B x 2D', '1D x 2B',
-    '1F x 2H', '1H x 2F'
+    '1A x 2C', '2A x 1C',
+    '1E x 2G', '2E x 1G',
+    '1B x 2D', '2B x 1D',
+    '1F x 2H', '2F x 1H'
   ]);
   // SF13 funde lado A/C/E-G; SF14 funde lado B/D/F-H
   assert.equal(e.jogos[12].rotuloCasa + ' x ' + e.jogos[12].rotuloFora, 'V9 x V10');

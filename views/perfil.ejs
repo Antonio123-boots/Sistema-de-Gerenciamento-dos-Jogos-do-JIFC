@@ -17,7 +17,7 @@
     <header class="institution-header">
       <div class="institution-avatar-container">
         <% if (fotoPerfil) { %>
-          <img src="<%= fotoPerfil %>" alt="Foto de perfil" class="institution-img institution-avatar-image">
+          <img src="<%= fotoPerfil %>" alt="Foto de perfil" class="institution-img institution-avatar-image campus-photo campus-photo--xl campus-photo--real">
         <% } else { %>
           <div class="institution-img institution-logo" style="--campus-color: <%= campusVisual && campusVisual.cor ? campusVisual.cor : '#ece42d' %>"><%= logoCampus %></div>
         <% } %>
@@ -25,7 +25,6 @@
       
       <div class="institution-details">
         <div class="badge-row">
-          <span class="badge badge--role"><%= perfilLabel %></span>
           <% if (!publicMode && statusInscricao) { %>
             <span class="badge badge--status">Status da Inscrição: <%= statusInscricao %></span>
           <% } %>
@@ -45,10 +44,10 @@
                 <%= mensagemSucesso %>
               </div>
             <% } %>
-            <div style="display:flex; flex-wrap:wrap; gap:0.75rem; margin: 0 0 1rem;">
+            <div class="profile-edit-actions">
               <button type="button" class="premium-upload-btn" onclick="document.getElementById('editProfilePanel').style.display = document.getElementById('editProfilePanel').style.display === 'none' ? 'block' : 'none'">Editar perfil</button>
             </div>
-            <div id="editProfilePanel" style="display:none; margin-bottom:1rem; padding:1rem; border-radius:14px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);">
+            <div id="editProfilePanel" class="profile-edit-panel" style="display:none;">
               <form action="/perfil/editar" method="POST" class="profile-photo-form">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <div class="management-fields-row split-2" style="margin-bottom:0.8rem;">
@@ -88,7 +87,7 @@
                     </div>
                   </label>
                 </div>
-                <div style="display:flex; gap:0.75rem; flex-wrap:wrap; margin-top:0.8rem;">
+                <div class="profile-form-actions">
                   <button type="submit" class="btn btn-primary">Salvar alterações</button>
                   <button type="button" class="btn btn-secondary" onclick="document.getElementById('editProfilePanel').style.display='none'">Cancelar</button>
                 </div>
@@ -138,9 +137,31 @@
 
                 const reader = new FileReader();
                 reader.onload = function () {
-                  const dataUrl = String(reader.result || '');
-                  hiddenField.value = dataUrl;
-                  enviarFotoAutomaticamente(dataUrl);
+                  const img = new Image();
+                  img.onload = function () {
+                    const maxSize = 1600;
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > maxSize || height > maxSize) {
+                      const scale = Math.min(maxSize / width, maxSize / height);
+                      width = Math.round(width * scale);
+                      height = Math.round(height * scale);
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    const context = canvas.getContext('2d');
+                    context.clearRect(0, 0, canvas.width, canvas.height);
+                    context.drawImage(img, 0, 0, width, height);
+
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+                    hiddenField.value = dataUrl;
+                    enviarFotoAutomaticamente(dataUrl);
+                  };
+                  img.src = String(reader.result || '');
                 };
                 reader.readAsDataURL(file);
               });
@@ -177,8 +198,10 @@
       <nav class="admin-actions-zone" aria-label="Gestão do evento">
         <h2>JIFC</h2>
         <div class="admin-nav-grid">
-          <a class="admin-nav-card" href="/admin/configurar">Configurar prazos</a>
+          <a class="admin-nav-card" href="/admin/configurar">JIFC <%= typeof anoJifc !== 'undefined' ? anoJifc : '2026' %></a>
           <a class="admin-nav-card" href="/admin/chaveamento">Chaveamento</a>
+          <a class="admin-nav-card" href="/admin/boletins">Boletins</a>
+          <a class="admin-nav-card" href="/admin/juizes">Juízes</a>
           <a class="admin-nav-card" href="/admin/laudos">Validar atletas</a>
           <a class="admin-nav-card" href="/admin/cadastroCampus">Cadastrar campus</a>
           <a class="admin-nav-card" href="/admin/banirCampus">Gerenciar punições</a>
@@ -272,20 +295,11 @@
             <% const jogosDoDia = jogosCampusPorDia && diaJogosSelecionado ? (jogosCampusPorDia[diaJogosSelecionado] || []) : []; %>
             <div id="jogos-campus">
               <% if (jogosDoDia.length) { %>
-                <ul class="data-list scroll-list">
+                <div class="jogos-grid jogos-grid--fixa" style="margin-top: 0.25rem;">
                   <% jogosDoDia.forEach((jogo) => { %>
-                    <li class="data-item">
-                      <div class="item-info">
-                        <strong class="item-name"><%= jogo.modalidade %></strong>
-                        <span class="item-subtext"><%= jogo.data %> · <%= jogo.horario %></span>
-                        <span class="item-subtext"><%= jogo.casa %> x <%= jogo.fora %></span>
-                      </div>
-                      <div class="item-score-box">
-                        <span class="score-display"><%= jogo.placar %></span>
-                      </div>
-                    </li>
+                    <%- include('partials/cardJogoHome', { jogo: jogo }) %>
                   <% }) %>
-                </ul>
+                </div>
               <% } else { %>
                 <div class="feedback-empty"><p>Nenhum jogo encontrado para este dia.</p></div>
               <% } %>

@@ -46,7 +46,7 @@ assert.equal(regrasTenisMesa.pontuacaoVitoria3_0_3_1, 3);
 assert.equal(regrasTenisMesa.pontuacaoVitoria3_2, 2);
 assert.equal(regrasTenisMesa.pontuacaoDerrota2_3, 1);
 assert.equal(regrasTenisMesa.pontuacaoDerrota0_3_1_3, 0);
-assert.deepEqual(regrasTenisMesa.criteriosDesempate, ['vitorias', 'sets_average', 'pontos_average', 'sorteio']);
+assert.deepEqual(regrasTenisMesa.criteriosDesempate, ['confronto_direto', 'vitorias', 'sets_average', 'pontos_average', 'sorteio']);
 
 const regrasTenisMesaSlug = obterRegras('tenis-de-mesa-masculino');
 assert.equal(regrasTenisMesaSlug.tipo, 'sets');

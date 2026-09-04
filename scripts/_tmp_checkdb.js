@@ -1,0 +1,21 @@
+const mysql = require('mysql2/promise');
+const dotenv = require('dotenv');
+const path = require('path');
+dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
+const pw = process.env.DB_PASSWORD === '""' || process.env.DB_PASSWORD === "''" || !process.env.DB_PASSWORD ? '' : process.env.DB_PASSWORD;
+(async () => {
+  const conn = await mysql.createConnection({ host: process.env.DB_HOST || '127.0.0.1', user: process.env.DB_USER || 'root', password: pw, database: process.env.DB_NAME || 'jifc' });
+  const [m] = await conn.query('SELECT id, nome, genero FROM modalidades ORDER BY id');
+  console.log('=== MODALIDADES ===');
+  console.table(m);
+  const [j] = await conn.query('SELECT COUNT(*) total FROM jogos');
+  const [jp] = await conn.query('SELECT COUNT(*) total FROM jogos WHERE publicado=1');
+  const [ch] = await conn.query('SELECT COUNT(*) total FROM chaves');
+  const [rc] = await conn.query('SELECT COUNT(*) total FROM resultados_coletivos');
+  const [s] = await conn.query("SELECT COUNT(*) total FROM jogos WHERE status='Encerrado'");
+  console.log('=== CONTAGENS ===');
+  console.log('jogos:', j[0].total, '| publicados:', jp[0].total, '| encerrados:', s[0].total, '| chaves:', ch[0].total, '| resultados_coletivos:', rc[0].total);
+  const [fase] = await conn.query("SELECT fase, COUNT(*) total, SUM(publicado=1) pub, SUM(status='Encerrado') enc FROM jogos GROUP BY fase");
+  console.table(fase);
+  await conn.end();
+})().catch(e => { console.error(e); process.exit(1); });

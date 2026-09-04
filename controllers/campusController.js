@@ -141,9 +141,6 @@ async function cadastrarAtleta(req, res) {
   }
 
   const nomeCampus = req.user.nome;
-  const statusInformado = String(req.body.status || '').trim();
-  const statusParaSalvar = statusInformado === 'Regular' ? 'Analise' : (statusInformado || 'Analise');
-  const validarImediatamente = req.body.validarImediatamente === 'true' || req.body.validarImediatamente === 'on';
   try {
     const atleta = await campusModel.cadastrarAtleta(nomeCampus, {
       nome: req.body.nome,
@@ -154,11 +151,10 @@ async function cadastrarAtleta(req, res) {
       tenisMesaParticipacoes: req.body.tenisMesaParticipacoes || req.body.participacoesTenisMesa || [],
       dataNascimento: req.body.dataNascimento,
       cpf: req.body.cpf,
-      status: statusParaSalvar
+      status: 'Analise'
     }, {
       limiteRegularTotalCampus: Number(config.limite_atletas_total_campus || 0),
-      anoEvento: Number(config.ano_evento || new Date().getFullYear()),
-      validarImediatamente
+      anoEvento: Number(config.ano_evento || new Date().getFullYear())
     });
 
     const mensagem = 'Atleta cadastrado com sucesso e enviado para análise.';
@@ -229,9 +225,6 @@ function editarAtleta(req, res) {
 async function atualizarAtleta(req, res) {
   const nomeCampus = req.user.nome;
   const config = adminModel.getConfiguracoes();
-  const statusInformado = String(req.body.status || '').trim();
-  const statusParaSalvar = statusInformado === 'Regular' ? 'Analise' : (statusInformado || 'Analise');
-  const validarImediatamente = req.body.validarImediatamente === 'true' || req.body.validarImediatamente === 'on';
 
   try {
     const atleta = await campusModel.atualizarAtleta(req.params.id, nomeCampus, {
@@ -243,11 +236,10 @@ async function atualizarAtleta(req, res) {
       tenisMesaParticipacoes: req.body.tenisMesaParticipacoes || req.body.participacoesTenisMesa || [],
       dataNascimento: req.body.dataNascimento,
       cpf: req.body.cpf,
-      status: statusParaSalvar
+      status: 'Analise'
     }, {
       limiteRegularTotalCampus: Number(config.limite_atletas_total_campus || 0),
-      anoEvento: Number(config.ano_evento || new Date().getFullYear()),
-      validarImediatamente
+      anoEvento: Number(config.ano_evento || new Date().getFullYear())
     });
 
     if (!atleta) {

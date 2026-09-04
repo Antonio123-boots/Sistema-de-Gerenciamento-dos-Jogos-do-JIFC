@@ -1,0 +1,75 @@
+<section class="panel-card">
+  <div class="profile-header">
+    <div>
+      <h1>Boletim Final JIFC <%= resumo.ano || boletim.ano_jifc %></h1>
+    </div>
+    <div>
+      <a href="/admin/boletins" class="btn btn-ghost">Voltar</a>
+    </div>
+  </div>
+
+  <div class="chaveamento-layout" style="margin-top: 1.25rem;">
+    <main class="chaveamento-content">
+      <div class="chave-card" style="padding:1.25rem; margin-bottom:1rem;">
+        <div class="chave-title" style="margin-bottom:0.8rem;">Resumo geral</div>
+        <p class="panel-subtitle" style="margin:0;">Data de geração: <strong><%= resumo.dataGeracao || (boletim.criado_em ? new Date(boletim.criado_em).toLocaleDateString('pt-BR') : '-') %></strong></p>
+      </div>
+
+      <div class="chave-card" style="padding:1.25rem; margin-bottom:1rem;">
+        <div class="chave-title" style="margin-bottom:0.9rem;">Ranking final</div>
+        <% if (Array.isArray(ranking) && ranking.length) { %>
+          <div class="tabela-scroll">
+            <table style="width:100%; min-width:420px; border-collapse:collapse;">
+              <thead>
+                <tr>
+                  <th style="text-align:left; padding:0.6rem 0.75rem; border-bottom:1px solid rgba(255,255,255,0.12);">Posição</th>
+                  <th style="text-align:left; padding:0.6rem 0.75rem; border-bottom:1px solid rgba(255,255,255,0.12);">Campus</th>
+                  <th style="text-align:right; padding:0.6rem 0.75rem; border-bottom:1px solid rgba(255,255,255,0.12);">Pontos</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% ranking.forEach((item) => { %>
+                  <tr>
+                    <td style="padding:0.7rem 0.75rem; border-bottom:1px solid rgba(255,255,255,0.06);"><%= item.posicao || '-' %>º</td>
+                    <td style="padding:0.7rem 0.75rem; border-bottom:1px solid rgba(255,255,255,0.06);"><%= item.campi || 'Campus' %></td>
+                    <td style="padding:0.7rem 0.75rem; border-bottom:1px solid rgba(255,255,255,0.06); text-align:right;"><%= Number(item.pontos || 0) %></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } else { %>
+          <p class="panel-subtitle">Ranking ainda não disponível.</p>
+        <% } %>
+      </div>
+
+      <div class="chave-card" style="padding:1.25rem;">
+        <div class="chave-title" style="margin-bottom:0.9rem;">Modalidades</div>
+        <% if (Array.isArray(modalidades) && modalidades.length) { %>
+          <div class="tabela-scroll">
+            <table style="width:100%; min-width:500px; border-collapse:collapse;">
+              <thead>
+                <tr>
+                  <th style="text-align:left; padding:0.6rem 0.75rem; border-bottom:1px solid rgba(255,255,255,0.12);">Modalidade</th>
+                  <th style="text-align:left; padding:0.6rem 0.75rem; border-bottom:1px solid rgba(255,255,255,0.12);">Campeão</th>
+                  <th style="text-align:left; padding:0.6rem 0.75rem; border-bottom:1px solid rgba(255,255,255,0.12);">Vice</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% modalidades.forEach((item) => { %>
+                  <tr>
+                    <td style="padding:0.7rem 0.75rem; border-bottom:1px solid rgba(255,255,255,0.06);"><%= item.nome || 'Modalidade' %></td>
+                    <td style="padding:0.7rem 0.75rem; border-bottom:1px solid rgba(255,255,255,0.06);"><%= item.campeao || '—' %></td>
+                    <td style="padding:0.7rem 0.75rem; border-bottom:1px solid rgba(255,255,255,0.06);"><%= item.vice || '—' %></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } else { %>
+          <p class="panel-subtitle">Sem modalidades consolidadas neste boletim.</p>
+        <% } %>
+      </div>
+    </main>
+  </div>
+</section>

@@ -80,11 +80,27 @@ function ordenarPorNumeroESorteio(lista) {
     .map(({ item }) => item);
 }
 
+const VALORES_SUPORTADOS_ELIMINATORIA = [2, 3, 4, 8];
+
+function distribuirEmQuantidadeChaves(total, quantidadeGrupos) {
+  const base = Math.floor(total / quantidadeGrupos);
+  const resto = total % quantidadeGrupos;
+  return Array.from({ length: quantidadeGrupos }, (_, index) => base + (index < resto ? 1 : 0));
+}
+
 function calcularDistribuicaoTamanhoChaves(totalParticipantes, maxTamanho = 3) {
   const total = Number(totalParticipantes || 0);
   const limite = Number(maxTamanho || 3);
   if (!Number.isFinite(total) || total <= 0 || !Number.isFinite(limite) || limite <= 0) {
     return [];
+  }
+
+  if (limite >= 5) {
+    if (total <= 5) return [total];
+    if (total <= 8) return distribuirEmQuantidadeChaves(total, 2);
+    if (total <= 12) return distribuirEmQuantidadeChaves(total, 3);
+    if (total <= 19) return distribuirEmQuantidadeChaves(total, 4);
+    return distribuirEmQuantidadeChaves(total, 5);
   }
 
   if (total <= limite) {
@@ -96,10 +112,20 @@ function calcularDistribuicaoTamanhoChaves(totalParticipantes, maxTamanho = 3) {
     quantidadeGrupos -= 1;
   }
 
-  const base = Math.floor(total / quantidadeGrupos);
-  const resto = total % quantidadeGrupos;
-  const tamanhos = Array.from({ length: quantidadeGrupos }, (_, index) => base + (index < resto ? 1 : 0));
-  return tamanhos;
+  if (!VALORES_SUPORTADOS_ELIMINATORIA.includes(quantidadeGrupos)) {
+    const tamanhoMaxGrupo = Math.max(limite + 1, 5);
+    const suportados = VALORES_SUPORTADOS_ELIMINATORIA.filter(
+      (k) => k <= total && Math.ceil(total / k) <= tamanhoMaxGrupo
+    );
+    if (suportados.length) {
+      quantidadeGrupos = suportados.reduce((melhor, atual) =>
+        Math.abs(atual - quantidadeGrupos) < Math.abs(melhor - quantidadeGrupos) ? atual : melhor,
+        suportados[0]
+      );
+    }
+  }
+
+  return distribuirEmQuantidadeChaves(total, quantidadeGrupos);
 }
 
 function calcularDistribuicaoTenisMesaIndividual(totalParticipantes) {
@@ -108,25 +134,30 @@ function calcularDistribuicaoTenisMesaIndividual(totalParticipantes) {
     return [];
   }
 
-  if (total <= 2) {
+  if (total <= 4) {
     return [total];
   }
 
-  if (total % 3 === 0) {
-    return Array.from({ length: total / 3 }, () => 3);
+  if (total <= 16) {
+    if (total % 3 === 0) {
+      return Array.from({ length: total / 3 }, () => 3);
+    }
+    if (total % 3 === 1) {
+      const chavesDeTres = (total - 4) / 3;
+      return [4, ...Array.from({ length: chavesDeTres }, () => 3)];
+    }
+    if (total >= 8) {
+      const chavesDeTres = (total - 8) / 3;
+      return [4, 4, ...Array.from({ length: chavesDeTres }, () => 3)];
+    }
   }
 
-  if (total % 3 === 1) {
-    const chavesDeTres = (total - 4) / 3;
-    return [4, ...Array.from({ length: chavesDeTres }, () => 3)];
+  if (total <= 5) {
+    return [total];
   }
 
-  if (total >= 8) {
-    const chavesDeTres = (total - 8) / 3;
-    return [4, 4, ...Array.from({ length: chavesDeTres }, () => 3)];
-  }
-
-  return [total];
+  const quantidadeChaves = Math.ceil(total / 5);
+  return distribuirEmQuantidadeChaves(total, quantidadeChaves);
 }
 
 function obterCampusDoParticipante(participante) {
@@ -196,22 +227,21 @@ function gerarRodadasRoundRobin(participantes, { tipoParticipante = 'campus' } =
         [[0, 3], [1, 2]]
       ];
     }
-    const players = [...lista];
-    const evenSize = players.length % 2 === 0 ? players.length : players.length + 1;
-    const extended = players.length % 2 === 1 ? [...players, null] : [...players];
+    const total = size;
+    const simulado = total % 2 === 0 ? total : total + 1;
+    const BYE = simulado - 1;
     const rounds = [];
-    const rotacao = [...extended];
-    for (let rodada = 0; rodada < extended.length - 1; rodada += 1) {
+    let indices = Array.from({ length: simulado }, (_, i) => i);
+    for (let rodada = 0; rodada < simulado - 1; rodada += 1) {
       const pares = [];
-      for (let i = 0; i < extended.length / 2; i += 1) {
-        const primeiro = rotacao[i];
-        const segundo = rotacao[extended.length - 1 - i];
-        if (!primeiro || !segundo) continue;
-        pares.push([i, extended.length - 1 - i]);
+      for (let i = 0; i < simulado / 2; i += 1) {
+        const primeiro = indices[i];
+        const segundo = indices[simulado - 1 - i];
+        if (total % 2 === 1 && (primeiro === BYE || segundo === BYE)) continue;
+        pares.push([primeiro, segundo]);
       }
       rounds.push(pares);
-      const ultimo = rotacao.pop();
-      rotacao.splice(1, 0, ultimo);
+      indices = [indices[0], indices[simulado - 1], ...indices.slice(1, simulado - 1)];
     }
     return rounds;
   };
@@ -615,7 +645,7 @@ async function efetuarChaveamentoMatematico(modalidadeId, subCategoria = '') {
       return { chaves: [], jogos: [] };
     }
 
-    const tamanhoChave = 4;
+    const tamanhoChave = 5;
     const grupos = agruparParticipantesEmChaves(inscritos.map((inscrito) => ({ ...inscrito, numeroSistema: Number(inscrito.id || 0) })), tamanhoChave);
 
     for (let index = 0; index < grupos.length; index += 1) {
@@ -767,6 +797,7 @@ async function getChavesModalidade(modalidadeId, subCategoria = '') {
 
     const nomeModalidade = String(modalidade?.nome || '');
     const tipoConfronto = String(modalidade?.tipo_confronto || '').trim();
+    const generoModalidade = String(modalidade?.genero || '').trim();
     const subCategoriaNormalizada = String(subCategoria || '').trim().toLowerCase();
     const modalidadeIndividual = tipoConfronto === 'Individual' || /atletismo/i.test(nomeModalidade) || /xadrez/i.test(nomeModalidade) || isModalidadeTenisMesa(nomeModalidade) || subCategoriaNormalizada === 'individual' || subCategoriaNormalizada === 'dupla';
 
@@ -789,7 +820,9 @@ async function getChavesModalidade(modalidadeId, subCategoria = '') {
              FROM jogos j
              JOIN atletas a ON a.id = j.atleta_1_id OR a.id = j.atleta_2_id
              JOIN campus c ON c.id = a.campus_id
+             JOIN modalidades m ON m.id = j.modalidade_id
              WHERE j.modalidade_id = ? AND j.chave_id = ?
+               AND (m.genero IS NULL OR m.genero = '' OR a.genero = m.genero)
              ORDER BY a.nome ASC`,
             [id, chave.id]
           )
@@ -873,10 +906,11 @@ async function getJogosModalidade(modalidadeId, subCategoria = '') {
   try {
     await garantirSubCategoriaChavesJogos();
 
-    const [modalidadeRows] = await db.query('SELECT id, nome, tipo_confronto FROM modalidades WHERE id = ?', [id]);
+    const [modalidadeRows] = await db.query('SELECT id, nome, tipo_confronto, genero FROM modalidades WHERE id = ?', [id]);
     const modalidade = modalidadeRows[0] || {};
     const nomeModalidade = String(modalidade.nome || '');
     const tipoConfronto = String(modalidade.tipo_confronto || '').trim();
+    const generoModalidade = String(modalidade.genero || '').trim();
     const subCategoriaNormalizada = String(subCategoria || '').trim().toLowerCase();
     const modalidadeIndividual = tipoConfronto === 'Individual' || /atletismo/i.test(nomeModalidade) || /xadrez/i.test(nomeModalidade) || isModalidadeTenisMesa(nomeModalidade) || subCategoriaNormalizada === 'individual' || subCategoriaNormalizada === 'dupla';
     const duplaTenisMesaJogos = subCategoriaNormalizada === 'dupla' && isModalidadeTenisMesa(nomeModalidade);
@@ -897,7 +931,8 @@ async function getJogosModalidade(modalidadeId, subCategoria = '') {
            FROM jogos j
            JOIN atletas a ON a.id = j.atleta_1_id OR a.id = j.atleta_2_id
            JOIN campus c ON c.id = a.campus_id
-           WHERE j.modalidade_id = ? ${filtroSubJogos}
+           JOIN modalidades m ON m.id = j.modalidade_id
+           WHERE j.modalidade_id = ? AND (m.genero IS NULL OR m.genero = '' OR a.genero = m.genero) ${filtroSubJogos}
            ORDER BY j.chave_id ASC, c.id ASC, a.nome ASC`
         : `SELECT cm.chave_id, c.id AS campus_id, c.nome AS nome, c.nome_exibicao, c.slug, cm.ordem_sorteio
            FROM campus_modalidade cm
@@ -962,15 +997,21 @@ async function getJogosModalidade(modalidadeId, subCategoria = '') {
               chv.numero_chave AS chave_numero,
               c1.nome AS campus_1_nome,
               c1.nome_exibicao AS campus_1_nome_exibicao,
+              c1.cidade AS cidade_casa,
+              c1.foto_perfil AS foto_casa,
+              c1.cor AS cor_casa,
               c2.nome AS campus_2_nome,
               c2.nome_exibicao AS campus_2_nome_exibicao,
+              c2.cidade AS cidade_fora,
+              c2.foto_perfil AS foto_fora,
+              c2.cor AS cor_fora,
               a1.nome AS atleta_1_nome,
               a2.nome AS atleta_2_nome
        FROM jogos j
-       LEFT JOIN campus c1 ON c1.id = j.campus_1_id
-       LEFT JOIN campus c2 ON c2.id = j.campus_2_id
        LEFT JOIN atletas a1 ON a1.id = j.atleta_1_id
        LEFT JOIN atletas a2 ON a2.id = j.atleta_2_id
+      LEFT JOIN campus c1 ON c1.id = COALESCE(j.campus_1_id, a1.campus_id)
+      LEFT JOIN campus c2 ON c2.id = COALESCE(j.campus_2_id, a2.campus_id)
        LEFT JOIN chaves chv ON chv.id = j.chave_id
        WHERE j.modalidade_id = ? ${filtroSubJogos}
        ORDER BY j.data_hora ASC, j.id ASC`,
@@ -1002,6 +1043,12 @@ async function getJogosModalidade(modalidadeId, subCategoria = '') {
         dataInput,
         horarioInput,
         localJogo: jogo.local_jogo || 'A definir',
+        cidadeCasa: jogo.cidade_casa || jogo.campus_1_nome_exibicao || jogo.campus_1_nome || null,
+        cidadeFora: jogo.cidade_fora || jogo.campus_2_nome_exibicao || jogo.campus_2_nome || null,
+        fotoCasa: jogo.foto_casa || '/imagens/avatar.svg',
+        fotoFora: jogo.foto_fora || '/imagens/avatar.svg',
+        corCasa: jogo.cor_casa || null,
+        corFora: jogo.cor_fora || null,
         casa: casaNome,
         fora: foraNome,
         atletaCasa: jogo.atleta_1_nome || 'Atleta não informado',

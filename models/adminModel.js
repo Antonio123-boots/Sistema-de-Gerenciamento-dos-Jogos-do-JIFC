@@ -6,6 +6,7 @@ const modalidadeService = require('../services/modalidadeService');
 const chaveamentoService = require('../services/chaveamentoService');
 const jogoService = require('../services/jogoService');
 const classificacaoService = require('../services/classificacaoService');
+const boletimService = require('../services/boletimService');
 
 function getTipoTabelaModalidade(nomeModalidade) {
   const nome = normalizarNome(nomeModalidade);
@@ -66,5 +67,12 @@ module.exports = {
   recalcularTodasClassificacoes: classificacaoService.recalcularTodasClassificacoes,
 
   getTipoTabelaModalidade,
-  getColunasTabelaModalidade
+  getColunasTabelaModalidade,
+
+  detectarEncerramentoJifc: boletimService.detectarEncerramentoJifc,
+  obterStatusJifc: boletimService.obterStatusJifc,
+  gerarBoletimFinal: boletimService.gerarBoletimFinal,
+  listarBoletins: boletimService.listarBoletins,
+  obterBoletimPorAno: boletimService.obterBoletimPorAno,
+  montarResumoBoletim: boletimService.montarResumoBoletim
 };

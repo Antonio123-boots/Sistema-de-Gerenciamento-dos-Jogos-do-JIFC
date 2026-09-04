@@ -1,0 +1,85 @@
+<section class="panel-card">
+  <div class="profile-header">
+    <div>
+      <h1>Boletins Finais</h1>
+    </div>
+    <div>
+      <% if (statusJifc && statusJifc.encerrado) { %>
+        <span class="status-tag">JIFC Encerrado</span>
+      <% } else { %>
+        <span class="status-tag" style="background: rgba(255,75,75,0.15); color: #ff6b6b;">JIFC em andamento</span>
+      <% } %>
+    </div>
+  </div>
+
+  <% if (typeof mensagemErro !== 'undefined' && mensagemErro) { %>
+    <section class="panel-card" style="margin-top:1rem; border:1px solid rgba(255,107,107,0.35); background:rgba(255,107,107,0.08);">
+      <div class="welcome-card" style="padding:1rem; background:transparent; border:none; color:#fff;">
+        <p class="panel-subtitle" style="color:#ffb3b3;"><strong>Erro:</strong> <%= mensagemErro %></p>
+      </div>
+    </section>
+  <% } %>
+
+  <% if (typeof mensagemSucesso !== 'undefined' && mensagemSucesso) { %>
+    <section class="panel-card" style="margin-top:1rem; border:1px solid rgba(75,255,135,0.3); background:rgba(75,255,135,0.08);">
+      <div class="welcome-card" style="padding:1rem; background:transparent; border:none; color:#fff;">
+        <p class="panel-subtitle" style="color:#d4ffd4;"><strong>Sucesso:</strong> <%= mensagemSucesso %></p>
+      </div>
+    </section>
+  <% } %>
+
+  <div class="acoes-sorteio" style="margin-top: 1.5rem;">
+    <div class="as-info">
+      <span class="as-label">Boletim</span>
+      <span class="as-contagem"><strong><%= Array.isArray(boletins) ? boletins.length : 0 %></strong> registros salvos</span>
+    </div>
+    <div class="as-botoes">
+      <% if (statusJifc && statusJifc.encerrado) { %>
+        <form action="/admin/boletins/gerar" method="POST" style="display:inline-block;">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="ano_jifc" value="<%= anoAtual %>">
+          <button type="submit" class="btn btn-primary">Gerar Boletim Final</button>
+        </form>
+      <% } else { %>
+        <button type="button" class="btn btn-ghost" disabled>Gerar Boletim Final</button>
+      <% } %>
+    </div>
+  </div>
+
+  <% if (Array.isArray(boletins) && boletins.length) { %>
+    <div class="chaveamento-layout" style="margin-top: 1.5rem;">
+      <main class="chaveamento-content">
+        <div class="tabela-scroll">
+          <table style="width:100%; min-width:640px; border-collapse: collapse;">
+            <thead>
+              <tr>
+                <th style="text-align:left; padding:0.7rem 0.8rem;">Ano</th>
+                <th style="text-align:left; padding:0.7rem 0.8rem;">Data de geração</th>
+                <th style="text-align:right; padding:0.7rem 0.8rem;">Ação</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% boletins.forEach((boletim) => { %>
+                <tr>
+                  <td style="padding:0.7rem 0.8rem; border-top:1px solid rgba(255,255,255,0.08);"><%= boletim.ano_jifc %></td>
+                  <td style="padding:0.7rem 0.8rem; border-top:1px solid rgba(255,255,255,0.08);">
+                    <%= boletim.criado_em ? new Date(boletim.criado_em).toLocaleDateString('pt-BR') : '-' %>
+                  </td>
+                  <td style="padding:0.7rem 0.8rem; border-top:1px solid rgba(255,255,255,0.08); text-align:right;">
+                    <a href="/admin/boletins/<%= boletim.ano_jifc %>" class="btn btn-secondary" style="padding:0.55rem 0.8rem;">Abrir</a>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+  <% } else { %>
+    <section class="panel-card" style="margin-top:1.5rem; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03);">
+      <div class="welcome-card" style="padding:1rem; background:transparent; border:none;">
+        <p class="panel-subtitle">Ainda não há boletins finais salvos para este sistema.</p>
+      </div>
+    </section>
+  <% } %>
+</section>

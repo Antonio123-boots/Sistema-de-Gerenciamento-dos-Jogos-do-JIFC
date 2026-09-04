@@ -340,14 +340,18 @@
     align-items: center;
     gap: 1rem;
     flex-wrap: wrap;
-    position: sticky;
-    top: 0;
-    z-index: 5;
-    margin: -1rem -1.1rem 0;
     padding: 0.9rem 1.1rem;
-    background: rgba(13, 15, 29, 0.94);
-    border-radius: 16px 16px 0 0;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    box-shadow: none;
+}
+
+.match-carousel-header h2 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #ece42d;
 }
 
 .match-carousel {
@@ -756,6 +760,22 @@
 .chaveamento-visualizacao .painel-tabela {
     position: sticky;
     top: 1rem;
+}
+
+/* Quando ainda não há sorteio gerado, o painel de grupos/campis ocupa a largura total */
+.chaveamento-visualizacao.sem-sorteio {
+    grid-template-columns: 1fr;
+}
+
+.chaveamento-visualizacao.sem-sorteio .painel-tabela {
+    position: static;
+    max-height: none;
+}
+
+.chaveamento-visualizacao.sem-sorteio .painel-tabela .chave-equipes-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 0.6rem;
 }
 
 .chaveamento-visualizacao .painel-tabela::-webkit-scrollbar,

@@ -38,6 +38,43 @@ img {
     max-width: 100%;
 }
 
+/* Imagens menores não precisam de max-width */
+.campus-photo--xs,
+.campus-photo--sm,
+.campus-photo--md {
+    max-width: none;
+}
+
+/* Avatar no mobile */
+@media (max-width: 768px) {
+    .avatar {
+        width: 34px;
+        height: 34px;
+    }
+
+    .campus-photo--xl {
+        width: 84px;
+        height: 84px;
+    }
+
+    .campus-photo--lg {
+        width: 52px;
+        height: 52px;
+    }
+}
+
+@media (max-width: 480px) {
+    .campus-photo--xl {
+        width: 72px;
+        height: 72px;
+    }
+
+    .campus-photo--lg {
+        width: 48px;
+        height: 48px;
+    }
+}
+
 /*
  * Reforço anti-estouro: filhos de grids/flex podem encolher
  * (min-width:0) em vez de empurrar a página para os lados.
@@ -201,6 +238,161 @@ table th,
         margin-bottom: 1.5rem;
     }
 
+    .institution-details {
+        width: 100%;
+    }
+
+    .profile-edit-actions,
+    .profile-form-actions,
+    .profile-actions,
+    .utility-actions {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .profile-edit-actions > *,
+    .profile-form-actions > *,
+    .profile-actions > *,
+    .utility-actions > *,
+    .dashboard-footer > .btn,
+    .dashboard-footer > form,
+    .dashboard-footer > form > .btn {
+        flex: 1 1 100%;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .profile-edit-panel {
+        padding: 0.85rem;
+    }
+
+    .campus-panel-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* ---- Chaveamento do administrador ---- */
+    .panel-card,
+    .chaveamento-content,
+    .chaveamento-visualizacao,
+    .chaveamento-visualizacao .painel-tabela,
+    .chaveamento-visualizacao .painel-jogos {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .profile-header {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .profile-header > * {
+        min-width: 0;
+    }
+
+    .profile-header > :last-child {
+        width: 100%;
+    }
+
+    .sub-tabs-container {
+        justify-content: flex-start;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        border-radius: 14px;
+        margin-left: 0;
+        margin-right: 0;
+        scrollbar-width: thin;
+    }
+
+    .btn-sub-tab {
+        flex: 0 0 auto;
+        min-height: 44px;
+        padding-left: 1rem;
+        padding-right: 1rem;
+        white-space: nowrap;
+    }
+
+    .acoes-sorteio {
+        align-items: stretch;
+    }
+
+    .acoes-sorteio .as-info,
+    .acoes-sorteio .as-botoes,
+    .acoes-sorteio .as-botoes > form,
+    .acoes-sorteio .as-botoes > .btn {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .acoes-sorteio .as-botoes {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: stretch;
+    }
+
+    .acoes-sorteio .as-botoes > form {
+        display: flex !important;
+    }
+
+    .acoes-sorteio .as-botoes .btn {
+        width: 100%;
+        min-height: 44px;
+        white-space: normal;
+    }
+
+    .match-carousel-header {
+        align-items: stretch;
+    }
+
+    .match-carousel-header h2 {
+        font-size: 1rem;
+    }
+
+    .round-pills {
+        flex-wrap: nowrap;
+        justify-content: flex-start;
+        max-width: 100%;
+        overflow-x: auto;
+        padding-bottom: 0.2rem;
+        scrollbar-width: thin;
+    }
+
+    .round-pill {
+        flex: 0 0 auto;
+    }
+
+    .tabela-scroll,
+    .modalidade-athletes {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .tabela-scroll > table,
+    .modalidade-athletes > .resumo-table {
+        min-width: 420px;
+    }
+
+    .admin-game-card .agc-meta {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .admin-game-card .agc-confronto {
+        gap: 0.35rem;
+    }
+
+    .admin-game-card .agc-nome {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .admin-game-card .agc-form .agc-salvar {
+        width: 100%;
+        min-height: 44px;
+    }
+
     .institution-img {
         width: 84px;
         height: 84px;
@@ -248,24 +440,25 @@ table th,
         gap: 0.65rem;
     }
 
-    /* ---- App bar ----
-       Linha 1: logo à esquerda + avatar/login à direita
-       Linha 2: botões de navegação em largura total, centrados */
+    /* ---- App bar: todos os elementos permanecem alinhados na mesma linha */
     .menu-superior {
         padding: 0.5rem 0.85rem;
         padding-top: calc(0.5rem + env(safe-area-inset-top));
     }
 
     .menu-container {
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         align-items: center;
-        gap: 0.45rem 0.75rem;
+        gap: 0.55rem;
+        min-width: 0;
     }
 
-    /* Faz os filhos de .menu-left virarem itens diretos do container,
-       permitindo o layout em duas linhas sem mexer no HTML */
     .menu-left {
-        display: contents;
+        display: flex;
+        flex: 1 1 auto;
+        min-width: 0;
+        align-items: center;
+        gap: 0.5rem;
     }
 
     .logo-area {
@@ -286,13 +479,18 @@ table th,
      */
     .nav-buttons {
         order: 2;
-        flex: 0 1 100%;
+        flex: 1 1 auto;
         display: flex;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         gap: 0.25rem 0.3rem;
-        justify-content: center;
+        justify-content: flex-start;
         min-width: 0;
-        overflow: visible;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    .nav-buttons::-webkit-scrollbar {
+        display: none;
     }
 
     .nav-btn {
@@ -303,17 +501,12 @@ table th,
 
     .menu-right {
         order: 1;
-        margin-left: auto;
+        margin-left: 0;
         width: auto;
         justify-content: flex-end;
         align-items: center;
         gap: 0.4rem;
         flex-shrink: 0;
-    }
-
-    .avatar {
-        width: 34px;
-        height: 34px;
     }
 
     .login-btn {
@@ -557,7 +750,7 @@ table th,
     }
 
     .admin-nav-grid {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr;
     }
 
     .modalidades-checkbox-grid {
@@ -639,6 +832,32 @@ table th,
     .admin-nav-grid {
         grid-template-columns: 1fr;
     }
+
+    .acoes-sorteio .as-botoes {
+        grid-template-columns: 1fr;
+    }
+
+    .chave-card,
+    .welcome-card {
+        padding: 0.85rem;
+    }
+
+    .chave-equipe-item {
+        align-items: flex-start;
+        flex-wrap: wrap;
+        padding: 0.65rem;
+    }
+
+    .chave-equipe-item > :first-child {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .chave-equipe-item .item-subtext,
+    .chave-equipe-item .chave-equipe-pontos {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+    }
 }
 
 /* ==========================================================================
@@ -685,10 +904,10 @@ html[data-viewport="mobile"] .dashboard-tabs {
     grid-template-columns: 1fr !important;
 }
 
-/* Celular: navegação quebra linha, nada fica cortado */
+/* Celular: navegação permanece alinhada e pode deslizar horizontalmente */
 html[data-viewport="mobile"] .nav-buttons {
-    flex-wrap: wrap;
-    overflow: visible;
+    flex-wrap: nowrap;
+    overflow-x: auto;
 }
 
 /* Celular: barras de filtro contidas na largura da tela */
@@ -724,4 +943,135 @@ html[data-viewport="tablet"] .game-grid {
 @media (max-width: 768px) {
   .carrossel-anterior { left: 0.25rem; }
   .carrossel-proximo { right: 0.25rem; }
+}
+
+/* ==========================================================================
+   TABELAS DE RESULTADOS DO ATLETISMO (user.ejs)
+   - Garante que as grids internas encolham (min-width:0) em vez de estourar
+     o card e sobrepor a coluna ao lado no desktop.
+   - Junto com as colunas flexíveis (minmax(0,fr)), elimina a sobreposição
+     que ocorria no computador (classificação + jogos lado a lado).
+   ========================================================================== */
+#classificacao-atletismo,
+.home-classificacao {
+    min-width: 0;
+    max-width: 100%;
+}
+
+/* A classificação com muitas tabelas fica mais alta que a tela; desligamos
+   o sticky no desktop para que empilhe normalmente e não sobreponha nada */
+.home-classificacao {
+    position: static !important;
+    height: auto !important;
+    overflow: visible;
+}
+
+/* Tabelas contidas dentro da classificação (aside) */
+#classificacao-atletismo .tabela-scroll,
+.home-classificacao .tabela-scroll {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: auto;
+}
+
+#classificacao-atletismo .tabela-scroll > div,
+.home-classificacao .tabela-scroll > div {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Remove o min-width fixo das media queries para as tabelas de atletismo,
+   que agora usam colunas flexíveis e devem encolher em vez de estourar */
+@media (max-width: 1100px) {
+    #classificacao-atletismo .tabela-scroll--media > div,
+    #classificacao-atletismo .tabela-scroll--larga > div,
+    .painel-jogos .tabela-scroll--media > div,
+    .painel-jogos .tabela-scroll--larga > div {
+        min-width: 0 !important;
+    }
+}
+
+/* Resultados por Prova (finais no painel de jogos) contidos */
+.painel-jogos .tabela-scroll {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-x: auto;
+}
+
+.painel-jogos .tabela-scroll > div {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Chaveamento do admin: os elementos internos nao podem aumentar o card. */
+@media (max-width: 992px) {
+    .chaveamento-content,
+    .chaveamento-content > *,
+    .chaveamento-layout,
+    .chaveamento-visualizacao,
+    .painel-tabela,
+    .painel-jogos {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .chaveamento-content {
+        overflow: hidden;
+    }
+
+    .tabela-scroll {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        overscroll-behavior-inline: contain;
+    }
+
+    .tabela-scroll > table {
+        width: max-content !important;
+        min-width: 420px;
+        max-width: none;
+    }
+
+    .chaveamento-content .game-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .admin-game-card,
+    .admin-game-card .agc-form,
+    .admin-game-card .agc-campos {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    .admin-game-card .agc-campos {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .admin-game-card .agc-campos input,
+    .admin-game-card .agc-campos select {
+        min-width: 0;
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 600px) {
+    .admin-game-card .agc-campos {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .admin-game-card .agc-confronto {
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    }
+
+    .admin-game-card .agc-placar {
+        min-width: 48px;
+        padding-left: 0.35rem;
+        padding-right: 0.35rem;
+    }
 }

@@ -23,7 +23,7 @@
         <% juizes.forEach((juiz) => { %>
           <article class="inner-management-card" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
             <div style="display:flex; align-items:center; gap:1rem; min-width:0;">
-              <img src="<%= juiz.foto_perfil || '/imagens/avatar.svg' %>" alt="<%= juiz.nome %>" style="width:48px; height:48px; border-radius:50%; object-fit:cover; border:1px solid rgba(255,255,255,0.12); flex-shrink:0;">
+              <img src="<%= juiz.foto_perfil || '/imagens/avatar.svg' %>" alt="<%= juiz.nome %>" class="campus-photo campus-photo--md <%= (juiz.foto_perfil && juiz.foto_perfil !== '/imagens/avatar.svg') ? 'campus-photo--real' : 'campus-photo--default' %>">
               <div style="min-width:0;">
                 <h3 style="font-size:1rem; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= juiz.nome %></h3>
                 <p style="margin:0.15rem 0 0; font-size:0.82rem; color:rgba(255,255,255,0.55); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= juiz.email %></p>

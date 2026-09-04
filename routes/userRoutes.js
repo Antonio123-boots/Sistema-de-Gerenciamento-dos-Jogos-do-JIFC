@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const adminModel = require('../models/adminModel');
+const db = require('../config/db');
 const campusModel = require('../models/campusModel');
 const { listarCampi, obterCampusPorSlug, atualizarCampus } = require('../models/campiCatalog');
 const { salvarFotoPerfilUsuario } = require('../models/authUsers');
 const { filtrarModalidadesParaHome } = require('../utils/homeFilters');
 const { ehTenisDeMesa, normalizarSubCategoriaFiltro } = require('../services/jogoService');
+const resultadosIndividuaisService = require('../services/resultadosIndividuaisService');
 const mataMataService = require('../services/mataMataService');
 
 const IFCS = [
@@ -212,6 +214,22 @@ function agruparJogosPorDia(jogos) {
         acumulador[dia].push(jogo);
         return acumulador;
     }, {});
+}
+
+function normalizarNomeCampusJogo(nome) {
+    return String(nome || '')
+        .replace(/^IFC\s+/i, '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9áéíóúâêôãõç]/gi, '')
+        .trim()
+        .toLowerCase();
+}
+
+function jogoEnvolveCampus(jogo, nomeCampus) {
+    const alvo = normalizarNomeCampusJogo(nomeCampus);
+    if (!alvo) return false;
+    return normalizarNomeCampusJogo(jogo.casa) === alvo || normalizarNomeCampusJogo(jogo.fora) === alvo;
 }
 
 function gerarDiasDoEvento(configuracoes) {
@@ -432,6 +450,16 @@ router.get('/', async function(req, res, next) {
                     continue;
                 }
 
+                const ehIndividualMod = resultadosIndividuaisService.ehAtletismo(String(modalidadeTabela.nome || '')) || resultadosIndividuaisService.ehXadrez(String(modalidadeTabela.nome || ''));
+                if (ehIndividualMod) {
+                    continue;
+                }
+                const [modPublicado] = await db.query('SELECT 1 FROM jogos WHERE modalidade_id = ? AND publicado = 1 LIMIT 1', [modalidadeTabela.id]);
+                const temJogosPublicados = modPublicado.length > 0;
+                if (!temJogosPublicados) {
+                    continue;
+                }
+
                 const subCategoriaTabela = ehTenisDeMesa(String(modalidadeTabela.nome || modalidadeTabela.nomeBase || '')) ? subCategoriaSelecionada : '';
                 const tabelaClassificacao = await adminModel.getClassificacaoModalidade(modalidadeTabela.id, null, { subCategoria: subCategoriaTabela });
                 const tabelaGrupos = await adminModel.getChavesModalidade(modalidadeTabela.id, subCategoriaTabela);
@@ -491,21 +519,39 @@ router.get('/', async function(req, res, next) {
                     const generosAlvo = generoSelecionado ? [generoSelecionado] : ['Masculino', 'Feminino'];
                     classificacaoAtletismoPorGenero = {};
                     for (const generoAlvo of generosAlvo) {
-                        classificacaoAtletismoPorGenero[generoAlvo] = await resultadosIndividuaisService.obterClassificacaoGeralCampi(generoAlvo);
+                        const [temPublicado] = await db.query('SELECT 1 FROM provas p JOIN modalidades m ON m.id = p.modalidade_id WHERE LOWER(m.nome) LIKE \'%atletismo%\' AND p.publicado = 1 LIMIT 1');
+                        if (temPublicado.length === 0) {
+                            classificacaoAtletismoPorGenero[generoAlvo] = [];
+                        } else {
+                            classificacaoAtletismoPorGenero[generoAlvo] = await resultadosIndividuaisService.obterClassificacaoGeralCampi(generoAlvo);
+                        }
                     }
                 } catch (e) {
                     console.error('Erro ao carregar classificação geral do atletismo:', e);
                     classificacaoAtletismoPorGenero = null;
                 }
-                tipoClassificacaoIndividual = 'atletismo';
-
                 const { montarProvasComAtletasEDetalhes, obterResultadosFinaisPorProva, PROVAS_ATLETISMO_EXIBICAO } = require('../utils/atletismoProvas');
 
+                let atletismoPublicado = false;
+                try {
+                    const [pubCheck] = await db.query('SELECT 1 FROM provas p JOIN modalidades m ON m.id = p.modalidade_id WHERE LOWER(m.nome) LIKE \'%atletismo%\' AND p.publicado = 1 LIMIT 1');
+                    atletismoPublicado = pubCheck.length > 0;
+                } catch (_) { atletismoPublicado = false; }
+
+                tipoClassificacaoIndividual = atletismoPublicado ? 'atletismo' : null;
+
+                if (atletismoPublicado) {
                 // Resultados oficiais das provas com Final (100m), por gênero
                 try {
+                    const generoFiltroFinal = (generoSelecionado && normalizarGeneroTexto(generoSelecionado))
+                        ? generoSelecionado
+                        : (modalidadeSelecionadaObjeto && normalizarGeneroTexto(modalidadeSelecionadaObjeto.genero)
+                            ? modalidadeSelecionadaObjeto.genero
+                            : '');
                     const finaisPorGenero = await obterResultadosFinaisPorProva();
                     resultadosFinaisAtletismo = {};
                     for (const [generoChave, porSlug] of finaisPorGenero.entries()) {
+                        if (normalizarGeneroTexto(generoFiltroFinal) && normalizarGeneroTexto(generoChave) !== normalizarGeneroTexto(generoFiltroFinal)) continue;
                         resultadosFinaisAtletismo[generoChave] = Object.fromEntries(porSlug);
                     }
                 } catch (e) {
@@ -519,7 +565,24 @@ router.get('/', async function(req, res, next) {
                     if (!modalidadeTabela || !modalidadeTabela.id) continue;
                     if (!resultadosIndividuaisService.ehAtletismo(String(modalidadeTabela.nome || ''))) continue;
                     const chaveGeneroInscritos = String(modalidadeTabela.genero || '').trim() || 'Geral';
-                    const listaModalidade = await adminModel.getInscritosModalidade(modalidadeTabela.id);
+                    let listaModalidade = await adminModel.getInscritosModalidade(modalidadeTabela.id);
+                    const [atletasDasEquipes] = await db.query(
+                        `SELECT DISTINCT a.id, a.nome AS nome_atleta, c.nome AS campus_nome, c.nome_exibicao
+                         FROM campus_modalidade cm
+                         JOIN atletas a ON a.campus_id = cm.campus_id
+                         JOIN campus c ON c.id = a.campus_id
+                         WHERE cm.modalidade_id = ? AND a.genero = ?
+                         ORDER BY c.nome ASC, a.nome ASC`,
+                        [modalidadeTabela.id, modalidadeTabela.genero]
+                    );
+                    if (atletasDasEquipes.length > 0) {
+                        listaModalidade = atletasDasEquipes.map((atleta) => ({
+                            id: atleta.id,
+                            nomeAtleta: atleta.nome_atleta,
+                            nomeCampus: atleta.nome_exibicao || atleta.campus_nome,
+                            campus: atleta.nome_exibicao || atleta.campus_nome
+                        }));
+                    }
                     inscritosPorGeneroAtletismo[chaveGeneroInscritos] = inscritosPorGeneroAtletismo[chaveGeneroInscritos] || [];
                     const idsJaVistos = new Set(inscritosPorGeneroAtletismo[chaveGeneroInscritos].map((i) => String(i.id || `${i.nomeAtleta}-${i.nomeCampus}`)));
                     (Array.isArray(listaModalidade) ? listaModalidade : []).forEach((inscrito) => {
@@ -532,8 +595,44 @@ router.get('/', async function(req, res, next) {
 
                 provasPorGenero = {};
                 for (const [generoChave, listaGenero] of Object.entries(inscritosPorGeneroAtletismo)) {
-                    provasPorGenero[generoChave] = (await montarProvasComAtletasEDetalhes(listaGenero))
-                        .filter((prova) => prova.atletas.length > 0);
+                    const provasMontadas = await montarProvasComAtletasEDetalhes(listaGenero);
+                    const temAtletasEmAlgumaProva = provasMontadas.some((prova) => prova.atletas.length > 0);
+                    const garantirEquipeRevezamento = (atletas) => {
+                        const porCampus = new Map();
+                        atletas.forEach((atleta) => {
+                            const campus = atleta.campus || 'Campus não informado';
+                            if (!porCampus.has(campus)) porCampus.set(campus, []);
+                            porCampus.get(campus).push(atleta);
+                        });
+                        return [...porCampus.values()].flatMap((atletasCampus) =>
+                            atletasCampus.slice(0, Math.floor(atletasCampus.length / 4) * 4)
+                        );
+                    };
+                    if (temAtletasEmAlgumaProva) {
+                        provasPorGenero[generoChave] = provasMontadas
+                            .filter((prova) => prova.atletas.length > 0)
+                            .map((prova) => ({
+                                ...prova,
+                                atletas: ['4x100m', '4x400m'].includes(prova.slug)
+                                    ? garantirEquipeRevezamento(prova.atletas.slice(0, 200))
+                                    : prova.atletas.slice(0, 200)
+                            }));
+                    } else {
+                        const atletasLimitados = listaGenero.slice(0, 200).map((atleta) => ({
+                            id: atleta.id,
+                            nome: atleta.nomeAtleta || atleta.nome || '',
+                            campus: atleta.nomeCampus || atleta.campus || '',
+                            pontos: 0,
+                            posicao: null,
+                            resultado: ''
+                        }));
+                        provasPorGenero[generoChave] = provasMontadas.map((prova, indiceProva) => ({
+                            ...prova,
+                            atletas: ['4x100m', '4x400m'].includes(prova.slug)
+                                ? garantirEquipeRevezamento(atletasLimitados)
+                                : atletasLimitados.filter((_, indiceAtleta) => indiceAtleta % provasMontadas.length === indiceProva)
+                        })).filter((prova) => prova.atletas.length > 0);
+                    }
                 }
 
                 // União das provas dos dois gêneros (uma única linha de filtros na home)
@@ -557,10 +656,17 @@ router.get('/', async function(req, res, next) {
                 }
 
                 classificacaoIndividual = Object.values(classificacaoAtletismoPorGenero || {}).flat();
+                } else {
+                    provasAtletismo = [];
+                    provasPorGenero = {};
+                    resultadosFinaisAtletismo = {};
+                }
             } else {
                 for (const modalidadeTabela of modalidadesParaTabela) {
                     if (!modalidadeTabela || !modalidadeTabela.id) continue;
                     if (resultadosIndividuaisService.ehXadrez(String(modalidadeTabela.nome || ''))) {
+                        const [xadrezPub] = await db.query('SELECT 1 FROM resultados_xadrez WHERE modalidade_id = ? AND publicado = 1 LIMIT 1', [modalidadeTabela.id]);
+                        if (xadrezPub.length === 0) continue;
                         const classif = await resultadosIndividuaisService.obterClassificacaoXadrez(modalidadeTabela.id);
                         if (!classif.length) continue;
                         tipoClassificacaoIndividual = 'xadrez';
@@ -742,7 +848,7 @@ router.get('/perfil', async function(req, res, next) {
     const campusNome = req.user.nome;
     const atletasCampus = campusModel.getAtletas(campusNome);
     const modalidadesCampus = campusModel.getInscricoes(campusNome);
-    const jogos = await adminModel.getJogos();
+    const jogos = await adminModel.getJogosPublicados({});
     const jogosCampus = jogos.filter((jogo) =>
         jogo.casa === campusNome || jogo.fora === campusNome
     );
@@ -811,13 +917,32 @@ router.get('/chaveamento', async function(req, res, next) {
         const subCategoria = req.query.sub || (modalidadeAtiva.categoria === 'tenis-de-mesa' ? 'individual' : 'geral');
 
         let provasAtletismo = [];
+        let atletasAtletismo = [];
         let classificadosXadrez = [];
         let chavesGeradas = [];
         let jogosProgramados = [];
 
         try {
             if (modalidadeAtiva.categoria === 'atletismo') {
+                const [atletismoPub] = await db.query('SELECT 1 FROM provas WHERE modalidade_id = ? AND publicado = 1 LIMIT 1', [modalidadeAtiva.id]);
+                if (atletismoPub.length === 0) {
+                    chavesGeradas = [];
+                    jogosProgramados = [];
+                } else {
                 const resultadosIndividuaisService = require('../services/resultadosIndividuaisService');
+                const [atletasInscritos] = await db.query(
+                    `SELECT DISTINCT a.nome, c.nome_exibicao, c.nome AS campus_nome
+                     FROM campus_modalidade cm
+                     JOIN atletas a ON a.campus_id = cm.campus_id
+                     JOIN campus c ON c.id = a.campus_id
+                     WHERE cm.modalidade_id = ? AND a.genero = ?
+                     ORDER BY c.nome ASC, a.nome ASC`,
+                    [modalidadeAtiva.id, modalidadeAtiva.genero]
+                );
+                atletasAtletismo = atletasInscritos.map((atleta) => ({
+                    nome: atleta.nome,
+                    campus: atleta.nome_exibicao || atleta.campus_nome
+                }));
                 const provas = await resultadosIndividuaisService.obterProvasPorModalidade(modalidadeAtiva.id);
                 for (const prova of provas) {
                     const resultados = await resultadosIndividuaisService.obterResultadosPorProva(prova.id);
@@ -839,7 +964,10 @@ router.get('/chaveamento', async function(req, res, next) {
                         }))
                     });
                 }
+                }
             } else if (modalidadeAtiva.categoria === 'xadrez') {
+                const [xadrezPub] = await db.query('SELECT 1 FROM resultados_xadrez WHERE modalidade_id = ? AND publicado = 1 LIMIT 1', [modalidadeAtiva.id]);
+                if (xadrezPub.length > 0) {
                 const resultadosIndividuaisService = require('../services/resultadosIndividuaisService');
                 const linhas = await resultadosIndividuaisService.obterClassificacaoXadrez(modalidadeAtiva.id);
                 const temResultado = linhas.some((l) => Number(l.pontuacao) > 0 || Number(l.vitorias) > 0 || Number(l.derrotas) > 0 || Number(l.empates) > 0);
@@ -849,6 +977,7 @@ router.get('/chaveamento', async function(req, res, next) {
                         nomeCampus: l.campus_nome || '',
                         pontuacaoAtual: Number(l.pontuacao) || 0
                     }));
+                }
                 }
             } else {
                 const chaves = await adminModel.getChavesModalidade(modalidadeAtiva.id, subCategoria);
@@ -893,7 +1022,9 @@ router.get('/chaveamento', async function(req, res, next) {
         let fasesEliminatoria = [];
         try {
             if (modalidadeAtiva.categoria !== 'atletismo' && modalidadeAtiva.categoria !== 'xadrez') {
-                fasesEliminatoria = await mataMataService.listarEliminatoria(modalidadeAtiva.id, subCategoria);
+                if (jogosProgramados.length > 0) {
+                    fasesEliminatoria = await mataMataService.listarEliminatoria(modalidadeAtiva.id, subCategoria);
+                }
             }
         } catch (error) {
             console.error('Erro ao carregar eliminatória no chaveamento público:', error);
@@ -908,6 +1039,7 @@ router.get('/chaveamento', async function(req, res, next) {
             modalidadeAtiva,
             subCategoriaAtiva: subCategoria,
             provasAtletismo,
+            atletasAtletismo,
             classificadosXadrez,
             chavesGeradas,
             jogosProgramados,
@@ -938,7 +1070,7 @@ router.get('/equipes/:slug', async function(req, res, next) {
     }
 
     const configuracoes = adminModel.getConfiguracoes();
-    const jogos = await adminModel.getJogos();
+    const jogos = await adminModel.getJogosPublicados({});
     const atletasCampus = campusModel.getAtletas(campus.nome);
     const modalidadesCampus = campusModel.getInscricoes(campus.nome);
     const jogosCampus = jogos.filter((jogo) => jogo.casa === campus.nome || jogo.fora === campus.nome);

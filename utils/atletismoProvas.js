@@ -167,7 +167,8 @@ async function obterPontuacaoPorAtleta() {
   const mapa = new Map();
   try {
     const [rows] = await db.query(
-      `SELECT ra.atleta_id, ra.pontos, ra.posicao_final, p.nome AS prova_nome
+      `SELECT ra.atleta_id, ra.pontos, ra.posicao_final, ra.etapa,
+              ra.resultado_tempo, ra.resultado_medida, p.nome AS prova_nome
        FROM resultados_atletismo ra
        JOIN provas p ON p.id = ra.prova_id
        JOIN modalidades m ON m.id = p.modalidade_id
@@ -179,10 +180,25 @@ async function obterPontuacaoPorAtleta() {
       const atletaId = Number(row.atleta_id);
       if (!mapa.has(atletaId)) mapa.set(atletaId, new Map());
       const porProva = mapa.get(atletaId);
-      const atual = porProva.get(slug) || { pontos: 0, posicao: null };
+      const etapa = String(row.etapa || 'prova').toLowerCase();
+      const atual = porProva.get(slug) || { pontos: 0, posicao: null, resultado: '', etapa: '' };
       atual.pontos += Number(row.pontos || 0);
       if (row.posicao_final != null && (atual.posicao == null || Number(row.posicao_final) < atual.posicao)) {
         atual.posicao = Number(row.posicao_final);
+      }
+      /* Prioriza o resultado físico da etapa 'prova'; usa 'final' apenas se não houver outro */
+      if (!atual.resultado || (etapa === 'prova' && atual.etapa !== 'prova')) {
+        const tempo = row.resultado_tempo != null
+          ? String(typeof row.resultado_tempo === 'string' ? row.resultado_tempo : row.resultado_tempo.toISOString().slice(11, 12)).replace(/^00:/, '')
+          : '';
+        const medida = row.resultado_medida != null && row.resultado_medida !== ''
+          ? `${Number(row.resultado_medida)} m`
+          : '';
+        const novoResultado = tempo || medida;
+        if (novoResultado || (etapa === 'prova')) {
+          atual.resultado = novoResultado || atual.resultado;
+          atual.etapa = etapa;
+        }
       }
       porProva.set(slug, atual);
     });
@@ -251,7 +267,8 @@ async function montarProvasComAtletasEDetalhes(inscritos) {
           nome: String(inscrito.nomeAtleta || inscrito.nome || '').trim(),
           campus: String(inscrito.nomeCampus || inscrito.campus || '').trim(),
           pontos: detalhe ? detalhe.pontos : 0,
-          posicao: detalhe && detalhe.posicao != null ? detalhe.posicao : null
+          posicao: detalhe && detalhe.posicao != null ? detalhe.posicao : null,
+          resultado: detalhe && detalhe.resultado ? detalhe.resultado : ''
         };
       })
       .sort((a, b) =>

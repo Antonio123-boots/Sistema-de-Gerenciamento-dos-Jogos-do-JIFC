@@ -252,7 +252,15 @@ async function obterClassificacaoGeralCampi(generoFiltro) {
     `SELECT c.id AS campus_id, COALESCE(NULLIF(c.nome_exibicao, ''), c.nome) AS campus_nome,
             c.foto_perfil AS foto_perfil,
             COALESCE(SUM(ra.pontos), 0) AS pontos,
-            COUNT(DISTINCT ra.prova_id) AS provas_pontuadas
+            COUNT(DISTINCT ra.prova_id) AS provas_pontuadas,
+            SUM(CASE WHEN ra.posicao_final = 1 THEN 1 ELSE 0 END) AS primeiros_lugares,
+            SUM(CASE WHEN ra.posicao_final = 2 THEN 1 ELSE 0 END) AS segundos_lugares,
+            SUM(CASE WHEN ra.posicao_final = 3 THEN 1 ELSE 0 END) AS terceiros_lugares,
+            SUM(CASE WHEN ra.posicao_final = 4 THEN 1 ELSE 0 END) AS quartos_lugares,
+            SUM(CASE WHEN ra.posicao_final = 5 THEN 1 ELSE 0 END) AS quintos_lugares,
+            SUM(CASE WHEN ra.posicao_final = 6 THEN 1 ELSE 0 END) AS sextos_lugares,
+            SUM(CASE WHEN ra.posicao_final = 7 THEN 1 ELSE 0 END) AS setimos_lugares,
+            SUM(CASE WHEN ra.posicao_final = 8 THEN 1 ELSE 0 END) AS oitavos_lugares
      FROM atletas a
      JOIN campus c ON c.id = a.campus_id
      JOIN atleta_modalidade am ON am.atleta_id = a.id
@@ -265,7 +273,10 @@ async function obterClassificacaoGeralCampi(generoFiltro) {
        )
      WHERE (? = '' OR UPPER(m.genero) = UPPER(?))
      GROUP BY c.id, campus_nome, c.foto_perfil
-     ORDER BY pontos DESC, campus_nome ASC`,
+    ORDER BY pontos DESC, primeiros_lugares DESC, segundos_lugares DESC,
+          terceiros_lugares DESC, quartos_lugares DESC, quintos_lugares DESC,
+          sextos_lugares DESC, setimos_lugares DESC, oitavos_lugares DESC,
+          campus_nome ASC`,
     [genero, genero]
   );
   return rows;
@@ -329,6 +340,44 @@ async function obterClassificacaoXadrez(modalidadeId) {
   return rows;
 }
 
+async function publicarProvasModalidade(modalidadeId) {
+  const id = Number(modalidadeId || 0);
+  if (!id) return;
+  const { ensureProvasPublicadoColumn } = require('../config/ensureSchema');
+  await ensureProvasPublicadoColumn();
+  await db.query('UPDATE provas SET publicado = 1 WHERE modalidade_id = ?', [id]);
+}
+
+async function publicarResultadosXadrezModalidade(modalidadeId) {
+  const id = Number(modalidadeId || 0);
+  if (!id) return;
+  const { ensureResultadosXadrezPublicadoColumn } = require('../config/ensureSchema');
+  await ensureResultadosXadrezPublicadoColumn();
+  await db.query('UPDATE resultados_xadrez SET publicado = 1 WHERE modalidade_id = ?', [id]);
+}
+
+async function publicarModalidadeIndividual(modalidadeId) {
+  const id = Number(modalidadeId || 0);
+  if (!id) return;
+
+  const [modRows] = await db.query('SELECT nome FROM modalidades WHERE id = ?', [id]);
+  const nomeModalidade = String(modRows[0]?.nome || '').toLowerCase();
+
+  if (nomeModalidade.includes('atletismo')) {
+    await publicarProvasModalidade(id);
+  } else if (nomeModalidade.includes('xadrez')) {
+    await publicarResultadosXadrezModalidade(id);
+  }
+}
+
+async function publicarTodasModalidadesIndividuais() {
+  const { ensureProvasPublicadoColumn, ensureResultadosXadrezPublicadoColumn } = require('../config/ensureSchema');
+  await ensureProvasPublicadoColumn();
+  await ensureResultadosXadrezPublicadoColumn();
+  await db.query('UPDATE provas SET publicado = 1');
+  await db.query('UPDATE resultados_xadrez SET publicado = 1');
+}
+
 function ehEsporteIndividual(nomeModalidade) {
   const regras = obterRegras(nomeModalidade);
   return Boolean(regras.tipo_individual);
@@ -361,5 +410,9 @@ module.exports = {
   obterClassificacaoXadrez,
   ehEsporteIndividual,
   ehAtletismo,
-  ehXadrez
+  ehXadrez,
+  publicarProvasModalidade,
+  publicarResultadosXadrezModalidade,
+  publicarModalidadeIndividual,
+  publicarTodasModalidadesIndividuais
 };

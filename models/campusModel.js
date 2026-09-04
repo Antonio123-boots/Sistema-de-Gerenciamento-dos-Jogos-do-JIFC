@@ -582,7 +582,7 @@ async function cadastrarAtleta(campusNome, dados, opcoes = {}) {
   const campos = validarCamposObrigatoriosAtleta(dados);
   const matriculaNormalizada = normalizarMatricula(campos.matricula);
   const matriculaExistente = atletasCampus.some((atleta) => atleta.campus === campusNome && normalizarMatricula(atleta.matricula) === matriculaNormalizada);
-  const statusSolicitado = opcoes.validarImediatamente ? 'Regular' : (campos.status === 'Regular' ? 'Analise' : (campos.status || 'Analise'));
+  const statusSolicitado = 'Analise';
   const limiteRegularTotalCampus = Number(opcoes.limiteRegularTotalCampus || 0);
   const modalidadesSelecionadas = campos.modalidades;
   const detalhesAtleta = validarDetalhesAtleta(dados, modalidadesSelecionadas);
@@ -664,7 +664,7 @@ async function atualizarAtleta(atletaId, campusNome, dados, opcoes = {}) {
   const campos = validarCamposObrigatoriosAtleta(dados);
   const matriculaNormalizada = normalizarMatricula(campos.matricula);
   const matriculaExistente = atletasCampus.some((item) => item.campus === campusNome && item.id !== Number(atletaId) && normalizarMatricula(item.matricula) === matriculaNormalizada);
-  const statusSolicitado = opcoes.validarImediatamente ? 'Regular' : (campos.status === 'Regular' ? 'Analise' : (campos.status || atleta.status || 'Analise'));
+  const statusSolicitado = 'Analise';
   const limiteRegularTotalCampus = Number(opcoes.limiteRegularTotalCampus || 0);
   const modalidadesSelecionadas = campos.modalidades;
   const detalhesAtleta = validarDetalhesAtleta(dados, modalidadesSelecionadas);

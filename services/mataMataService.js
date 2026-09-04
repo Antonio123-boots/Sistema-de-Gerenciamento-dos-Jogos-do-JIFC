@@ -1,6 +1,6 @@
 const db = require('../config/db');
 const { ensureMataMataColumns } = require('../config/ensureSchema');
-const { obterPadraoEliminatoria } = require('../utils/sportClassificationRules');
+const { obterPadraoEliminatoria, obterRegras } = require('../utils/sportClassificationRules');
 const { statusEfetivo } = require('../utils/jogoStatus');
 
 const FASES_ORDEM = ['Oitavas', 'Quartas', 'Semifinal', 'Terceiro Lugar', 'Final'];
@@ -46,14 +46,14 @@ function montarEstruturaEliminatoria(padrao, quantidadeChaves) {
     if (total === 2) {
       return [
         criarJogo('Semifinal', '1A', '2B'),
-        criarJogo('Semifinal', '1B', '2A')
+        criarJogo('Semifinal', '2A', '1B')
       ];
     }
     if (total === 3) {
       return [
-        criarJogo('Quartas', '1A', 'T2'),
-        criarJogo('Quartas', '1C', '2A'),
-        criarJogo('Quartas', '1B', 'T1'),
+        criarJogo('Quartas', 'P1', 'T2'),
+        criarJogo('Quartas', 'P2', 'T1'),
+        criarJogo('Quartas', 'P3', '2A'),
         criarJogo('Quartas', '2B', '2C')
       ];
     }
@@ -71,7 +71,7 @@ function montarEstruturaEliminatoria(padrao, quantidadeChaves) {
       const l2 = letraChave(chave2);
       const fase = total === 8 ? 'Oitavas' : 'Quartas';
       confrontos.push(criarJogo(fase, `1${l1}`, `2${l2}`));
-      confrontos.push(criarJogo(fase, `1${l2}`, `2${l1}`));
+      confrontos.push(criarJogo(fase, `2${l1}`, `1${l2}`));
     }
     return confrontos;
   }
@@ -119,6 +119,8 @@ function interpretarRotulo(rotulo) {
   if (m) return { tipo: 'chave', posicao: Number(m[1]), chave: m[2] };
   m = texto.match(/^T([12])$/);
   if (m) return { tipo: 'terceiro', ordem: Number(m[1]) };
+  m = texto.match(/^([PS])([1-3])$/);
+  if (m) return { tipo: m[1] === 'P' ? 'primeiro_geral' : 'segundo_geral', ordem: Number(m[2]) };
   m = texto.match(/^[VD](\d+)$/);
   if (m) return { tipo: texto[0] === 'V' ? 'vencedor' : 'derrotado', numero: Number(m[1]) };
   return null;
@@ -140,6 +142,8 @@ async function classificarChaves(idModalidade, sub, colCasa, colFora) {
       .map((l) => Number(l.atleta_id || l.campus_id));
     const detalhes = linhas.map((l) => ({
       id: Number(l.atleta_id || l.campus_id),
+      campus_id: Number(l.campus_id || 0),
+      atleta_id: Number(l.atleta_id || 0),
       jogos: Number(l.jogos_jogados || 0),
       pontos: Number(l.pontos || 0),
       vitorias: Number(l.vitorias || 0),
@@ -232,14 +236,33 @@ async function resolverEliminatoria(modalidadeId, subCategoria) {
   const todasCompletas = [...chavesClassificadas.values()].every((c) => c.completa) && chavesClassificadas.size > 0;
 
   let melhoresTerceiros = [];
+  let melhoresPrimeiros = [];
+  let melhoresSegundos = [];
   if (todasCompletas && chavesClassificadas.size >= 3) {
+    const regras = obterRegras((await db.query('SELECT nome FROM modalidades WHERE id = ?', [idModalidade]))[0][0]?.nome || '');
+    const criteriosPrioritarios = ['pontos', 'saldo_gols', 'maior_gols_feitos'];
+    const criteriosPosteriores = (regras.criteriosDesempate || [])
+      .filter((criterio) => !criteriosPrioritarios.includes(criterio)
+        && criterio !== 'confronto_direto'
+        && criterio !== 'saldo_gols_empatadas'
+        && criterio !== 'sorteio');
+    const criteriosEntreChaves = [...criteriosPrioritarios, ...criteriosPosteriores];
+    const ordenarDesempenho = (a, b) => {
+      const { compararComDesempate } = require('./classificacaoService');
+      const resultado = compararComDesempate(a, b, regras, new Map(), [], criteriosEntreChaves, [a, b]);
+      return resultado || a.id - b.id;
+    };
+    const colocados = (posicao) => [...chavesClassificadas.values()]
+      .map((c) => c.detalhes[posicao])
+      .filter(Boolean)
+      .sort(ordenarDesempenho);
+
+    melhoresPrimeiros = colocados(0).map((item) => item.id);
+    melhoresSegundos = colocados(1).map((item) => item.id);
     melhoresTerceiros = [...chavesClassificadas.values()]
       .map((c) => c.detalhes[2])
       .filter(Boolean)
-      .sort((a, b) =>
-        b.pontos - a.pontos || b.vitorias - a.vitorias ||
-        (b.pro - b.contra) - (a.pro - a.contra) || b.pro - a.pro || a.id - b.id
-      )
+      .sort(ordenarDesempenho)
       .map((s) => s.id);
   }
 
@@ -252,6 +275,14 @@ async function resolverEliminatoria(modalidadeId, subCategoria) {
     if (descritor.tipo === 'terceiro') {
       if (!todasCompletas) return null;
       return melhoresTerceiros[descritor.ordem - 1] ?? null;
+    }
+    if (descritor.tipo === 'primeiro_geral') {
+      if (!todasCompletas) return null;
+      return melhoresPrimeiros[descritor.ordem - 1] ?? null;
+    }
+    if (descritor.tipo === 'segundo_geral') {
+      if (!todasCompletas) return null;
+      return melhoresSegundos[descritor.ordem - 1] ?? null;
     }
     const jogoRef = porNumeroLocal.get(descritor.numero);
     if (!jogoRef) return null;
