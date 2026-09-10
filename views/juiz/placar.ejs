@@ -1,6 +1,7 @@
 <%
   const temSets = typeof regras !== 'undefined' && regras && regras.temSets;
   const setsSalvos = (jogo.sets || []);
+  const modoEdicaoAtivo = typeof modoEdicao !== 'undefined' && modoEdicao;
   const fotoCasaReal = !!(jogo.fotoCasa && jogo.fotoCasa !== '/imagens/avatar.svg');
   const fotoForaReal = !!(jogo.fotoFora && jogo.fotoFora !== '/imagens/avatar.svg');
 %>
@@ -61,7 +62,7 @@
       <p style="font-size:0.85rem; color:#b4823c; font-weight:600; margin:0 0 0.3rem;">Aguardando encerramento da fase anterior</p>
       <p style="font-size:0.75rem; color:#8a7a5a; margin:0;">Este jogo será liberado automaticamente quando todos os jogos da fase anterior forem encerrados.</p>
     </div>
-  <% } else if (!jogo.wo && jogo.status !== 'Encerrado') { %>
+  <% } else if (!jogo.wo && (jogo.status !== 'Encerrado' || modoEdicaoAtivo)) { %>
     <form action="/juiz/jogos/<%= jogo.id %>/placar" method="POST" style="margin-top:1.25rem;">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
@@ -143,8 +144,9 @@
           </div>
         </div>
 
-        <% const fasesEliminatoria = ['Oitavas', 'Quartas', 'Semifinal', 'Final', 'Terceiro Lugar'];
-           if (fasesEliminatoria.includes(String(jogo.fase || ''))) { %>
+          <% const fasesEliminatoria = ['Oitavas', 'Quartas', 'Semifinal', 'Final', 'Terceiro Lugar'];
+            const ehBasquete = /basquete/i.test(String(jogo.modalidade || ''));
+            if (fasesEliminatoria.includes(String(jogo.fase || '')) && !ehBasquete) { %>
           <div style="display:flex; gap:0.6rem; justify-content:center; align-items:center; margin:-0.4rem 0 1rem; flex-wrap:wrap;">
             <span style="font-size:0.68rem; color:#8a9ab5; font-weight:600;">Disputa (pênaltis / 7m / cesta livre)</span>
             <input type="number" name="disputa1" min="0" value="<%= jogo.disputa_pontos_1 != null ? jogo.disputa_pontos_1 : '' %>" placeholder="—" style="width:52px; text-align:center; font-size:0.95rem; font-weight:700; background:rgba(245,176,65,0.08); border:1px solid rgba(245,176,65,0.3); border-radius:8px; color:#f5b041; padding:0.3rem; outline:none;">
@@ -216,6 +218,14 @@
         </form>
       </div>
     </div>
+  <% } else if (jogo.status === 'Encerrado' && jogo.wo) { %>
+    <div style="margin-top:1.25rem; text-align:center;">
+      <div style="font-size:0.75rem; font-weight:700; padding:0.2rem 0.7rem; border-radius:8px; display:inline-block; background:rgba(245,176,65,0.18); color:#f5b041;">W.O. aplicado</div>
+      <form id="desfazerWOForm" action="/juiz/jogos/<%= jogo.id %>/desfazer-wo" method="POST" style="margin-top:0.9rem;">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button type="button" class="btn btn-ghost" onclick="abrirDesfazerWO()">Desfazer W.O.</button>
+      </form>
+    </div>
   <% } else if (jogo.status === 'Encerrado' && !jogo.wo) { %>
     <div style="margin-top:1.25rem; text-align:center;">
       <% if (temSets && setsSalvos.length > 0) { %>
@@ -253,6 +263,9 @@
         </div>
       <% } %>
       <div style="font-size:0.75rem; font-weight:700; padding:0.2rem 0.7rem; border-radius:8px; display:inline-block; background:rgba(88,214,141,0.18); color:#58d68d;">Encerrado</div>
+      <div style="margin-top:0.9rem;">
+        <a class="btn btn-secondary" href="/juiz/jogos/<%= jogo.id %>/placar?editar=1">Corrigir placar</a>
+      </div>
     </div>
   <% } %>
 </section>
@@ -262,7 +275,33 @@
   <input type="hidden" name="campus_vencedor" id="woCampusVencedor">
 </form>
 
+<div id="woConfirmModal" class="confirm-modal-overlay" hidden>
+  <div class="confirm-modal-card" role="dialog" aria-modal="true" aria-labelledby="woConfirmTitle">
+    <div class="confirm-modal-icon">⚠</div>
+    <h3 id="woConfirmTitle">Confirmar W.O.</h3>
+    <p id="woConfirmMessage"></p>
+    <div class="confirm-modal-actions">
+      <button type="button" class="btn btn-ghost" onclick="fecharConfirmacaoWO()">Cancelar</button>
+      <button type="button" class="btn btn-primary" onclick="confirmarEnvioWO()">Aplicar W.O.</button>
+    </div>
+  </div>
+</div>
+
+<div id="desfazerWOConfirmModal" class="confirm-modal-overlay" hidden>
+  <div class="confirm-modal-card" role="dialog" aria-modal="true" aria-labelledby="desfazerWOTitle">
+    <div class="confirm-modal-icon">↩</div>
+    <h3 id="desfazerWOTitle">Desfazer W.O.?</h3>
+    <p>O placar do W.O. será removido e o jogo voltará para Agendado.</p>
+    <div class="confirm-modal-actions">
+      <button type="button" class="btn btn-ghost" onclick="fecharDesfazerWO()">Cancelar</button>
+      <button type="button" class="btn btn-primary" onclick="confirmarDesfazerWO()">Desfazer W.O.</button>
+    </div>
+  </div>
+</div>
+
 <script>
+let woCampusSelecionado = null;
+
 function toggleAdiar() {
   const panel = document.getElementById('adiarPanel');
   const btn = document.getElementById('btnAdiar');
@@ -329,9 +368,49 @@ function adicionarCartao(block) {
 }
 
 function confirmarWO(campusId, campusNome) {
-  if (!confirm('Aplicar W.O. a favor de ' + campusNome + '? Esta ação não pode ser desfeita.')) return;
-  document.getElementById('woCampusVencedor').value = campusId;
+  woCampusSelecionado = campusId;
+  const mensagem = document.getElementById('woConfirmMessage');
+  const modal = document.getElementById('woConfirmModal');
+  if (mensagem) mensagem.textContent = 'Aplicar W.O. a favor de ' + campusNome + '? Esta ação não pode ser desfeita.';
+  if (modal) {
+    modal.hidden = false;
+    modal.classList.add('active');
+  }
+}
+
+function fecharConfirmacaoWO() {
+  const modal = document.getElementById('woConfirmModal');
+  if (modal) {
+    modal.hidden = true;
+    modal.classList.remove('active');
+  }
+  woCampusSelecionado = null;
+}
+
+function confirmarEnvioWO() {
+  if (!woCampusSelecionado) return;
+  document.getElementById('woCampusVencedor').value = woCampusSelecionado;
   document.getElementById('formWO').submit();
+}
+
+function abrirDesfazerWO() {
+  const modal = document.getElementById('desfazerWOConfirmModal');
+  if (modal) {
+    modal.hidden = false;
+    modal.classList.add('active');
+  }
+}
+
+function fecharDesfazerWO() {
+  const modal = document.getElementById('desfazerWOConfirmModal');
+  if (modal) {
+    modal.hidden = true;
+    modal.classList.remove('active');
+  }
+}
+
+function confirmarDesfazerWO() {
+  document.getElementById('desfazerWOForm')?.submit();
 }
 
 function confirmarSet(numeroSet) {

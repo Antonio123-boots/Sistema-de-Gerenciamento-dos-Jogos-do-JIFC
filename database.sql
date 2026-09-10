@@ -220,14 +220,18 @@ CREATE TABLE resultados_atletismo (
 CREATE TABLE configuracoes_evento (
     id INT AUTO_INCREMENT PRIMARY KEY,
     ano_evento INT NOT NULL DEFAULT 2026,
-    inicio_inscricao_modalidades DATE NOT NULL,
-    fim_inscricao_modalidades DATE NOT NULL,
-    inicio_inscricao_atletas DATE NOT NULL,
-    fim_inscricao_atletas DATE NOT NULL,
-    inicio_sorteio_chaves DATE NOT NULL,
-    fim_sorteio_chaves DATE NOT NULL,
-    
-    -- Garante que as etapas respeitem uma ordem de datas lógica no fluxo do evento
+    inicio_evento DATE NULL,
+    fim_evento DATE NULL,
+    inicio_inscricao_modalidades DATE NULL,
+    fim_inscricao_modalidades DATE NULL,
+    inicio_inscricao_atletas DATE NULL,
+    fim_inscricao_atletas DATE NULL,
+    inicio_sorteio_chaves DATE NULL,
+    fim_sorteio_chaves DATE NULL,
+    limite_atletas_total_campus INT NOT NULL DEFAULT 0,
+
+    -- Garante que as etapas respeitem uma ordem de datas lógica no fluxo do evento.
+    -- Estados parciais (datas NULL) passam pelo CHECK do MySQL, que apenas falha com FALSE.
     CONSTRAINT chk_fluxo_cronologico CHECK (
         inicio_inscricao_modalidades <= fim_inscricao_modalidades AND
         fim_inscricao_modalidades <= inicio_inscricao_atletas AND

@@ -5,13 +5,13 @@
       const modalidadesPorEsporte = {};
       modalidadesDisponiveisList.forEach((modalidade) => {
         const nomeOriginal = String(modalidade.nome || '').trim();
-        const nomeBase = nomeOriginal.replace(/\s+(Masculino|Feminino)$/i, '').trim() || nomeOriginal;
+        const nomeBase = nomeOriginal.replace(/\s+(Masculino|Feminino|Misto)$/i, '').trim() || nomeOriginal;
         const genero = String(modalidade.genero || '').trim();
         const icone = String(modalidade.icone || '').trim();
         const imagem = modalidade.imagem || '/imagens/atletismo1.svg';
 
         if (!modalidadesPorEsporte[nomeBase]) {
-          modalidadesPorEsporte[nomeBase] = { nome: nomeBase, icone, imagem, masculino: null, feminino: null };
+          modalidadesPorEsporte[nomeBase] = { nome: nomeBase, icone, imagem, masculino: null, feminino: null, misto: null };
         }
 
         if (/masculino/i.test(genero)) {
@@ -19,6 +19,9 @@
         }
         if (/feminino/i.test(genero)) {
           modalidadesPorEsporte[nomeBase].feminino = `${nomeBase} Feminino`;
+        }
+        if (/misto/i.test(genero)) {
+          modalidadesPorEsporte[nomeBase].misto = `${nomeBase} Misto`;
         }
       });
       const catalogoEsportes = Object.values(modalidadesPorEsporte);
@@ -60,9 +63,10 @@
       const participacoesTenisMesaFormulario = isEditandoAtleta
         ? (Array.isArray(atletaEmEdicaoLocal.tenisMesaParticipacoes) ? atletaEmEdicaoLocal.tenisMesaParticipacoes : [])
         : (typeof atletaFormDraft !== 'undefined' && atletaFormDraft && Array.isArray(atletaFormDraft.tenisMesaParticipacoes) ? atletaFormDraft.tenisMesaParticipacoes : []);
+      const modalidadesMistas = modalidadesSalvas.filter((modalidade) => /misto/i.test(modalidade));
       const modalidadesPorGenero = {
-        Masculino: modalidadesSalvas.filter((modalidade) => /masculino/i.test(modalidade)),
-        Feminino: modalidadesSalvas.filter((modalidade) => /feminino/i.test(modalidade))
+        Masculino: [...modalidadesSalvas.filter((modalidade) => /masculino/i.test(modalidade)), ...modalidadesMistas],
+        Feminino: [...modalidadesSalvas.filter((modalidade) => /feminino/i.test(modalidade)), ...modalidadesMistas]
       };
       const generoSelecionadoPadrao = modalidadesPorGenero.Masculino.length ? 'Masculino' : 'Feminino';
     %>
@@ -126,7 +130,7 @@
       <div class="dashboard-view <%= abaAtivaAtual === 'modalidades' ? 'is-active' : '' %>" id="modalidades">
         <section style="background: rgba(255, 255, 255, 0.02); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(236, 228, 45, 0.12); margin-bottom: 2rem;">
           <h3 style="color: #ffffff; margin-bottom: 1rem; font-size: 1.1rem;">Inscrição por Modalidade</h3>
-          <p style="margin: 0 0 1.25rem; color: rgba(255,255,255,0.68);">Marque masculino, feminino ou ambos para cada esporte disponível.</p>
+          <p style="margin: 0 0 1.25rem; color: rgba(255,255,255,0.68);">Marque o(s) gênero(s) disponíveis para cada esporte (Individual, Misto ou ambos).</p>
 
           <form action="/campus/inscricoes/salvar" method="POST">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
@@ -134,13 +138,14 @@
               <% catalogoEsportes.forEach(function(esporte) { 
                   const selecionadoMasculino = esporte.masculino && modalidadesSalvas.includes(esporte.masculino);
                   const selecionadoFeminino = esporte.feminino && modalidadesSalvas.includes(esporte.feminino);
+                  const selecionadoMisto = esporte.misto && modalidadesSalvas.includes(esporte.misto);
               %>
                 <div class="mini-card" style="display: flex; flex-direction: column; gap: 0.9rem; padding: 1rem 1.1rem;">
                   <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.5rem;">
                     <img src="<%= esporte.icone && (esporte.icone.startsWith('/') || esporte.icone.startsWith('http')) ? esporte.icone : (esporte.imagem || '/imagens/atletismo1.svg') %>" alt="Ícone <%= esporte.nome %>" class="sport-icon" style="width: 28px; height: 28px; border-radius: 50%;">
                     <strong style="color: #ffffff; font-size: 1rem;"><%= esporte.nome %></strong>
                   </div>
-                  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem;">
+                  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 0.75rem;">
                     <% if (esporte.masculino) { %>
                       <label style="display: flex; align-items: center; gap: 0.65rem; cursor: pointer; color: rgba(255,255,255,0.85); font-weight: 600;">
                         <input type="checkbox" name="modalidades" value="<%= esporte.masculino %>" <%= selecionadoMasculino ? 'checked' : '' %> style="width: 18px; height: 18px; accent-color: #ece42d;">
@@ -151,6 +156,12 @@
                       <label style="display: flex; align-items: center; gap: 0.65rem; cursor: pointer; color: rgba(255,255,255,0.85); font-weight: 600;">
                         <input type="checkbox" name="modalidades" value="<%= esporte.feminino %>" <%= selecionadoFeminino ? 'checked' : '' %> style="width: 18px; height: 18px; accent-color: #ece42d;">
                         Feminino
+                      </label>
+                    <% } %>
+                    <% if (esporte.misto) { %>
+                      <label style="display: flex; align-items: center; gap: 0.65rem; cursor: pointer; color: rgba(255,255,255,0.85); font-weight: 600;">
+                        <input type="checkbox" name="modalidades" value="<%= esporte.misto %>" <%= selecionadoMisto ? 'checked' : '' %> style="width: 18px; height: 18px; accent-color: #ece42d;">
+                        Misto
                       </label>
                     <% } %>
                   </div>

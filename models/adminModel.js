@@ -27,8 +27,6 @@ module.exports = {
   getConfiguracoes: configService.getConfiguracoes,
   salvarConfiguracoes: configService.salvarConfiguracoes,
   getAnoJifc: configService.getAnoJifc,
-  getAtletasPendentes: configService.getAtletasPendentes,
-  validarAtleta: configService.validarAtleta,
   getConfiguracoesBanco: configService.getConfiguracoesBanco,
   gerarDatasEventoDisponiveis: configService.gerarDatasEventoDisponiveis,
 

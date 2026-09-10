@@ -28,6 +28,7 @@ function obterImagemPadraoModalidade(nome = '') {
   if (norm.includes('atletismo')) return '/imagens/atletismo1.svg';
   if (norm.includes('tenis de mesa') || norm.includes(' tenis') || norm.includes('tenis')) return '/imagens/tenisdemesa1.svg';
   if (norm.includes('xadrez')) return '/imagens/xadrez1.svg';
+  if (norm.includes('badminton') || norm.includes('badmintom')) return '/imagens/badminton.png';
   return '/imagens/atletismo1.svg';
 }
 
@@ -46,7 +47,7 @@ async function getModalidadesBanco() {
     return linhas.map((item) => ({
       ...item,
       icone: item.icone || null,
-      imagem: obterImagemPadraoModalidade(item.nome)
+      imagem: item.icone || obterImagemPadraoModalidade(item.nome)
     }));
   } catch (error) {
     throw error;
@@ -59,18 +60,16 @@ async function listarModalidadesConfiguracao() {
     const query = temIcone
       ? `SELECT id, nome, genero, tipo_confronto, formato_disputa, icone
          FROM modalidades
-         WHERE genero IN ('Masculino', 'Feminino')
          ORDER BY CASE genero WHEN 'Masculino' THEN 1 WHEN 'Feminino' THEN 2 ELSE 3 END, nome ASC`
       : `SELECT id, nome, genero, tipo_confronto, formato_disputa
          FROM modalidades
-         WHERE genero IN ('Masculino', 'Feminino')
          ORDER BY CASE genero WHEN 'Masculino' THEN 1 WHEN 'Feminino' THEN 2 ELSE 3 END, nome ASC`;
 
     const [linhas] = await db.query(query);
     return linhas.map((item) => ({
       ...item,
       icone: item.icone || null,
-      imagem: obterImagemPadraoModalidade(item.nome)
+      imagem: item.icone || obterImagemPadraoModalidade(item.nome)
     }));
   } catch (error) {
     throw error;
@@ -84,8 +83,8 @@ async function adicionarModalidade({ nome, tipoConfronto = '', formatoDisputa = 
   }
 
   const generoInformado = String(genero || '').trim();
-  if (generoInformado && !['Masculino', 'Feminino'].includes(generoInformado)) {
-    throw new Error('Gênero inválido. Utilize Masculino ou Feminino.');
+  if (generoInformado && !['Masculino', 'Feminino', 'Misto'].includes(generoInformado)) {
+    throw new Error('Gênero inválido. Utilize Masculino, Feminino ou Misto.');
   }
 
   const nomeNormalizado = nomeLimpo

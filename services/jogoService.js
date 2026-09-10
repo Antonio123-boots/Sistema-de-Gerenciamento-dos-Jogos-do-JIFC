@@ -44,6 +44,7 @@ async function getJogos() {
              DATE_FORMAT(j.data_hora, '%H:%i') AS horario,
              DATE_FORMAT(j.data_hora, '%H:%i') AS horarioInput,
              c1.nome AS casa, c2.nome AS fora,
+             c1.slug AS slug_casa, c2.slug AS slug_fora,
              a1.nome AS atletaCasa, a2.nome AS atletaFora,
              j.local_jogo AS localJogo,
              m.nome AS modalidade,
@@ -84,6 +85,7 @@ async function getJogosPublicados(filters = {}) {
            j.atleta_1_id, j.atleta_2_id,
            j.rotulo_casa, j.rotulo_fora,
            c1.nome AS casa, c2.nome AS fora,
+           c1.slug AS slug_casa, c2.slug AS slug_fora,
            c1.nome_exibicao AS casa_exibicao, c2.nome_exibicao AS fora_exibicao,
            c1.cidade AS cidade_casa, c2.cidade AS cidade_fora,
            c1.foto_perfil AS foto_casa,
@@ -142,6 +144,8 @@ async function getJogosPublicados(filters = {}) {
         disputa_pontos_2: linha.disputa_pontos_2,
         fotoCasa: linha.foto_casa || '/imagens/avatar.svg',
         fotoFora: linha.foto_fora || '/imagens/avatar.svg',
+        slugCasa: linha.slug_casa || null,
+        slugFora: linha.slug_fora || null,
         corCasa: linha.cor_casa || null,
         corFora: linha.cor_fora || null,
         sets
@@ -193,7 +197,7 @@ async function publicarJogosModalidade(modalidadeId) {
   await sincronizarClassificacaoGruposModalidade(id);
 }
 
-async function publicarTodosJogos() {
+async function publicarTodosJogos(modalidadeId) {
   await ensureJogoPublicadoColumn();
   await db.query('UPDATE jogos SET publicado = 1');
 

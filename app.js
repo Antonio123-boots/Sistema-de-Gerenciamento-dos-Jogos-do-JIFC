@@ -18,7 +18,7 @@ const { decodificarToken } = require('./middleware/auth');
 const { ensureSchema } = require('./config/ensureSchema');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3006;
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -79,14 +79,12 @@ function startServer(port) {
         if (error.code === 'EADDRINUSE') {
             console.error('');
             console.error('================================================================');
-            console.error(`ERRO: a porta ${port} ja esta em uso neste computador.`);
-            console.error(' Isso quase sempre significa que o servidor do JIFC ja esta aberto');
-            console.error(' em OUTRA janela ou aba do terminal.');
+            console.error(`A porta ${port} já está em uso neste computador.`);
+            console.error('Provavelmente o servidor do JIFC já está rodando em outra aba ou terminal.');
             console.error('');
-            console.error(' Como resolver:');
-            console.error('  1) Feche a outra janela do terminal onde o servidor esta rodando');
-            console.error('     (Ctrl + C) e execute novamente;');
-            console.error('  2) Se nao encontrar a janela, encerre o processo que ocupa a porta:');
+            console.error('Como resolver:');
+            console.error('  1) Feche a outra janela do terminal com o app em execução e tente novamente;');
+            console.error('  2) Se não encontrar, encerre o processo da porta com:');
             console.error(`       netstat -ano | findstr :${port}`);
             console.error('       taskkill /PID <numero_do_PID> /F');
             console.error('================================================================');

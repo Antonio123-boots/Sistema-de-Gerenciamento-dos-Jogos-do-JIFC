@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#1c1d3b">
     <title>JIFC - Jogos Internos</title>
-    <link rel="stylesheet" href="/css/geral.css?v=18">
+    <link rel="stylesheet" href="/css/geral.css?v=20">
     <link rel="stylesheet" href="/css/login.css">
     <link rel="stylesheet" href="/css/perfil.css">
     <link rel="stylesheet" href="/css/cadastroCampus.css">
@@ -42,7 +42,10 @@
                     <div class="perfil" style="display:flex; align-items:center; gap:0.6rem;">
                         <a href="<%= perfilHref %>"><img src="<%= avatarLayout %>" alt="perfil" class="avatar campus-photo <%= avatarReal ? 'campus-photo--real' : 'campus-photo--default' %>"></a>
                         <% if (usuarioLogado.tipo === 'juiz') { %>
-                            <a href="/auth/logout" class="nav-btn" style="font-size:0.7rem;">SAIR</a>
+                            <form action="/auth/logout" method="POST" style="display:inline; margin:0;">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                <button type="submit" class="nav-btn" style="font-size:0.7rem; border:none; background:none; cursor:pointer;">SAIR</button>
+                            </form>
                         <% } %>
                     </div>
                 <% } else { %>
@@ -107,11 +110,12 @@
         <div class="menu-generos">
             <div class="modalidades-container">
                 <ul class="filter-list">
-                    <% ['Masculino', 'Feminino'].forEach((genero) => {
+                    <% const listaGenerosFiltro = Array.isArray(generosDisponiveis) && generosDisponiveis.length ? generosDisponiveis : ['Masculino', 'Feminino']; %>
+                    <% listaGenerosFiltro.forEach((genero) => {
                         const queryGenero = new URLSearchParams();
                         if (typeof diaSelecionado !== 'undefined' && diaSelecionado) queryGenero.set('dia', diaSelecionado);
                         const baseModalidadeSelecionada = typeof modalidadeSelecionada !== 'undefined' && modalidadeSelecionada
-                            ? String(modalidadeSelecionada).replace(/-(masculino|feminino)$/i, '')
+                            ? String(modalidadeSelecionada).replace(/-(masculino|feminino|misto)$/i, '')
                             : '';
                         if (baseModalidadeSelecionada) queryGenero.set('modalidade', baseModalidadeSelecionada);
                         if (typeof mostrarSubFiltroTenis !== 'undefined' && mostrarSubFiltroTenis && typeof subCategoriaAtiva !== 'undefined' && subCategoriaAtiva) queryGenero.set('sub', subCategoriaAtiva);
@@ -133,7 +137,7 @@
             </div>
         </div>
 
-        <% const mostrarDiasPublicos = !modalidadeSelecionada && (!generoSelecionado || generoSelecionado === 'Masculino' || generoSelecionado === 'Feminino'); %>
+        <% const mostrarDiasPublicos = !modalidadeSelecionada && (!generoSelecionado || generoSelecionado === 'Masculino' || generoSelecionado === 'Feminino' || generoSelecionado === 'Misto'); %>
         <% if (mostrarDiasPublicos) { %>
         <div class="menu-dias">
             <div class="dias-container">
@@ -155,15 +159,14 @@
             </div>
         </div>
         <% } %>
-        </div>
-
+        
         <% if (typeof mostrarSubFiltroTenis !== 'undefined' && mostrarSubFiltroTenis) { %>
         <div class="menu-generos">
             <div class="modalidades-container">
                 <ul class="filter-list">
                     <% [{ label: 'Individual', valor: 'individual' }, { label: 'Em Dupla', valor: 'dupla' }].forEach((subFiltro) => {
                         const baseModalidadeSelecionada = typeof modalidadeSelecionada !== 'undefined' && modalidadeSelecionada
-                            ? String(modalidadeSelecionada).replace(/-(masculino|feminino)$/i, '')
+                            ? String(modalidadeSelecionada).replace(/-(masculino|feminino|misto)$/i, '')
                             : '';
                         const querySub = new URLSearchParams();
                         if (typeof diaSelecionado !== 'undefined' && diaSelecionado) querySub.set('dia', diaSelecionado);
@@ -187,6 +190,7 @@
             </div>
         </div>
         <% } %>
+        </div>
     <% } %>
 
     <div class="main-content">

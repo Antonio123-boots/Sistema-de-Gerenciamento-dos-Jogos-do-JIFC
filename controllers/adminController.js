@@ -328,6 +328,9 @@ async function renderChaveamento(req, res) {
         else if (norm.includes('atletismo')) { imagem = '/imagens/atletismo1.svg'; slug = 'atletismo'; }
         else if (norm.includes('tenis de mesa') || norm.includes('tenis')) { imagem = '/imagens/tenisdemesa1.svg'; slug = 'tenis-de-mesa'; }
         else if (norm.includes('xadrez')) { imagem = '/imagens/xadrez1.svg'; slug = 'xadrez'; }
+        if (String(m.icone || '').trim() && (String(m.icone).trim().startsWith('/') || String(m.icone).trim().startsWith('http'))) {
+          imagem = String(m.icone).trim();
+        }
 
         return {
           id: m.id,
@@ -337,7 +340,7 @@ async function renderChaveamento(req, res) {
           categoria: slug,
           imagem,
           slug,
-          icone: String(m.icone || '🏆').trim() || '🏆'
+          icone: String(imagem || '🏆').trim() || '🏆'
         };
       }).sort((a, b) => {
         const nomeCompare = a.nome.localeCompare(b.nome);
@@ -361,6 +364,20 @@ async function renderChaveamento(req, res) {
 
     if (listaModalidades.length > 0) {
       inscritos = await adminModel.getInscritosModalidade(modalidadeAtiva.id, subCategoria);
+
+      if (categoriaSlug === 'xadrez') {
+        try {
+          const resultadosXadrez = await resultadosIndividuaisService.obterResultadosXadrez(modalidadeAtiva.id);
+          const pontosPorAtleta = new Map((resultadosXadrez || []).map((r) => [Number(r.atleta_id), Number(r.pontuacao) || 0]));
+          inscritos = inscritos.map((inscrito) => ({
+            ...inscrito,
+            pontuacaoAtual: pontosPorAtleta.get(Number(inscrito.id)) || 0
+          }));
+        } catch (error) {
+          console.error('Erro ao carregar pontuação de xadrez:', error);
+        }
+      }
+
       if (categoriaSlug === 'atletismo') {
         const [atletasDasEquipes] = await db.query(
           `SELECT DISTINCT a.id, a.nome AS nome_atleta, a.campus_id, c.nome AS campus_nome, c.nome_exibicao
@@ -511,6 +528,16 @@ async function renderChaveamento(req, res) {
 
       const modalidadePublicada = jogosPublicadosDaModalidade.length > 0 || atletismoPublicado || xadrezPublicado;
 
+      const [modalidadesPublicadas] = await db.query(`
+        SELECT DISTINCT m.id, m.nome, m.genero
+        FROM modalidades m
+        LEFT JOIN jogos j ON j.modalidade_id = m.id AND j.publicado = 1
+        LEFT JOIN provas p ON p.modalidade_id = m.id AND p.publicado = 1
+        LEFT JOIN resultados_xadrez r ON r.modalidade_id = m.id AND r.publicado = 1
+        WHERE j.id IS NOT NULL OR p.id IS NOT NULL OR r.id IS NOT NULL
+        ORDER BY m.nome ASC, m.genero ASC
+      `);
+
       res.render('adm/chaveamento', {
         title: 'Chaveamento dos Jogos — JIFC',
         usuarioLogado: req.user,
@@ -533,12 +560,14 @@ async function renderChaveamento(req, res) {
         jogosProgramados: jogos,
         rodadasJogos,
         fasesEliminatoria,
+        rodadaAtiva: Number.isInteger(Number(req.query.rodada)) && Number(req.query.rodada) >= 0 ? Number(req.query.rodada) : 0,
         datasEventoDisponiveis,
         resumoDisponivel,
         resumoInscricoes,
         mensagemErro: req.query.erro || '',
         mensagemSucesso: req.query.sucesso || '',
-        modalidadePublicada
+        modalidadePublicada,
+        modalidadesPublicadas
       });
 
     } catch (error) {
@@ -758,11 +787,36 @@ async function publicarChaveamento(req, res) {
 async function publicarTodosJogos(req, res) {
   const { modalidadeId, subCategoria } = req.body;
   try {
-    await adminModel.publicarTodosJogos();
+    await adminModel.publicarTodosJogos(Number(modalidadeId || 0));
     res.redirect(`/admin/chaveamento?${montarDestinoChaveamento(modalidadeId, subCategoria)}sucesso=` + encodeURIComponent('Todos os jogos foram publicados com sucesso, incluindo atletismo e xadrez.'));
   } catch (error) {
     console.error(error);
     res.redirect(`/admin/chaveamento?${montarDestinoChaveamento(modalidadeId, subCategoria)}erro=` + encodeURIComponent(error.message || 'Erro ao publicar todos os jogos.'));
+  }
+}
+
+async function excluirPublicacao(req, res) {
+  const { modalidadeId, subCategoria } = req.body;
+  const bruto = req.body.modalidadeIds;
+  const selecionadas = [
+    ...new Set(
+      (Array.isArray(bruto) ? bruto : String(bruto || '').split(','))
+        .map((id) => Number(String(id).trim()))
+        .filter((id) => Number.isInteger(id) && id > 0)
+    )
+  ];
+  try {
+    if (!selecionadas.length) {
+      return res.redirect(`/admin/chaveamento?${montarDestinoChaveamento(modalidadeId, subCategoria)}erro=` + encodeURIComponent('Nenhuma modalidade selecionada.'));
+    }
+    const placeholders = selecionadas.map(() => '?').join(',');
+    await db.query(`UPDATE jogos SET publicado = 0 WHERE modalidade_id IN (${placeholders})`, selecionadas);
+    await db.query(`UPDATE provas SET publicado = 0 WHERE modalidade_id IN (${placeholders})`, selecionadas);
+    await db.query(`UPDATE resultados_xadrez SET publicado = 0 WHERE modalidade_id IN (${placeholders})`, selecionadas);
+    res.redirect(`/admin/chaveamento?${montarDestinoChaveamento(modalidadeId, subCategoria)}sucesso=` + encodeURIComponent('Publicação excluída das modalidades selecionadas. Chaves e sorteio mantidos.'));
+  } catch (error) {
+    console.error(error);
+    res.redirect(`/admin/chaveamento?${montarDestinoChaveamento(modalidadeId, subCategoria)}erro=` + encodeURIComponent(error.message || 'Erro ao excluir publicação.'));
   }
 }
 
@@ -807,8 +861,8 @@ async function renderAnalise(req, res) {
   });
 }
 
-function validarAtleta(req, res) {
-  const atleta = campusModel.atualizarStatusAtleta(req.params.atletaId, 'Regular');
+async function validarAtleta(req, res) {
+  const atleta = await campusModel.atualizarStatusAtleta(req.params.atletaId, 'Regular');
   if (!atleta) {
     return res.redirect('/admin/laudos?erro=' + encodeURIComponent('Atleta não encontrado para validação.'));
   }
@@ -816,8 +870,8 @@ function validarAtleta(req, res) {
   res.redirect('/admin/laudos?campus=' + encodeURIComponent(atleta.campus) + '&sucesso=' + encodeURIComponent('Atleta validado com sucesso.') + '#lista-atletas');
 }
 
-function marcarIrregular(req, res) {
-  const atleta = campusModel.atualizarStatusAtleta(req.params.atletaId, 'Reprovado');
+async function marcarIrregular(req, res) {
+  const atleta = await campusModel.atualizarStatusAtleta(req.params.atletaId, 'Reprovado');
   if (!atleta) {
     return res.redirect('/admin/laudos?erro=' + encodeURIComponent('Atleta não encontrado para reprovação.'));
   }
@@ -860,7 +914,9 @@ async function salvarJogoChaveamento(req, res) {
       return res.redirect('/admin/chaveamento');
     }
     const sub = String(jogoRows[0]?.sub_categoria || 'geral');
-    res.redirect(`/admin/chaveamento?modalidade=${mid}&sub=${encodeURIComponent(sub)}#match-carousel-${mid}`);
+    const rodada = Number(req.body.rodadaAtual);
+    const rodadaQuery = Number.isInteger(rodada) && rodada >= 0 ? `&rodada=${rodada}` : '';
+    res.redirect(`/admin/chaveamento?modalidade=${mid}&sub=${encodeURIComponent(sub)}${rodadaQuery}#match-carousel-${mid}`);
   } catch (error) {
     console.error(error);
     res.status(500).send('Erro ao salvar o confronto.');
@@ -972,6 +1028,7 @@ module.exports = {
   limparChaveamento,
   publicarChaveamento,
   publicarTodosJogos,
+  excluirPublicacao,
   gerarEliminatoria,
   cancelarSorteio,
   exportResumoInscricoes,

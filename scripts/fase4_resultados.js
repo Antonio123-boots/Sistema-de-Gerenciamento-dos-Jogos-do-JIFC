@@ -93,13 +93,6 @@ async function placarParaJogo(jogo, { grupo }) {
     connectionLimit: 10
   });
 
-  // Limpa resultados atuais e classificação (mantém jogos/chaves do sorteio)
-  await pool.query('SET FOREIGN_KEY_CHECKS = 0');
-  for (const t of ['resultados_xadrez', 'resultados_atletismo', 'resultados_por_sets', 'resultados_coletivos', 'cartoes', 'classificacao_grupos']) {
-    try { await pool.query(`DELETE FROM ${t}`); } catch (e) {}
-  }
-  await pool.query('SET FOREIGN_KEY_CHECKS = 1');
-
   const juizService = require('../services/juizService');
 
   async function preencherModalidade(modalidadeId, subs) {

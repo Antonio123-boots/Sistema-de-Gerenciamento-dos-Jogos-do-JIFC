@@ -82,7 +82,7 @@ async function obterAtletasPorModalidade(modalidadeId) {
 async function obterResultadosPorProva(provaId) {
   const [rows] = await db.query(
     `SELECT ra.id, ra.prova_id, ra.atleta_id, ra.resultado_tempo, ra.resultado_medida, ra.posicao_final, ra.pontos,
-            ra.numero_bateria, ra.etapa,
+            ra.numero_bateria, ra.numero_raia, ra.etapa,
             a.nome AS atleta_nome, c.nome AS campus_nome
      FROM resultados_atletismo ra
      JOIN atletas a ON ra.atleta_id = a.id
@@ -109,17 +109,17 @@ async function salvarResultadoEtapa(provaId, atletaId, dados) {
   if (existe.length) {
     await db.query(
       `UPDATE resultados_atletismo
-       SET resultado_tempo = ?, resultado_medida = ?, posicao_final = ?, pontos = ?, numero_bateria = ?
+      SET resultado_tempo = ?, resultado_medida = ?, posicao_final = ?, pontos = ?, numero_bateria = ?, numero_raia = ?
        WHERE id = ?`,
-      [dados.resultadoTempo, dados.resultadoMedida, dados.posicaoFinal, dados.pontos, dados.numeroBateria, existe[0].id]
+          [dados.resultadoTempo, dados.resultadoMedida, dados.posicaoFinal, dados.pontos, dados.numeroBateria, dados.numeroRaia, existe[0].id]
     );
     return;
   }
 
   await db.query(
-    `INSERT INTO resultados_atletismo (prova_id, atleta_id, resultado_tempo, resultado_medida, posicao_final, pontos, numero_bateria, etapa)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [provaId, atletaId, dados.resultadoTempo, dados.resultadoMedida, dados.posicaoFinal, dados.pontos, dados.numeroBateria, etapa]
+    `INSERT INTO resultados_atletismo (prova_id, atleta_id, resultado_tempo, resultado_medida, posicao_final, pontos, numero_bateria, numero_raia, etapa)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [provaId, atletaId, dados.resultadoTempo, dados.resultadoMedida, dados.posicaoFinal, dados.pontos, dados.numeroBateria, dados.numeroRaia, etapa]
   );
 }
 
@@ -165,7 +165,8 @@ async function salvarResultadosProva(provaId, resultados, formatoProva) {
         resultadoMedida: null,
         posicaoFinal: null,
         pontos: 0,
-        numeroBateria: Math.max(1, Number(r.numero_bateria) || 1)
+        numeroBateria: Number(r.numero_bateria) > 0 ? Number(r.numero_bateria) : null,
+        numeroRaia: Number(r.numero_raia) > 0 ? Number(r.numero_raia) : null
       });
       continue;
     }
@@ -179,7 +180,8 @@ async function salvarResultadosProva(provaId, resultados, formatoProva) {
         resultadoMedida: null,
         posicaoFinal: null,
         pontos: 0,
-        numeroBateria: Math.max(1, Number(r.numero_bateria) || 1)
+        numeroBateria: Number(r.numero_bateria) > 0 ? Number(r.numero_bateria) : null,
+        numeroRaia: Number(r.numero_raia) > 0 ? Number(r.numero_raia) : null
       });
 
       if (classificado) {
@@ -191,7 +193,8 @@ async function salvarResultadosProva(provaId, resultados, formatoProva) {
             resultadoMedida: null,
             posicaoFinal: null,
             pontos: 0,
-            numeroBateria: 1
+            numeroBateria: null,
+            numeroRaia: Number(r.numero_raia) > 0 ? Number(r.numero_raia) : null
           });
         }
       } else {
@@ -218,7 +221,8 @@ async function salvarResultadosProva(provaId, resultados, formatoProva) {
       resultadoMedida,
       posicaoFinal,
       pontos,
-      numeroBateria: 1
+      numeroBateria: Number(r.numero_bateria) > 0 ? Number(r.numero_bateria) : null,
+      numeroRaia: Number(r.numero_raia) > 0 ? Number(r.numero_raia) : null
     });
   }
 
@@ -340,6 +344,33 @@ async function obterClassificacaoXadrez(modalidadeId) {
   return rows;
 }
 
+async function sincronizarResultadosXadrezModalidade(modalidadeId) {
+  const id = Number(modalidadeId || 0);
+  if (!id) return;
+
+  const [inscritos] = await db.query(
+    'SELECT DISTINCT atleta_id FROM atleta_modalidade WHERE modalidade_id = ?',
+    [id]
+  );
+
+  for (const inscrito of inscritos) {
+    const atletaId = Number(inscrito.atleta_id);
+    if (!atletaId) continue;
+
+    const [existe] = await db.query(
+      'SELECT id FROM resultados_xadrez WHERE modalidade_id = ? AND atleta_id = ?',
+      [id, atletaId]
+    );
+
+    if (!existe.length) {
+      await db.query(
+        'INSERT INTO resultados_xadrez (modalidade_id, atleta_id, pontuacao, vitorias, derrotas, empates) VALUES (?, ?, 0, 0, 0, 0)',
+        [id, atletaId]
+      );
+    }
+  }
+}
+
 async function publicarProvasModalidade(modalidadeId) {
   const id = Number(modalidadeId || 0);
   if (!id) return;
@@ -366,6 +397,7 @@ async function publicarModalidadeIndividual(modalidadeId) {
   if (nomeModalidade.includes('atletismo')) {
     await publicarProvasModalidade(id);
   } else if (nomeModalidade.includes('xadrez')) {
+    await sincronizarResultadosXadrezModalidade(id);
     await publicarResultadosXadrezModalidade(id);
   }
 }
@@ -374,6 +406,15 @@ async function publicarTodasModalidadesIndividuais() {
   const { ensureProvasPublicadoColumn, ensureResultadosXadrezPublicadoColumn } = require('../config/ensureSchema');
   await ensureProvasPublicadoColumn();
   await ensureResultadosXadrezPublicadoColumn();
+
+  const [modalidadesXadrez] = await db.query(
+    'SELECT id FROM modalidades WHERE LOWER(nome) LIKE ?',
+    ['%xadrez%']
+  );
+  for (const modalidade of modalidadesXadrez) {
+    await sincronizarResultadosXadrezModalidade(modalidade.id);
+  }
+
   await db.query('UPDATE provas SET publicado = 1');
   await db.query('UPDATE resultados_xadrez SET publicado = 1');
 }
@@ -408,6 +449,7 @@ module.exports = {
   obterResultadosXadrez,
   salvarResultadosXadrez,
   obterClassificacaoXadrez,
+  sincronizarResultadosXadrezModalidade,
   ehEsporteIndividual,
   ehAtletismo,
   ehXadrez,

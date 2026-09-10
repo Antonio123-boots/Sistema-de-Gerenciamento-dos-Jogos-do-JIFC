@@ -10,6 +10,12 @@ const FASES_PRECEDENTES = {
   'Terceiro Lugar': ['Semifinal', 'Quartas', 'Oitavas', 'Fase de Grupos']
 };
 
+const cacheFasesCompletude = new Map();
+
+function limparCacheFases() {
+  cacheFasesCompletude.clear();
+}
+
 async function resolverEliminatoriaDoJogo(jogoId) {
   try {
     const [rows] = await db.query('SELECT modalidade_id, sub_categoria FROM jogos WHERE id = ?', [Number(jogoId)]);
@@ -22,7 +28,14 @@ async function resolverEliminatoriaDoJogo(jogoId) {
 }
 
 async function faseAnteriorCompleta(modalidadeId, sub, faseAtual) {
-  if (!FASES_ELIMINATORIAS.has(faseAtual)) return true;
+  const chaveFase = `${modalidadeId}|${sub}|${faseAtual}`;
+  if (cacheFasesCompletude.has(chaveFase)) {
+    return cacheFasesCompletude.get(chaveFase);
+  }
+  if (!FASES_ELIMINATORIAS.has(faseAtual)) {
+    cacheFasesCompletude.set(chaveFase, true);
+    return true;
+  }
   const precedentes = FASES_PRECEDENTES[faseAtual] || [];
   for (const faseAnterior of precedentes) {
     const [rows] = await db.query(
@@ -32,9 +45,12 @@ async function faseAnteriorCompleta(modalidadeId, sub, faseAtual) {
       [modalidadeId, sub, faseAnterior]
     );
     if (rows[0].total > 0) {
-      return Number(rows[0].total) === Number(rows[0].encerrados);
+      const resultado = Number(rows[0].total) === Number(rows[0].encerrados);
+      cacheFasesCompletude.set(chaveFase, resultado);
+      return resultado;
     }
   }
+  cacheFasesCompletude.set(chaveFase, true);
   return true;
 }
 
@@ -54,12 +70,24 @@ async function listarJuizes() {
     'SELECT id, nome, email, foto_perfil, ativo, criado_em FROM juizes ORDER BY nome ASC'
   );
 
+  if (!rows.length) {
+    return [];
+  }
+
+  const ids = rows.map((juiz) => juiz.id);
+  const [esportes] = await db.query(
+    `SELECT juiz_id, esporte_nome FROM juiz_modalidade WHERE juiz_id IN (?) ORDER BY esporte_nome ASC`,
+    [ids]
+  );
+
+  const esportesPorJuiz = new Map();
+  for (const linha of esportes) {
+    if (!esportesPorJuiz.has(linha.juiz_id)) esportesPorJuiz.set(linha.juiz_id, []);
+    esportesPorJuiz.get(linha.juiz_id).push(linha.esporte_nome);
+  }
+
   for (const juiz of rows) {
-    const [esportes] = await db.query(
-      'SELECT esporte_nome FROM juiz_modalidade WHERE juiz_id = ? ORDER BY esporte_nome ASC',
-      [juiz.id]
-    );
-    juiz.esportes = esportes.map((e) => e.esporte_nome);
+    juiz.esportes = esportesPorJuiz.get(juiz.id) || [];
   }
 
   return rows;
@@ -160,6 +188,60 @@ async function obterEsportesUnicos() {
   return rows.map((r) => r.esporte);
 }
 
+async function mapearJogoParaExibicao(j, sets) {
+  const dataHora = j.data_hora ? new Date(j.data_hora) : null;
+  const tipoIndividual = Boolean(j.atleta_1_id || j.atleta_2_id);
+  const casaNome = tipoIndividual
+    ? (j.atleta_1_nome || 'Atleta não informado')
+    : (j.campus_1_exibicao || j.campus_1_nome || 'Campus não informado');
+  const foraNome = tipoIndividual
+    ? (j.atleta_2_nome || 'Atleta não informado')
+    : (j.campus_2_exibicao || j.campus_2_nome || 'Campus não informado');
+
+  const bloqueado = FASES_ELIMINATORIAS.has(j.fase) && j.status !== 'Encerrado'
+    ? !(await faseAnteriorCompleta(j.modalidade_id, j.sub_categoria, j.fase))
+    : false;
+
+  return {
+    id: j.id,
+    fase: j.fase,
+    rodada: j.rodada,
+    status: statusEfetivo(j.status, j.data_hora),
+    data: dataHora ? `${String(dataHora.getDate()).padStart(2, '0')}/${String(dataHora.getMonth() + 1).padStart(2, '0')}` : '—',
+    horario: dataHora ? `${String(dataHora.getHours()).padStart(2, '0')}:${String(dataHora.getMinutes()).padStart(2, '0')}` : '—',
+    modalidade: j.modalidade,
+    genero: j.genero,
+    tipo_confronto: j.tipo_confronto,
+    campus_1_id: j.campus_1_id || null,
+    campus_2_id: j.campus_2_id || null,
+    atleta_1_id: j.atleta_1_id || null,
+    atleta_2_id: j.atleta_2_id || null,
+    casa: casaNome,
+    fora: foraNome,
+    fotoCasa: j.foto_casa || '/imagens/avatar.svg',
+    fotoFora: j.foto_fora || '/imagens/avatar.svg',
+    corCasa: j.cor_casa || null,
+    corFora: j.cor_fora || null,
+    atletaCasa: j.atleta_1_nome || null,
+    atletaFora: j.atleta_2_nome || null,
+    tipoIndividual,
+    rotuloCasa: j.rotulo_casa || null,
+    rotuloFora: j.rotulo_fora || null,
+    disputa_pontos_1: j.disputa_pontos_1,
+    disputa_pontos_2: j.disputa_pontos_2,
+    placar: (j.placar_1 != null && j.placar_2 != null) ? `${j.placar_1} x ${j.placar_2}` : null,
+    placar_1: j.placar_1,
+    placar_2: j.placar_2,
+    localJogo: j.local_jogo || 'A definir',
+    chaveNumero: j.chave_numero || null,
+    wo: Boolean(j.wo),
+    vencedor_campus_id: j.vencedor_campus_id || null,
+    sets,
+    temSets: obterRegras(j.modalidade).temSets,
+    bloqueado
+  };
+}
+
 async function obterJogosPorEsporte(esporteNome, genero = null) {
   let whereClause = `(
        m.nome = ? OR
@@ -199,70 +281,40 @@ async function obterJogosPorEsporte(esporteNome, genero = null) {
     params
   );
 
-  const jogosMapeados = await Promise.all(rows.map(async (j) => {
-    const dataHora = j.data_hora ? new Date(j.data_hora) : null;
-    const tipoIndividual = Boolean(j.atleta_1_id || j.atleta_2_id);
-    const casaNome = tipoIndividual
-      ? (j.atleta_1_nome || 'Atleta não informado')
-      : (j.campus_1_exibicao || j.campus_1_nome || 'Campus não informado');
-    const foraNome = tipoIndividual
-      ? (j.atleta_2_nome || 'Atleta não informado')
-      : (j.campus_2_exibicao || j.campus_2_nome || 'Campus não informado');
+  limparCacheFases();
 
-    let sets = [];
-    try {
-      const [setsRows] = await db.query(
-        'SELECT numero_set, pontos_1, pontos_2 FROM resultados_por_sets WHERE jogo_id = ? ORDER BY numero_set ASC',
-        [j.id]
-      );
-      sets = setsRows.map(s => ({ numero: s.numero_set, pontos_1: s.pontos_1, pontos_2: s.pontos_2 }));
-    } catch (_) {
-      sets = [];
+  const jogosMapeados = [];
+  if (!rows.length) {
+    return jogosMapeados;
+  }
+
+  const jogosIds = rows.map((j) => j.id);
+  let rowsDeSets = [];
+  try {
+    const [setsRows] = await db.query(
+      'SELECT jogo_id, numero_set, pontos_1, pontos_2 FROM resultados_por_sets WHERE jogo_id IN (?) ORDER BY jogo_id ASC, numero_set ASC',
+      [jogosIds]
+    );
+    rowsDeSets = setsRows;
+  } catch (_) {
+    rowsDeSets = [];
+  }
+
+  const setsPorJogo = new Map();
+  for (const linha of rowsDeSets) {
+    if (!setsPorJogo.has(linha.jogo_id)) {
+      setsPorJogo.set(linha.jogo_id, []);
     }
+    setsPorJogo.get(linha.jogo_id).push({
+      numero: linha.numero_set,
+      pontos_1: linha.pontos_1,
+      pontos_2: linha.pontos_2
+    });
+  }
 
-    const bloqueado = FASES_ELIMINATORIAS.has(j.fase) && j.status !== 'Encerrado'
-      ? !(await faseAnteriorCompleta(j.modalidade_id, j.sub_categoria, j.fase))
-      : false;
-
-    return {
-      id: j.id,
-      fase: j.fase,
-      rodada: j.rodada,
-      status: statusEfetivo(j.status, j.data_hora),
-      data: dataHora ? `${String(dataHora.getDate()).padStart(2, '0')}/${String(dataHora.getMonth() + 1).padStart(2, '0')}` : '—',
-      horario: dataHora ? `${String(dataHora.getHours()).padStart(2, '0')}:${String(dataHora.getMinutes()).padStart(2, '0')}` : '—',
-      modalidade: j.modalidade,
-      genero: j.genero,
-      tipo_confronto: j.tipo_confronto,
-      campus_1_id: j.campus_1_id || null,
-      campus_2_id: j.campus_2_id || null,
-      atleta_1_id: j.atleta_1_id || null,
-      atleta_2_id: j.atleta_2_id || null,
-      casa: casaNome,
-      fora: foraNome,
-      fotoCasa: j.foto_casa || '/imagens/avatar.svg',
-      fotoFora: j.foto_fora || '/imagens/avatar.svg',
-      corCasa: j.cor_casa || null,
-      corFora: j.cor_fora || null,
-      atletaCasa: j.atleta_1_nome || null,
-      atletaFora: j.atleta_2_nome || null,
-      tipoIndividual,
-      rotuloCasa: j.rotulo_casa || null,
-      rotuloFora: j.rotulo_fora || null,
-      disputa_pontos_1: j.disputa_pontos_1,
-      disputa_pontos_2: j.disputa_pontos_2,
-      placar: (j.placar_1 != null && j.placar_2 != null) ? `${j.placar_1} x ${j.placar_2}` : null,
-      placar_1: j.placar_1,
-      placar_2: j.placar_2,
-      localJogo: j.local_jogo || 'A definir',
-      chaveNumero: j.chave_numero || null,
-      wo: Boolean(j.wo),
-      vencedor_campus_id: j.vencedor_campus_id || null,
-      sets,
-      temSets: obterRegras(j.modalidade).temSets,
-      bloqueado
-    };
-  }));
+  for (const j of rows) {
+    jogosMapeados.push(await mapearJogoParaExibicao(j, setsPorJogo.get(j.id) || []));
+  }
 
   return jogosMapeados;
 }
@@ -292,15 +344,6 @@ async function buscarJogoPorId(jogoId) {
   const j = rows[0];
   if (!j) return null;
 
-  const dataHora = j.data_hora ? new Date(j.data_hora) : null;
-  const tipoIndividual = Boolean(j.atleta_1_id || j.atleta_2_id);
-  const casaNome = tipoIndividual
-    ? (j.atleta_1_nome || 'Atleta não informado')
-    : (j.campus_1_exibicao || j.campus_1_nome || 'Campus não informado');
-  const foraNome = tipoIndividual
-    ? (j.atleta_2_nome || 'Atleta não informado')
-    : (j.campus_2_exibicao || j.campus_2_nome || 'Campus não informado');
-
   let setsRows = [];
   try {
     const [rows] = await db.query(
@@ -312,46 +355,7 @@ async function buscarJogoPorId(jogoId) {
     setsRows = [];
   }
 
-  const bloqueado = FASES_ELIMINATORIAS.has(j.fase) && j.status !== 'Encerrado'
-    ? !(await faseAnteriorCompleta(j.modalidade_id, j.sub_categoria, j.fase))
-    : false;
-
-  return {
-    id: j.id,
-    fase: j.fase,
-    rodada: j.rodada,
-    status: statusEfetivo(j.status, j.data_hora),
-    data: dataHora ? `${String(dataHora.getDate()).padStart(2, '0')}/${String(dataHora.getMonth() + 1).padStart(2, '0')}` : '—',
-    horario: dataHora ? `${String(dataHora.getHours()).padStart(2, '0')}:${String(dataHora.getMinutes()).padStart(2, '0')}` : '—',
-    modalidade: j.modalidade,
-    genero: j.genero,
-    tipo_confronto: j.tipo_confronto,
-    campus_1_id: j.campus_1_id || null,
-    campus_2_id: j.campus_2_id || null,
-    atleta_1_id: j.atleta_1_id || null,
-    atleta_2_id: j.atleta_2_id || null,
-    casa: casaNome,
-    fora: foraNome,
-    fotoCasa: j.foto_casa || '/imagens/avatar.svg',
-    fotoFora: j.foto_fora || '/imagens/avatar.svg',
-    corCasa: j.cor_casa || null,
-    corFora: j.cor_fora || null,
-    atletaCasa: j.atleta_1_nome || null,
-    atletaFora: j.atleta_2_nome || null,
-    tipoIndividual,
-    rotuloCasa: j.rotulo_casa || null,
-    rotuloFora: j.rotulo_fora || null,
-    disputa_pontos_1: j.disputa_pontos_1,
-    disputa_pontos_2: j.disputa_pontos_2,
-    placar: (j.placar_1 != null && j.placar_2 != null) ? `${j.placar_1} x ${j.placar_2}` : null,
-    placar_1: j.placar_1,
-    placar_2: j.placar_2,
-    localJogo: j.local_jogo || 'A definir',
-    wo: Boolean(j.wo),
-    vencedor_campus_id: j.vencedor_campus_id || null,
-    sets: setsRows.map(s => ({ numero: s.numero_set, pontos_1: s.pontos_1, pontos_2: s.pontos_2 })),
-    bloqueado
-  };
+  return mapearJogoParaExibicao(j, setsRows.map(s => ({ numero: s.numero_set, pontos_1: s.pontos_1, pontos_2: s.pontos_2 })));
 }
 
 async function salvarPlacar(jogoId, { placar1, placar2, status, sets, disputa1, disputa2 }) {
@@ -395,6 +399,7 @@ async function salvarPlacar(jogoId, { placar1, placar2, status, sets, disputa1, 
 
   if (status) {
     await db.query('UPDATE jogos SET status = ? WHERE id = ?', [status, id]);
+    limparCacheFases();
   }
 
   const camposDisputa = [];
@@ -534,6 +539,32 @@ async function aplicarWO(jogoId, vencedorSelecionado) {
   }
 
   await resolverEliminatoriaDoJogo(id);
+  limparCacheFases();
+}
+
+async function desfazerWO(jogoId) {
+  const id = Number(jogoId || 0);
+  if (!id) throw new Error('ID do jogo inválido.');
+
+  const [rows] = await db.query('SELECT wo FROM jogos WHERE id = ?', [id]);
+  if (!rows.length) throw new Error('Jogo não encontrado.');
+  if (!rows[0].wo) throw new Error('Este jogo não está marcado como W.O.');
+
+  await db.query('DELETE FROM resultados_por_sets WHERE jogo_id = ?', [id]);
+  await db.query('DELETE FROM resultados_coletivos WHERE jogo_id = ?', [id]);
+  await db.query(
+    `UPDATE jogos
+     SET status = 'Agendado', wo = 0, vencedor_campus_id = NULL, vencedor_atleta_id = NULL
+     WHERE id = ?`,
+    [id]
+  );
+
+  try {
+    await atualizarClassificacaoAposJogo(id);
+  } catch (error) {
+    console.error('Erro ao recalcular classificação após desfazer W.O.:', error.message);
+  }
+  limparCacheFases();
 }
 
 module.exports = {
@@ -549,6 +580,7 @@ module.exports = {
   buscarJogoPorId,
   salvarPlacar,
   aplicarWO,
+  desfazerWO,
   adiarJogo,
   atualizarStatusAutomatico
 };

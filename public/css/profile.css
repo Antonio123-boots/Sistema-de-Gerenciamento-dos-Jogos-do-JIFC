@@ -31,6 +31,77 @@
     backdrop-filter: blur(10px);
 }
 
+/* Painel inicial do juiz: a pagina ocupa a largura disponivel sem um card externo. */
+.juiz-dashboard-page {
+    width: calc(100% + 4rem);
+    max-width: none;
+    margin: 0 -2rem;
+    padding: 1.5rem 0 3rem;
+}
+
+.juiz-dashboard-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 0.5rem 0 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.juiz-dashboard-status {
+    font-size: 0.78rem;
+    background: rgba(236, 228, 45, 0.15);
+    color: #ece42d;
+    padding: 0.3rem 0.7rem;
+    border-radius: 8px;
+}
+
+.juiz-sports-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.juiz-sport-card {
+    display: block;
+    min-height: 132px;
+    padding: 1.8rem 1rem;
+    text-align: center;
+    text-decoration: none;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.juiz-sport-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(236, 228, 45, 0.35);
+}
+
+.juiz-sport-card h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    color: #fff;
+}
+
+.juiz-sport-card p {
+    margin: 0.3rem 0 0;
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.juiz-empty-state {
+    margin-top: 1.5rem;
+}
+
+@media (max-width: 700px) {
+    .juiz-dashboard-page {
+        width: 100%;
+        margin: 0;
+        padding: 1rem 0 2rem;
+    }
+}
+
 .institution-header {
     display: flex;
     align-items: center;

@@ -189,7 +189,9 @@ async function renderJogos(req, res) {
     const esporte = req.params.esporte;
     const genero = req.query.genero || null;
 
-    if (resultadosIndividuaisService.ehEsporteIndividual(esporte)) {
+    const esporteIndividualComTelaPropria = resultadosIndividuaisService.ehAtletismo(esporte)
+      || resultadosIndividuaisService.ehXadrez(esporte);
+    if (esporteIndividualComTelaPropria) {
       return res.redirect('/juiz/' + encodeURIComponent(esporte) + '/resultados' + (genero ? '?genero=' + encodeURIComponent(genero) : ''));
     }
 
@@ -229,6 +231,7 @@ async function renderPlacar(req, res) {
     const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
     const esporteDoJogo = esportes.length === 1 ? esportes[0] : '';
     const regras = obterRegras(jogo.modalidade);
+    const modoEdicao = String(req.query.editar || '') === '1' && !jogo.wo;
 
     res.render('juiz/placar', {
       title: 'Atualizar Placar',
@@ -237,6 +240,7 @@ async function renderPlacar(req, res) {
       jogo,
       esporteVoltar: esporteDoJogo,
       regras,
+      modoEdicao,
       mensagemErro: null
     });
   } catch (err) {
@@ -353,7 +357,8 @@ async function handleSalvarPlacar(req, res) {
   }
 
   const esporteRedirect = esportes.length === 1 ? encodeURIComponent(esportes[0]) : '';
-  res.redirect('/juiz/' + esporteRedirect + '?ok=Placar+atualizado');
+  const generoRedirect = jogo.genero ? '&genero=' + encodeURIComponent(jogo.genero) : '';
+  res.redirect('/juiz/' + esporteRedirect + '?ok=Placar+atualizado' + generoRedirect);
 }
 
 async function handleAplicarWO(req, res) {
@@ -405,7 +410,30 @@ async function handleAplicarWO(req, res) {
   }
 
   const esporteRedirect = esportes.length === 1 ? encodeURIComponent(esportes[0]) : '';
-  res.redirect('/juiz/' + esporteRedirect + '?ok=W.O.+aplicado+com+sucesso');
+  const generoRedirect = jogo.genero ? '&genero=' + encodeURIComponent(jogo.genero) : '';
+  res.redirect('/juiz/' + esporteRedirect + '?ok=W.O.+aplicado+com+sucesso' + generoRedirect);
+}
+
+async function handleDesfazerWO(req, res) {
+  const jogo = await juizService.buscarJogoPorId(Number(req.params.jogoId));
+  if (!jogo) return res.redirect('/juiz');
+
+  const esportes = await juizService.obterEsportesDoJuiz(req.user.juizId);
+  if (!juizPodeEditarModalidade(esportes, jogo.modalidade)) {
+    return res.status(403).send('Este jogo não é da sua modalidade.');
+  }
+
+  try {
+    await juizService.desfazerWO(req.params.jogoId);
+  } catch (e) {
+    const esporteRedirect = esportes.length === 1 ? encodeURIComponent(esportes[0]) : '';
+    const generoRedirect = jogo.genero ? '&genero=' + encodeURIComponent(jogo.genero) : '';
+    return res.redirect('/juiz/' + esporteRedirect + '?erro=' + encodeURIComponent(e.message) + generoRedirect);
+  }
+
+  const esporteRedirect = esportes.length === 1 ? encodeURIComponent(esportes[0]) : '';
+  const generoRedirect = jogo.genero ? '&genero=' + encodeURIComponent(jogo.genero) : '';
+  res.redirect('/juiz/' + esporteRedirect + '?ok=W.O.+desfeito+com+sucesso' + generoRedirect);
 }
 
 async function handleAdiarJogo(req, res) {
@@ -590,7 +618,7 @@ async function renderResultadosProva(req, res) {
       const inscritos = filtrarInscritosPorProva(todosAtletas, mapaProvasInscricao, slugProva);
       if (inscritos.length) {
         atletas = inscritos;
-      } else {
+      } else if (mapaProvasInscricao.size > 0) {
         atletas = [];
         semInscritosNaProva = true;
       }
@@ -664,6 +692,7 @@ module.exports = {
   renderPlacar,
   handleSalvarPlacar,
   handleAplicarWO,
+  handleDesfazerWO,
   handleAdiarJogo,
   renderResultados,
   handleCriarProva,

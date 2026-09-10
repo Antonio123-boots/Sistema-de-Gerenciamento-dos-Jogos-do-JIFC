@@ -10,7 +10,7 @@ assert.deepEqual(calcularDistribuicaoTenisMesaIndividual(1), [1]);
 assert.deepEqual(calcularDistribuicaoTenisMesaIndividual(2), [2]);
 assert.deepEqual(calcularDistribuicaoTenisMesaIndividual(3), [3]);
 assert.deepEqual(calcularDistribuicaoTenisMesaIndividual(4), [4]);
-assert.deepEqual(calcularDistribuicaoTenisMesaIndividual(5), [5]);
+assert.deepEqual(calcularDistribuicaoTenisMesaIndividual(5), [3, 2]);
 assert.deepEqual(calcularDistribuicaoTenisMesaIndividual(6), [3, 3]);
 assert.deepEqual(calcularDistribuicaoTenisMesaIndividual(7), [4, 3]);
 assert.deepEqual(calcularDistribuicaoTenisMesaIndividual(8), [4, 4]);
@@ -18,14 +18,14 @@ assert.deepEqual(calcularDistribuicaoTenisMesaIndividual(9), [3, 3, 3]);
 assert.deepEqual(calcularDistribuicaoTenisMesaIndividual(10), [4, 3, 3]);
 assert.deepEqual(calcularDistribuicaoTenisMesaIndividual(11), [4, 4, 3]);
 assert.deepEqual(calcularDistribuicaoTenisMesaIndividual(12), [3, 3, 3, 3]);
-assert.deepEqual(calcularDistribuicaoTenisMesaIndividual(17), [5, 4, 4, 4]);
+assert.deepEqual(calcularDistribuicaoTenisMesaIndividual(17), [4, 4, 3, 3, 3]);
 
 for (let total = 1; total <= 60; total += 1) {
   const tamanhos = calcularDistribuicaoTenisMesaIndividual(total);
   assert.equal(tamanhos.reduce((a, b) => a + b, 0), total, `soma invalida para ${total}`);
   if (total >= 6) {
     tamanhos.forEach((tamanho) => {
-      assert.ok(tamanho >= 3 && tamanho <= 5, `chave com ${tamanho} atletas em total ${total}`);
+      assert.ok(tamanho >= 3 && tamanho <= 4, `chave com ${tamanho} atletas em total ${total}`);
     });
   }
 }

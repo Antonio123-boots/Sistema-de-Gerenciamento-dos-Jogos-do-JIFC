@@ -1,4 +1,6 @@
-<section class="panel-card">
+<section class="chaveamento-page">
+  <% const generoAnexarConfirm = (modalidadeAtiva && modalidadeAtiva.genero) ? String(modalidadeAtiva.genero).trim() : ''; %>
+  <% const nomeAtivaSemGenero = modalidadeAtiva ? (String(modalidadeAtiva.nome || '').trim().replace(/\s+(Masculino|Feminino|Misto)$/i, '').trim() || String(modalidadeAtiva.nome || '').trim()) : ''; %>
   <div class="profile-header">
     <div>
       <h1>JIFC <%= typeof anoJifc !== 'undefined' ? anoJifc : '2026' %></h1>
@@ -24,11 +26,14 @@
   <div class="menu-modalidades premium" style="margin-top: 0;">
     <div class="modalidades-container">
       <ul class="modalidades-list compact premium-list">
-        <% listaModalidadesCompleta.forEach((mod) => { %>
+        <% listaModalidadesCompleta.forEach((mod) => {
+            const nomeTabChaveamento = String(mod.nome || '').trim().replace(/\s+(Masculino|Feminino|Misto)$/i, '').trim() || String(mod.nome || '').trim();
+            const generoTabChaveamento = String(mod.genero || '').trim();
+          %>
           <li class="modalidade-item compact premium-item">
             <a href="/admin/chaveamento?modalidade=<%= mod.id %>#modalidade" class="<%= modalidadeAtiva.id === mod.id ? 'active-sport premium-active' : '' %>">
               <img src="<%= mod.icone && (mod.icone.startsWith('/') || mod.icone.startsWith('http')) ? mod.icone : (mod.imagem || '/imagens/atletismo1.svg') %>" alt="<%= mod.nome %>" class="sport-icon" onerror="this.src='/imagens/atletismo1.svg'">
-              <span class="sport-card-name"><%= mod.nome %></span>
+              <span class="sport-card-name"><%= nomeTabChaveamento %><% if (generoTabChaveamento) { %><span style="font-size:0.62rem; font-weight:700; margin-left:0.4rem; padding:0.12rem 0.45rem; border-radius:999px; background:rgba(236,228,45,0.16); color:#ece42d; text-transform:uppercase; vertical-align:middle;"><%= generoTabChaveamento %></span><% } %></span>
             </a>
           </li>
         <% }) %>
@@ -63,7 +68,7 @@
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <input type="hidden" name="modalidadeId" value="<%= modalidadeAtiva.id %>">
           <input type="hidden" name="subCategoria" value="<%= subCategoriaAtiva %>">
-          <button type="submit" class="btn btn-danger" onclick="return confirm('Refazer o sorteio de <%= modalidadeAtiva.nome %>? ATENCAO: todos os jogos, resultados e classificação desta modalidade serao apagados. Esta acao nao pode ser desfeita.');">Refazer Sorteio</button>
+          <button type="submit" class="btn btn-danger" onclick="return confirm('Refazer o sorteio de <%= nomeAtivaSemGenero %><% if (generoAnexarConfirm) { %> (<%= generoAnexarConfirm %>)<% } %>? ATENCAO: todos os jogos, resultados e classificação desta modalidade serao apagados. Esta acao nao pode ser desfeita.');">Refazer Sorteio</button>
         </form>
       <% } else if (!modalidadeSorteavel) { %>
         <button class="btn btn-ghost" disabled title="Esta modalidade não possui sorteio automático">Sorteio automático indisponível</button>
@@ -83,12 +88,22 @@
         <input type="hidden" name="modalidadeId" value="<%= modalidadeAtiva.id %>">
         <input type="hidden" name="subCategoria" value="<%= subCategoriaAtiva %>">
       </form>
-      <form id="publish-all-form" action="/admin/chaveamento/publicar-tudo" method="POST" style="display: inline-block;">
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        <input type="hidden" name="modalidadeId" value="<%= modalidadeAtiva.id %>">
-        <input type="hidden" name="subCategoria" value="<%= subCategoriaAtiva %>">
-        <button type="button" id="confirm-publish-all-button" class="btn btn-primary">Publicar</button>
-      </form>
+      <% if (!modalidadePublicada) { %>
+        <form id="publish-all-form" action="/admin/chaveamento/publicar-tudo" method="POST" style="display: inline-block;">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="modalidadeId" value="<%= modalidadeAtiva.id %>">
+          <input type="hidden" name="subCategoria" value="<%= subCategoriaAtiva %>">
+          <button type="button" id="confirm-publish-all-button" class="btn btn-primary">Publicar</button>
+        </form>
+      <% } %>
+      <% if (modalidadePublicada && modalidadesPublicadas.length > 0) { %>
+        <form id="excluir-publicacao-form" action="/admin/chaveamento/excluir-publicacao" method="POST" style="display: inline-block;">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="modalidadeId" value="<%= modalidadeAtiva.id %>">
+          <input type="hidden" name="subCategoria" value="<%= subCategoriaAtiva %>">
+          <button type="button" id="excluir-publicacao-button" class="btn btn-danger">Excluir publicação</button>
+        </form>
+      <% } %>
       <form id="cancel-draw-form" action="/admin/chaveamento/cancelar" method="POST" style="display: inline-block;">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <input type="hidden" name="modalidadeId" value="<%= modalidadeAtiva.id %>">
@@ -100,7 +115,7 @@
         <div class="confirm-modal-card" role="dialog" aria-modal="true" aria-labelledby="generate-draw-title">
           <div class="confirm-modal-icon">🎲</div>
           <h3 id="generate-draw-title">Refazer o sorteio?</h3>
-          <p>O sistema vai sortear novamente somente <strong><%= modalidadeAtiva.nome %></strong><% if (modalidadeAtiva.categoria === 'tenis-de-mesa') { %> (<%= subCategoriaAtiva === 'dupla' ? 'aba Em Dupla' : 'aba Individual' %>)<% } %>, sem alterar as demais modalidades.</p>
+          <p>O sistema vai sortear novamente somente <strong><%= nomeAtivaSemGenero %></strong><% if (generoAnexarConfirm) { %> (<%= generoAnexarConfirm %>)<% } %><% if (modalidadeAtiva.categoria === 'tenis-de-mesa') { %> (<%= subCategoriaAtiva === 'dupla' ? 'aba Em Dupla' : 'aba Individual' %>)<% } %>, sem alterar as demais modalidades.</p>
           <div class="confirm-modal-actions">
             <button type="button" class="btn btn-ghost" data-generate-cancel>Cancelar</button>
             <button type="button" class="btn btn-success" data-generate-confirm>Confirmar</button>
@@ -124,7 +139,7 @@
         <div class="confirm-modal-card" role="dialog" aria-modal="true" aria-labelledby="publish-draw-title">
           <div class="confirm-modal-icon">✅</div>
           <h3 id="publish-draw-title">Confirmar publicação?</h3>
-          <p>Essa ação publicará os dados de <strong><%= modalidadeAtiva.nome %></strong> e tornará tudo visível para o público.</p>
+          <p>Essa ação publicará os dados de <strong><%= nomeAtivaSemGenero %></strong><% if (generoAnexarConfirm) { %> (<%= generoAnexarConfirm %>)<% } %> e tornará tudo visível para o público.</p>
           <div class="confirm-modal-actions">
             <button type="button" class="btn btn-ghost" data-publish-cancel>Cancelar</button>
             <button type="button" class="btn btn-primary" data-publish-confirm>Confirmar</button>
@@ -140,6 +155,36 @@
           <div class="confirm-modal-actions">
             <button type="button" class="btn btn-ghost" data-publish-all-cancel>Cancelar</button>
             <button type="button" class="btn btn-primary" data-publish-all-confirm>Confirmar</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="excluir-publicacao-modal" class="confirm-modal-overlay" hidden>
+        <div class="confirm-modal-card" role="dialog" aria-modal="true" aria-labelledby="excluir-publicacao-title" style="max-width:480px;width:100%;">
+          <h3 id="excluir-publicacao-title">Excluir publicação</h3>
+          <p>Marque as modalidades que deseja <strong>ocultar da página inicial</strong>. Os jogos e chaves continuarão salvos — nada será apagado.</p>
+          <div style="max-height:300px;overflow-y:auto;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:0.5rem;margin-bottom:1rem;text-align:left;">
+            <% modalidadesPublicadas.forEach((m) => { %>
+              <label style="display:flex;align-items:center;gap:0.5rem;padding:0.35rem 0.25rem;cursor:pointer;">
+                <input type="checkbox" name="modalidadeIds" value="<%= m.id %>" class="excluir-publicacao-check">
+                <span><%= m.nome %> <% if (m.genero) { %>— <%= m.genero %><% } %></span>
+              </label>
+            <% }) %>
+          </div>
+          <div class="confirm-modal-actions">
+            <button type="button" class="btn btn-ghost" data-excluir-cancel>Cancelar</button>
+            <button type="button" class="btn btn-danger" data-excluir-confirm>Excluir publicação</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="excluir-publicacao-confirm-modal" class="confirm-modal-overlay" hidden>
+        <div class="confirm-modal-card" role="dialog" aria-modal="true" aria-labelledby="excluir-publicacao-confirm-title">
+          <h3 id="excluir-publicacao-confirm-title">Excluir publicação?</h3>
+          <p>Tem certeza que deseja excluir a publicação de <strong id="excluir-publicacao-contagem">0 modalidade(s)</strong>? Elas sumirão da página inicial, mas os jogos e chaves continuam salvos.</p>
+          <div class="confirm-modal-actions">
+            <button type="button" class="btn btn-ghost" data-excluir-confirm-cancel>Cancelar</button>
+            <button type="button" class="btn btn-danger" data-excluir-confirm-final>Confirmar</button>
           </div>
         </div>
       </div>
@@ -222,6 +267,55 @@
               publishAllForm.submit();
             });
           }
+
+          const excluirButton = document.getElementById('excluir-publicacao-button');
+          const excluirForm = document.getElementById('excluir-publicacao-form');
+          const excluirModal = document.getElementById('excluir-publicacao-modal');
+          const excluirConfirmModal = document.getElementById('excluir-publicacao-confirm-modal');
+          const excluirContagem = document.getElementById('excluir-publicacao-contagem');
+          if (excluirButton && excluirForm && excluirModal && excluirConfirmModal) {
+            excluirButton.addEventListener('click', function () {
+              excluirModal.hidden = false;
+              excluirModal.classList.add('active');
+            });
+
+            excluirModal.querySelector('[data-excluir-cancel]')?.addEventListener('click', function () {
+              excluirModal.hidden = true;
+              excluirModal.classList.remove('active');
+            });
+
+            excluirModal.querySelector('[data-excluir-confirm]')?.addEventListener('click', function () {
+              const checks = excluirModal.querySelectorAll('.excluir-publicacao-check:checked');
+              if (!checks.length) {
+                alert('Selecione pelo menos uma modalidade.');
+                return;
+              }
+              excluirContagem.textContent = checks.length + (checks.length === 1 ? ' modalidade' : ' modalidades');
+              excluirModal.hidden = true;
+              excluirModal.classList.remove('active');
+              excluirConfirmModal.hidden = false;
+              excluirConfirmModal.classList.add('active');
+            });
+
+            excluirConfirmModal.querySelector('[data-excluir-confirm-cancel]')?.addEventListener('click', function () {
+              excluirConfirmModal.hidden = true;
+              excluirConfirmModal.classList.remove('active');
+            });
+
+            excluirConfirmModal.querySelector('[data-excluir-confirm-final]')?.addEventListener('click', function () {
+              const checks = excluirModal.querySelectorAll('.excluir-publicacao-check:checked');
+              excluirConfirmModal.hidden = true;
+              excluirConfirmModal.classList.remove('active');
+              checks.forEach(function (check) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'modalidadeIds';
+                input.value = check.value;
+                excluirForm.appendChild(input);
+              });
+              excluirForm.submit();
+            });
+          }
         })();
       </script>
     </div>
@@ -234,16 +328,22 @@
     </section>
   <% } %>
   <% if (mensagemSucesso) { %>
-    <section class="panel-card feedback-msg" id="feedback-sucesso" style="margin-top:1rem; border:1px solid rgba(75,255,135,0.3); background:rgba(75,255,135,0.08);">
-      <div class="welcome-card" style="padding:1rem; background:transparent; border:none; color:#fff;">
-        <p class="panel-subtitle" style="color:#d4ffd4;"><strong>Sucesso:</strong> <%= mensagemSucesso %></p>
+    <section class="feedback-msg" id="feedback-sucesso" style="display:inline-block; margin-top:1rem; padding:0.45rem 0.75rem; border:1px solid rgba(75,255,135,0.3); border-radius:8px; background:rgba(75,255,135,0.08);">
+      <div style="color:#fff;">
+        <p style="margin:0; font-size:0.78rem; color:#d4ffd4;"><strong>Sucesso:</strong> <%= mensagemSucesso %></p>
       </div>
     </section>
   <% } %>
   <script>
-    document.querySelectorAll('.feedback-msg').forEach(function (el) {
+    document.querySelectorAll('.feedback-msg:not(#feedback-sucesso)').forEach(function (el) {
       setTimeout(function () { if (el && el.parentNode) el.style.display = 'none'; }, 20000);
     });
+    const feedbackSucesso = document.getElementById('feedback-sucesso');
+    if (feedbackSucesso) {
+      setTimeout(function () {
+        if (feedbackSucesso && feedbackSucesso.parentNode) feedbackSucesso.style.display = 'none';
+      }, 5000);
+    }
   </script>
   <% if (!inscricoesAbertas && !permitirGerarSorteio) { %>
     <section class="panel-card" style="margin-top:1rem; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03);">
@@ -278,7 +378,7 @@
             <p class="panel-subtitle" style="margin: 0 0 1rem; font-size: 0.8rem;"><%= provaAtivaAtual.descricao %></p>
 
             <% if (provaAtivaAtual.slug === 'geral') { %>
-              <div class="tabela-scroll" style="border:1px solid rgba(255,255,255,0.08); border-radius:10px;">
+              <div class="tabela-scroll">
                 <table style="width:100%; min-width:420px; border-collapse:collapse;">
                 <thead>
                   <tr>
@@ -302,21 +402,6 @@
                   <% } %>
                 </tbody>
               </table>
-              </div>
-              <div class="chave-card atletismo-inscritos-card">
-                <div class="chave-title">Atletas das equipes inscritas</div>
-                <p class="panel-subtitle" style="margin: 0 0 1rem; font-size: 0.8rem;">Atletas dos campi que participam desta categoria.</p>
-                <ul class="chave-equipes-list">
-                  <% (inscritosPendentes || []).forEach((atleta, index) => { %>
-                    <li class="chave-equipe-item">
-                      <span><span class="chave-equipe-pos">#<%= index + 1 %></span> <strong><%= atleta.nomeAtleta || atleta.nome %></strong></span>
-                      <span class="item-subtext"><%= atleta.nomeCampus || atleta.campus || 'Campus não informado' %></span>
-                    </li>
-                  <% }) %>
-                  <% if (!inscritosPendentes || inscritosPendentes.length === 0) { %>
-                    <li class="feedback-empty">Nenhum atleta encontrado nas equipes inscritas.</li>
-                  <% } %>
-                </ul>
               </div>
             <% } else { %>
 
@@ -452,7 +537,7 @@
 
           <div class="match-carousel">
             <% rodadasJogos.forEach((rodada, index) => { %>
-              <section class="match-slide <%= index === 0 ? 'active' : '' %>" data-slide-index="<%= index %>">
+              <section class="match-slide <%= index === (typeof rodadaAtiva !== 'undefined' ? rodadaAtiva : 0) ? 'active' : '' %>" data-slide-index="<%= index %>">
                 <div class="game-grid">
                   <% rodada.jogos.forEach((jogo) => { %>
                     <article class="game-card admin-game-card">
@@ -467,6 +552,7 @@
                       </div>
                       <form action="/admin/chaveamento/jogo/<%= jogo.id %>/salvar" method="POST" class="agc-form">
                         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <input type="hidden" name="rodadaAtual" value="<%= index %>">
                         <div class="agc-campos">
                           <% if (Array.isArray(datasEventoDisponiveis) && datasEventoDisponiveis.length) { %>
                             <% const dataPadrao = jogo.dataInput && datasEventoDisponiveis.includes(jogo.dataInput)
@@ -503,7 +589,7 @@
               </section>
             <% }) %>
             <% if (temEliminatoria) { %>
-              <section class="match-slide <%= !(rodadasJogos && rodadasJogos.length > 0) ? 'active' : '' %>" data-slide-index="<%= rodadasJogos ? rodadasJogos.length : 0 %>">
+              <section class="match-slide <%= (typeof rodadaAtiva !== 'undefined' ? rodadaAtiva : 0) === (rodadasJogos ? rodadasJogos.length : 0) ? 'active' : '' %>" data-slide-index="<%= rodadasJogos ? rodadasJogos.length : 0 %>">
                 <% fasesEliminatoria.forEach((fase) => { %>
                   <h3 style="margin: 0.25rem 0 0.75rem; font-size: 1rem;"><%= fase.fase %></h3>
                   <div class="game-grid" style="margin-bottom: 1.5rem;">
@@ -525,6 +611,7 @@
                         </div>
                         <form action="/admin/chaveamento/jogo/<%= jogo.id %>/salvar" method="POST" class="agc-form">
                           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                          <input type="hidden" name="rodadaAtual" value="<%= rodadasJogos ? rodadasJogos.length : 0 %>">
                           <div class="agc-campos">
                             <% if (Array.isArray(datasEventoDisponiveis) && datasEventoDisponiveis.length) { %>
                               <% const dataPadraoKo = dataInputKo2 && datasEventoDisponiveis.includes(dataInputKo2) ? dataInputKo2 : datasEventoDisponiveis[0]; %>
@@ -561,14 +648,16 @@
             <% } %>
           </div>
 
-          <script>
+<script>
             (function () {
               const wrapper = document.getElementById('match-carousel-<%= modalidadeAtiva.id %>');
               if (!wrapper) return;
 
               const slides = Array.from(wrapper.querySelectorAll('.match-slide'));
               const pills = Array.from(wrapper.querySelectorAll('.round-pill'));
-              let activeIndex = 0;
+              let activeIndex = Number('<%= typeof rodadaAtiva !== "undefined" ? rodadaAtiva : 0 %>') || 0;
+              activeIndex = Math.min(Math.max(activeIndex, 0), Math.max(slides.length - 1, 0));
+              mostrarSlide(activeIndex);
 
               function mostrarSlide(index) {
                 activeIndex = (index + slides.length) % slides.length;
@@ -584,6 +673,29 @@
                 pill.addEventListener('click', () => {
                   mostrarSlide(Number(pill.dataset.slideIndex || 0));
                 });
+              });
+
+              document.querySelectorAll('.agc-form').forEach((form) => {
+                const jogoId = form.action.match(/jogo\/(\d+)\/salvar/);
+                if (!jogoId) return;
+                const draftKey = `jifc-jogo-rascunho-${jogoId[1]}`;
+                const fields = Array.from(form.querySelectorAll('input[name="dataJogo"], input[name="horarioJogo"], input[name="localJogo"], select[name="dataJogo"]'));
+                const draft = (() => {
+                  try { return JSON.parse(localStorage.getItem(draftKey) || 'null'); } catch (_) { return null; }
+                })();
+                if (draft) {
+                  fields.forEach((field) => {
+                    if (Object.prototype.hasOwnProperty.call(draft, field.name)) field.value = draft[field.name];
+                  });
+                }
+                const guardarRascunho = () => {
+                  const values = {};
+                  fields.forEach((field) => { values[field.name] = field.value; });
+                  localStorage.setItem(draftKey, JSON.stringify(values));
+                };
+                fields.forEach((field) => field.addEventListener('input', guardarRascunho));
+                fields.forEach((field) => field.addEventListener('change', guardarRascunho));
+                form.addEventListener('submit', () => localStorage.removeItem(draftKey));
               });
             })();
           </script>

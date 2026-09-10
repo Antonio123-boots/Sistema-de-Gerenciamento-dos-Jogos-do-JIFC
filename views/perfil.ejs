@@ -30,7 +30,6 @@
           <% } %>
         </div>
         <h1 class="institution-title"><%= tituloCampus %></h1>
-        <p class="institution-meta"><%= emailExibicao %></p>
 
         <% if (!publicMode && isLoggedIn) { %>
           <% if (viewer.tipo) { %>
@@ -348,10 +347,13 @@
         <div class="dashboard-view" id="modalidades-campus">
           <% if (listaModalidades.length) { %>
             <ul class="data-list scroll-list">
-              <% listaModalidades.forEach((modalidade) => { %>
+              <% listaModalidades.forEach((modalidade) => {
+                  const nomeModalidadeItem = String(modalidade).replace(/\s+(Masculino|Feminino|Misto)$/i, '').trim();
+                  const generoModalidadeItem = (String(modalidade).match(/\b(Masculino|Feminino|Misto)$/i) || [])[1] || '';
+                %>
                 <li class="data-item">
                   <div class="item-info">
-                    <strong class="item-name"><%= modalidade %></strong>
+                    <strong class="item-name"><%= nomeModalidadeItem %><% if (generoModalidadeItem) { %> <span style="font-size:0.65rem; font-weight:700; margin-left:0.3rem; padding:0.12rem 0.45rem; border-radius:999px; background:rgba(236,228,45,0.16); color:#ece42d; text-transform:uppercase; vertical-align:middle;"><%= generoModalidadeItem %></span><% } %></strong>
                   </div>
                 </li>
               <% }) %>
@@ -375,7 +377,10 @@
           <% } %>
         <% } else { %>
           <a class="btn btn-secondary" href="/">Voltar ao Início</a>
-          <a class="btn btn-danger" href="/auth/logout">Encerrar Sessão</a>
+          <form action="/auth/logout" method="POST" style="display:inline; margin:0;">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button type="submit" class="btn btn-danger" style="border:none; cursor:pointer;">Encerrar Sessão</button>
+          </form>
         <% } %>
       </div>
     </footer>

@@ -4,16 +4,29 @@ const { normalizarFotoPerfil, fotoPadrao } = require('./profileImageStore');
 const { listarCampi } = require('./campiCatalog');
 const juizService = require('../services/juizService');
 
-const SENHAS_HARDcoded = {
-  'admin@ifc.edu.br': process.env.DEFAULT_ADMIN_PASSWORD || 'admin123',
-  'instituicao@ifc.edu.br': process.env.DEFAULT_CAMPUS_PASSWORD || 'jifc2026',
-  'juiz@ifc.edu.br': process.env.DEFAULT_JUIZ_PASSWORD || 'juiz123'
+function senhaDoAmbiente(nomeVar) {
+  const valor = process.env[nomeVar];
+  return valor && String(valor).trim() ? String(valor) : null;
+}
+
+const SENHAS_PADRAO = {
+  'admin@ifc.edu.br': senhaDoAmbiente('DEFAULT_ADMIN_PASSWORD'),
+  'instituicao@ifc.edu.br': senhaDoAmbiente('DEFAULT_CAMPUS_PASSWORD'),
+  'juiz@ifc.edu.br': senhaDoAmbiente('DEFAULT_JUIZ_PASSWORD')
 };
 
 let hashesBase = {};
 
 async function initHashes() {
-  for (const [email, senha] of Object.entries(SENHAS_HARDcoded)) {
+  for (const [email, senha] of Object.entries(SENHAS_PADRAO)) {
+    if (!senha) {
+      const variaveis = {
+        'admin@ifc.edu.br': 'DEFAULT_ADMIN_PASSWORD',
+        'instituicao@ifc.edu.br': 'DEFAULT_CAMPUS_PASSWORD',
+        'juiz@ifc.edu.br': 'DEFAULT_JUIZ_PASSWORD'
+      };
+      throw new Error(`Variável de ambiente ${variaveis[email] || 'desconhecida'} não configurada no .env (necessária para o usuário ${email}).`);
+    }
     hashesBase[email] = await argon2.hash(senha);
   }
 }
@@ -81,7 +94,7 @@ async function obterUsuarioPorEmail(email) {
         const novoId = await juizService.cadastrarJuiz({
           nome: dadosBase.nome,
           email: emailNormalizado,
-          senha: SENHAS_HARDcoded[emailNormalizado],
+          senha: SENHAS_PADRAO[emailNormalizado],
           esportes: []
         });
         dadosBase.juizId = novoId;

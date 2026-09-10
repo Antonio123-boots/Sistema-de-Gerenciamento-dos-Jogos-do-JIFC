@@ -6,6 +6,15 @@ const { statusEfetivo } = require('../utils/jogoStatus');
 const FASES_ORDEM = ['Oitavas', 'Quartas', 'Semifinal', 'Terceiro Lugar', 'Final'];
 const LETRAS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
+const COLUNAS_PARTICIPANTE = ['atleta_1_id', 'atleta_2_id', 'campus_1_id', 'campus_2_id'];
+
+function validarColunaParticipante(coluna) {
+  if (!COLUNAS_PARTICIPANTE.includes(coluna)) {
+    throw new Error(`Coluna de participante inválida: ${coluna}`);
+  }
+  return coluna;
+}
+
 function letraChave(numeroChave) {
   return LETRAS[(Number(numeroChave) - 1) % LETRAS.length];
 }
@@ -127,6 +136,9 @@ function interpretarRotulo(rotulo) {
 }
 
 async function classificarChaves(idModalidade, sub, colCasa, colFora) {
+  validarColunaParticipante(colCasa);
+  validarColunaParticipante(colFora);
+
   const { getClassificacaoModalidade } = require('./classificacaoService');
 
   const [chaves] = await db.query(
@@ -215,8 +227,8 @@ async function resolverEliminatoria(modalidadeId, subCategoria) {
   if (!modalRows.length) return { preenchidos: 0 };
   const ehTipoIndividual = String(modalRows[0].tipo_confronto || '').toLowerCase() === 'individual';
   const ehIndividual = ehTipoIndividual && sub !== 'dupla';
-  const colCasa = ehIndividual ? 'atleta_1_id' : 'campus_1_id';
-  const colFora = ehIndividual ? 'atleta_2_id' : 'campus_2_id';
+  const colCasa = validarColunaParticipante(ehIndividual ? 'atleta_1_id' : 'campus_1_id');
+  const colFora = validarColunaParticipante(ehIndividual ? 'atleta_2_id' : 'campus_2_id');
 
   const [jogos] = await db.query(
     `SELECT j.*, rc.placar_1 AS placar_1, rc.placar_2 AS placar_2

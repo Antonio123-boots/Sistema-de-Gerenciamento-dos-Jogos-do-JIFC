@@ -48,6 +48,7 @@ router.post('/chaveamento/gerar', adminController.gerarChaveamento);
 router.post('/chaveamento/limpar', adminController.limparChaveamento);
 router.post('/chaveamento/publicar', adminController.publicarChaveamento);
 router.post('/chaveamento/publicar-tudo', adminController.publicarTodosJogos);
+router.post('/chaveamento/excluir-publicacao', adminController.excluirPublicacao);
 router.post('/chaveamento/eliminatoria/gerar', adminController.gerarEliminatoria);
 router.post('/chaveamento/cancelar', adminController.cancelarSorteio);
 router.get('/chaveamento/exportar', adminController.exportResumoInscricoes);

@@ -237,20 +237,20 @@ img {
 }
 .campus-photo--badge:hover {
   transform: scale(1.06);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+
 }
 
 /* Hover dinâmico: leve elevação e brilho */
 .campus-photo:hover {
   transform: scale(1.06);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+
 }
 
 /* Tamanhos xs/sm não precisam de hover tão forte */
 .campus-photo--xs:hover,
 .campus-photo--sm:hover {
   transform: scale(1.12);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+
 }
 
 /* Ícones de modalidade (nav bar e admin) — não circular */
@@ -529,10 +529,9 @@ img {
 }
 
 .menu-modalidades {
-  background: rgba(255, 255, 255, 0.02);
-  padding: 0.8rem 1rem;
+  background: transparent;
+  padding: 0.55rem 0;
   margin-top: 0.5rem;
-  border-radius: 12px;
 }
 
 .modalidades-container {
@@ -543,10 +542,10 @@ img {
 .modalidades-list {
   display: flex;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 1.15rem;
   overflow-x: auto;
   scrollbar-width: thin;
-  padding: 0.35rem 0;
+  padding: 0.25rem 0.2rem 0.4rem;
 }
 
 .modalidades-list::-webkit-scrollbar {
@@ -573,38 +572,61 @@ img {
   align-items: center;
   justify-content: center;
   gap: 0.35rem;
-  padding: 0.75rem 1rem;
-  border-radius: 10px;
+  min-width: 82px;
+  padding: 0.35rem 0.25rem 0.55rem;
   background: transparent;
-  border: 1px solid transparent;
-  color: #fff;
+  border: 0;
+  color: rgba(255, 255, 255, 0.82);
   font-weight: 600;
   font-size: 0.82rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  transition: transform 0.2s ease, color 0.2s ease;
 }
 
 .modalidade-item a img {
   filter: brightness(0) invert(1);
-  transition: filter 1s ease;
+  opacity: 0.82;
+  transition: transform 0.2s ease, filter 0.2s ease, opacity 0.2s ease;
 }
 
-.modalidade-item a:hover {
-  background: rgba(255, 255, 255, 0.1);
+.modalidade-item a:hover,
+.modalidade-item a:focus-visible {
+  background: transparent;
+  border-color: transparent;
   color: #ece42d;
-  transform: none;
-  box-shadow: none;
+  outline: none;
 }
 
 .modalidade-item a:hover img {
   filter: brightness(0) saturate(100%) invert(88%) sepia(35%) saturate(1200%) hue-rotate(5deg) brightness(105%) contrast(95%);
+  opacity: 1;
+  transform: scale(1.06);
 }
 
 .active-sport {
-  background: rgba(236, 228, 45, 0.18) !important;
+  position: relative;
+  background: transparent !important;
   color: #fff !important;
-  border: 1px solid rgba(236, 228, 45, 0.35) !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.active-sport::after {
+  content: '';
+  position: absolute;
+  left: 28%;
+  right: 28%;
+  bottom: 0.12rem;
+  height: 2px;
+  border-radius: 2px;
+  background: #ece42d;
+}
+
+.modalidade-item.is-active a img,
+.active-sport img {
+  filter: brightness(0) saturate(100%) invert(88%) sepia(35%) saturate(1200%) hue-rotate(5deg) brightness(105%) contrast(95%);
+  opacity: 1;
 }
 
 .menu-dias {
@@ -919,6 +941,8 @@ img {
   position: relative;
   width: 100%;
   min-width: 0;
+  background: transparent;
+  box-shadow: none !important;
 }
 
 .carrossel-trilho {
@@ -931,6 +955,8 @@ img {
   scrollbar-color: rgba(236, 228, 45, 0.45) transparent;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+  background: transparent;
+  box-shadow: none !important;
 }
 
 .carrossel-trilho::-webkit-scrollbar {
@@ -953,6 +979,8 @@ img {
   min-width: 0;
   height: auto;
   scroll-snap-align: center;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 .carrossel-btn {
@@ -1018,17 +1046,22 @@ img {
 .filtro-rodadas-jogos {
   position: relative;
   display: flex;
+  flex-wrap: wrap;
   gap: 0.45rem;
   margin-bottom: 1.35rem;
   padding: 0.35rem;
-  overflow-x: auto;
+  overflow: visible;
   align-items: center;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 14px;
   background: rgba(12, 14, 34, 0.42);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  scrollbar-width: thin;
-  scrollbar-color: rgba(236, 228, 45, 0.45) transparent;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.filtro-rodadas-jogos::-webkit-scrollbar {
+  display: none;
 }
 
 .filtro-categorias-atletismo {

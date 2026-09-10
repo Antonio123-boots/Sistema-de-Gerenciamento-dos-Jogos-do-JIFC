@@ -37,6 +37,7 @@ router.post('/jogos/:jogoId/placar', [
 router.post('/jogos/:jogoId/wo', [
   body('campus_vencedor').isInt({ min: 1 }).withMessage('Selecione o campus vencedor.')
 ], juizController.handleAplicarWO);
+router.post('/jogos/:jogoId/desfazer-wo', juizController.handleDesfazerWO);
 
 router.post('/jogos/:jogoId/adiar', [
   body('nova_data').matches(/^\d{4}-\d{2}-\d{2}$/).withMessage('Data inválida para o adiamento.'),

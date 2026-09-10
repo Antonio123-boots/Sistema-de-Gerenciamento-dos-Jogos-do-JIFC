@@ -63,6 +63,8 @@
     border: 1px solid rgba(255, 255, 255, 0.06) !important;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4) !important;
     padding: 2.5rem !important;
+    min-height: calc(100vh - 120px);
+    width: 100%;
 }
 
 /* Cabeçalho da Área de Configurações */
@@ -105,6 +107,7 @@
     border-color: rgba(236, 228, 45, 0.1);
     margin-top: 2.5rem;
     margin-bottom: 0;
+    min-height: 500px;
 }
 
 /* Cabeçalho dos Blocos */
@@ -225,6 +228,7 @@
 .dynamic-registration-flow {
     display: flex;
     align-items: flex-end;
+    flex-wrap: wrap;
     gap: 1.25rem;
     width: 100%;
 }
@@ -253,6 +257,7 @@
 .flow-element.button-container {
     flex: 1.5;
     min-width: 130px;
+    align-self: stretch;
 }
 
 .custom-alert-text {

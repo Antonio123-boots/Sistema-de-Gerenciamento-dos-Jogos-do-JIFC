@@ -43,6 +43,44 @@ function normalizarTextoProva(valor) {
   return String(valor || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
+/* Formata o tempo vindo do banco ("00:00:10.523", "00:10.523", "10.523" ou Date)
+   para exibição: "00:10.523" (coloca horas apenas quando houver) */
+function formatarTempoResultado(valor) {
+  if (valor == null) return '';
+
+  if (typeof valor === 'string') {
+    const texto = String(valor).trim();
+    if (!texto) return '';
+
+    const match = texto.match(/^(?:(\d+):)?(\d{1,2}):(\d{1,2})(?:[.,](\d{1,3}))?$/);
+    if (match) {
+      const horas = Number(match[1] || 0);
+      const minutos = String(match[2]).padStart(2, '0');
+      const segundos = String(match[3]).padStart(2, '0');
+      const milesimos = match[4] ? '.' + String(match[4]).padEnd(3, '0') : '.000';
+      return horas > 0 ? `${horas}:${minutos}:${segundos}${milesimos}` : `${minutos}:${segundos}${milesimos}`;
+    }
+
+    const matchSegundos = texto.match(/^(\d{1,4})(?:[.,](\d{1,3}))?$/);
+    if (matchSegundos) {
+      const milesimos = matchSegundos[2] ? '.' + String(matchSegundos[2]).padEnd(3, '0') : '.000';
+      return `${matchSegundos[1]}${milesimos}`;
+    }
+
+    return texto;
+  }
+
+  if (valor instanceof Date && !Number.isNaN(valor.getTime())) {
+    const horas = valor.getUTCHours();
+    const minutos = String(valor.getUTCMinutes()).padStart(2, '0');
+    const segundos = String(valor.getUTCSeconds()).padStart(2, '0');
+    const milesimos = '.' + String(valor.getUTCMilliseconds()).padStart(3, '0');
+    return horas > 0 ? `${horas}:${minutos}:${segundos}${milesimos}` : `${minutos}:${segundos}${milesimos}`;
+  }
+
+  return String(valor);
+}
+
 function chaveAtletaProvas(nomeAtleta, nomeCampus) {
   return `${normalizarTextoProva(nomeAtleta)}|${normalizarTextoProva(nomeCampus)}`;
 }
@@ -189,7 +227,7 @@ async function obterPontuacaoPorAtleta() {
       /* Prioriza o resultado físico da etapa 'prova'; usa 'final' apenas se não houver outro */
       if (!atual.resultado || (etapa === 'prova' && atual.etapa !== 'prova')) {
         const tempo = row.resultado_tempo != null
-          ? String(typeof row.resultado_tempo === 'string' ? row.resultado_tempo : row.resultado_tempo.toISOString().slice(11, 12)).replace(/^00:/, '')
+          ? formatarTempoResultado(row.resultado_tempo)
           : '';
         const medida = row.resultado_medida != null && row.resultado_medida !== ''
           ? `${Number(row.resultado_medida)} m`
@@ -204,6 +242,37 @@ async function obterPontuacaoPorAtleta() {
     });
   } catch (error) {
     console.error('Erro ao carregar pontuação do atletismo:', error.message);
+  }
+  return mapa;
+}
+
+/* Dados da bateria/raia usados pela tabela pública, sem inventar agrupamentos. */
+async function obterDetalhesResultadosPorAtleta() {
+  const mapa = new Map();
+  try {
+    const [rows] = await db.query(
+      `SELECT ra.atleta_id, ra.numero_bateria, ra.numero_raia, ra.resultado_tempo,
+              ra.resultado_medida, ra.etapa, p.nome AS prova_nome
+       FROM resultados_atletismo ra
+       JOIN provas p ON p.id = ra.prova_id
+       JOIN modalidades m ON m.id = p.modalidade_id
+       WHERE LOWER(m.nome) LIKE '%atletismo%'`
+    );
+    rows.forEach((row) => {
+      if (String(row.etapa || 'prova') !== 'prova') return;
+      const slug = resolverSlugDaProva(row.prova_nome);
+      if (!slug) return;
+      const atletaId = Number(row.atleta_id);
+      if (!mapa.has(atletaId)) mapa.set(atletaId, new Map());
+      const resultado = row.resultado_tempo || row.resultado_medida;
+      mapa.get(atletaId).set(slug, {
+        numeroBateria: row.numero_bateria != null ? Number(row.numero_bateria) : null,
+        numeroRaia: row.numero_raia != null ? Number(row.numero_raia) : null,
+        resultado: resultado != null ? String(resultado) : ''
+      });
+    });
+  } catch (error) {
+    console.error('Erro ao carregar detalhes de bateria do atletismo:', error.message);
   }
   return mapa;
 }
@@ -239,7 +308,7 @@ async function obterResultadosFinaisPorProva() {
         posicao: row.posicao_final != null ? Number(row.posicao_final) : null,
         pontos: Number(row.pontos || 0),
         tempo: row.resultado_tempo != null
-          ? String(typeof row.resultado_tempo === 'string' ? row.resultado_tempo : row.resultado_tempo.toISOString().slice(11, 12)).replace(/^00:/, '')
+          ? formatarTempoResultado(row.resultado_tempo)
           : ''
       });
     });
@@ -252,9 +321,10 @@ async function obterResultadosFinaisPorProva() {
 /* Versão completa: provas com atletas (banco + fallback state) e pontuação de cada prova */
 async function montarProvasComAtletasEDetalhes(inscritos) {
   const lista = Array.isArray(inscritos) ? inscritos : [];
-  const [mapaProvas, pontuacao] = await Promise.all([
+  const [mapaProvas, pontuacao, detalhesResultados] = await Promise.all([
     montarMapaProvasParaInscritos(lista),
-    obterPontuacaoPorAtleta()
+    obterPontuacaoPorAtleta(),
+    obterDetalhesResultadosPorAtleta()
   ]);
 
   return PROVAS_ATLETISMO_EXIBICAO.map((prova) => {
@@ -262,13 +332,17 @@ async function montarProvasComAtletasEDetalhes(inscritos) {
       .map((inscrito) => {
         const resultadoProva = pontuacao.get(Number(inscrito.id));
         const detalhe = resultadoProva ? resultadoProva.get(prova.slug) : null;
+        const resultadoSalvo = detalhesResultados.get(Number(inscrito.id))?.get(prova.slug) || {};
         return {
           id: inscrito.id,
           nome: String(inscrito.nomeAtleta || inscrito.nome || '').trim(),
           campus: String(inscrito.nomeCampus || inscrito.campus || '').trim(),
           pontos: detalhe ? detalhe.pontos : 0,
           posicao: detalhe && detalhe.posicao != null ? detalhe.posicao : null,
-          resultado: detalhe && detalhe.resultado ? detalhe.resultado : ''
+          resultado: detalhe && detalhe.resultado ? detalhe.resultado : '',
+          numeroBateria: resultadoSalvo.numeroBateria,
+          numeroRaia: resultadoSalvo.numeroRaia,
+          temResultadoSalvo: Boolean(resultadoSalvo.resultado)
         };
       })
       .sort((a, b) =>
@@ -294,5 +368,6 @@ module.exports = {
   resolverSlugDaProva,
   obterPontuacaoPorAtleta,
   obterResultadosFinaisPorProva,
+  obterDetalhesResultadosPorAtleta,
   montarProvasComAtletasEDetalhes
 };

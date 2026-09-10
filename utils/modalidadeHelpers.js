@@ -1,10 +1,11 @@
 function inferirGeneroModalidade(nome, generoInformado = '') {
   const generoNormalizado = String(generoInformado || '').trim();
-  if (generoNormalizado === 'Masculino' || generoNormalizado === 'Feminino') {
+  if (generoNormalizado === 'Masculino' || generoNormalizado === 'Feminino' || generoNormalizado === 'Misto') {
     return generoNormalizado;
   }
 
   const nomeNormalizado = String(nome || '').trim().toLowerCase();
+  if (nomeNormalizado.includes('misto')) return 'Misto';
   if (nomeNormalizado.includes('feminino')) return 'Feminino';
   if (nomeNormalizado.includes('masculino')) return 'Masculino';
 

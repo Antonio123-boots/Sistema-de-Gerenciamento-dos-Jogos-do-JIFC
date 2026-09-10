@@ -66,16 +66,32 @@
 
     <% if (modalidadeAtiva.categoria === 'xadrez') { %>
       <% if (classificadosXadrez && classificadosXadrez.length > 0) { %>
-        <div class="chave-card" style="max-width: 800px; margin: 0 auto;">
-          <div class="chave-title">♟️ Tabela de Classificação Atualizada — Sistema Suíço</div>
-          <ul class="chave-equipes-list">
+        <div class="chave-card" style="max-width: 900px; margin: 0 auto; overflow-x: auto;">
+          <div class="chave-title">♟️ Tabela de Classificação</div>
+          <div style="min-width: 620px;">
+            <div style="display:grid; grid-template-columns:42px minmax(0,1.8fr) minmax(0,1.3fr) 52px 44px 40px 40px 40px; gap:0.3rem; align-items:center; font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color:#b8c2cc; padding:0.55rem 0.4rem; border-bottom:1px solid rgba(255,255,255,0.1);">
+              <div style="text-align:center;">#</div>
+              <div style="text-align:left;">Atleta</div>
+              <div style="text-align:left;">Campus</div>
+              <div style="text-align:center; color:#58d68d;">P</div>
+              <div style="text-align:center;">J</div>
+              <div style="text-align:center; color:#58d68d;">V</div>
+              <div style="text-align:center; color:#f5b041;">E</div>
+              <div style="text-align:center; color:#f1948a;">D</div>
+            </div>
             <% classificadosXadrez.forEach((enxadrista, index) => { %>
-              <li class="chave-equipe-item">
-                <span><span class="chave-equipe-pos"><%= index + 1 %>º</span> <strong><%= enxadrista.nomeAtleta %></strong> (<%= enxadrista.nomeCampus %>)</span>
-                <span class="chave-equipe-pontos"><%= enxadrista.pontuacaoAtual %> pts</span>
-              </li>
+              <div style="display:grid; grid-template-columns:42px minmax(0,1.8fr) minmax(0,1.3fr) 52px 44px 40px 40px 40px; gap:0.3rem; align-items:center; font-size:0.8rem; padding:0.5rem 0.4rem; border-top:1px solid rgba(255,255,255,0.06); <%= index < 3 ? 'background:rgba(88,214,141,0.04);' : '' %>">
+                <div style="font-weight:700; color:#dfe3e8; text-align:center;"><%= index + 1 %>º</div>
+                <div style="color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= enxadrista.nomeAtleta %></div>
+                <div style="color:rgba(255,255,255,0.6); font-size:0.75rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= enxadrista.nomeCampus %></div>
+                <div style="font-weight:700; color:#58d68d; text-align:center;"><%= enxadrista.pontuacaoAtual %></div>
+                <div style="text-align:center; color:#dfe3e8;"><%= enxadrista.jogos || 0 %></div>
+                <div style="text-align:center; color:#58d68d;"><%= enxadrista.vitorias || 0 %></div>
+                <div style="text-align:center; color:#f5b041;"><%= enxadrista.empates || 0 %></div>
+                <div style="text-align:center; color:#f1948a;"><%= enxadrista.derrotas || 0 %></div>
+              </div>
             <% }) %>
-          </ul>
+          </div>
         </div>
       <% } else { %>
         <div class="feedback-empty">

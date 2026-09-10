@@ -1,10 +1,15 @@
-// Base de dados local em memória para modalidades e atletas dos campus.
+// Inscrições e atletas dos campus com o MySQL como fonte única de verdade.
+// O módulo mantém um cache em memória (read model) carregado do banco no startup
+// e atualizado a cada escrita, preservando a API síncrona usada pelos controllers.
 const db = require('../config/db');
-const argon2 = require('argon2');
-const { listarCampiSync } = require('./campiCatalog');
+const { listarCampi } = require('./campiCatalog');
 const { readState, writeState } = require('./stateStore');
 
-const campusBase = listarCampiSync();
+const cache = {
+  inscricoesCampus: {},
+  atletasCampus: []
+};
+
 const modalidadesBase = [
   'Futsal Masculino',
   'Futsal Feminino',
@@ -14,16 +19,7 @@ const modalidadesBase = [
   'Basquete Feminino'
 ];
 
-const nomesAtletas = [
-  'Lucas Mendes', 'Camila Nunes', 'Bruno Alves', 'Ana Souza', 'Pedro Henrique',
-  'Mariana Silva', 'João Victor', 'Luiza Costa', 'Gabriel Martins', 'Bianca Rocha',
-  'Rafael Oliveira', 'Nina Pereira', 'Caio Santos', 'Aline Freitas', 'Thiago Cardoso'
-];
-
-const estadoInicialCampus = carregarEstadoCampus();
-const inscricoesCampus = estadoInicialCampus.inscricoesCampus;
-
-const atletasCampus = estadoInicialCampus.atletasCampus;
+const STATUS_ATLETA = ['Analise', 'Regular', 'Reprovado'];
 
 function normalizarCPFParaBanco(valor) {
   return String(valor || '').replace(/\D/g, '').slice(0, 11);
@@ -38,149 +34,16 @@ function normalizarNomeModalidadeParaBanco(nome) {
 }
 
 const { inferirGeneroModalidade, inferirTipoConfrontoModalidade, inferirFormatoDisputaModalidade } = require('../utils/modalidadeHelpers');
+const { gerarSlug } = require('../utils/slug');
 
-async function buscarCampusIdNoBanco(campusNome) {
-  const nome = String(campusNome || '').trim();
-  if (!nome) {
-    return null;
-  }
-
+function parseJsonArray(valor) {
+  if (!valor) return [];
   try {
-    const [linhas] = await db.query(
-      'SELECT id FROM campus WHERE nome = ? OR nome_exibicao = ? OR slug = ? LIMIT 1',
-      [nome, nome, gerarSlug(nome)]
-    );
-    return linhas[0]?.id || null;
-  } catch (error) {
-    return null;
+    const parsed = JSON.parse(valor);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_) {
+    return [];
   }
-}
-
-async function garantirCampusNoBanco(campusNome) {
-  const campusId = await buscarCampusIdNoBanco(campusNome);
-  if (campusId) {
-    return campusId;
-  }
-
-  const nome = String(campusNome || '').trim();
-  if (!nome) {
-    return null;
-  }
-
-  try {
-    const slug = gerarSlug(nome);
-    const senhaHash = await argon2.hash('jifc2026');
-    const [resultado] = await db.query(
-      'INSERT INTO campus (nome, nome_exibicao, cidade, email, senha, slug, cor, foto_perfil, banned, ban_motivo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [nome, nome, nome, `${slug}@ifc.edu.br`, senhaHash, slug, '#2980b9', '/imagens/avatar.svg', 0, '']
-    );
-    return resultado.insertId;
-  } catch (error) {
-    return null;
-  }
-}
-
-async function garantirModalidadeNoBanco(nomeModalidade) {
-  const nome = normalizarNomeModalidadeParaBanco(nomeModalidade);
-  if (!nome) {
-    return null;
-  }
-
-  const nomeBase = nome.replace(/\s+(Masculino|Feminino)$/i, '').trim();
-  const genero = inferirGeneroModalidade(nome);
-  const tipoConfronto = inferirTipoConfrontoModalidade(nome);
-  const formatoDisputa = inferirFormatoDisputaModalidade(nome);
-
-  try {
-    const [linhas] = await db.query(
-      'SELECT id FROM modalidades WHERE (nome = ? OR nome = ?) AND genero = ? LIMIT 1',
-      [nome, nomeBase, genero]
-    );
-
-    if (linhas[0]?.id) {
-      return linhas[0].id;
-    }
-
-    const [resultado] = await db.query(
-      'INSERT INTO modalidades (nome, genero, tipo_confronto, formato_disputa) VALUES (?, ?, ?, ?)',
-      [nome, genero, tipoConfronto, formatoDisputa]
-    );
-
-    return resultado.insertId;
-  } catch (error) {
-    return null;
-  }
-}
-
-async function sincronizarLinksCampusModalidade(campusId, modalidades) {
-  if (!campusId) {
-    return;
-  }
-
-  const modalidadesSelecionadas = normalizarInscricoesCampus(modalidades);
-  const modalidadeIds = [];
-
-  for (const modalidade of modalidadesSelecionadas) {
-    const modalidadeId = await garantirModalidadeNoBanco(modalidade);
-    if (modalidadeId) {
-      modalidadeIds.push(modalidadeId);
-    }
-  }
-
-  const idsUnicos = [...new Set(modalidadeIds)];
-  await db.query('DELETE FROM campus_modalidade WHERE campus_id = ?', [campusId]);
-
-  for (const modalidadeId of idsUnicos) {
-    await db.query('INSERT INTO campus_modalidade (campus_id, modalidade_id) VALUES (?, ?)', [campusId, modalidadeId]);
-  }
-}
-
-async function sincronizarAtletaNoBanco(campusId, atletaDados, modalidadesSelecionadas = []) {
-  if (!campusId) {
-    return null;
-  }
-
-  const nome = String(atletaDados?.nome || '').trim();
-  const matricula = normalizarMatricula(atletaDados?.matricula);
-  const cpf = normalizarCPFParaBanco(atletaDados?.cpf);
-  const genero = normalizarGenero(atletaDados?.genero) || 'Masculino';
-  const dataNascimento = String(atletaDados?.dataNascimento || '').trim();
-  const modalidades = normalizarModalidades(modalidadesSelecionadas);
-  const modalidadeIds = [];
-
-  for (const modalidade of modalidades) {
-    const modalidadeId = await garantirModalidadeNoBanco(modalidade);
-    if (modalidadeId) {
-      modalidadeIds.push(modalidadeId);
-    }
-  }
-
-  const [existente] = await db.query('SELECT id FROM atletas WHERE campus_id = ? AND matricula = ? LIMIT 1', [campusId, matricula]);
-  let atletaId = existente?.[0]?.id || null;
-
-  const provasAtletismoJson = Array.isArray(atletaDados?.atletismoProvas) && atletaDados.atletismoProvas.length
-    ? JSON.stringify(atletaDados.atletismoProvas)
-    : null;
-
-  if (atletaId) {
-    await db.query(
-      'UPDATE atletas SET nome = ?, cpf = ?, genero = ?, data_nascimento = ?, provas_atletismo = COALESCE(?, provas_atletismo) WHERE id = ?',
-      [nome, cpf, genero, dataNascimento, provasAtletismoJson, atletaId]
-    );
-  } else {
-    const [resultado] = await db.query(
-      'INSERT INTO atletas (campus_id, nome, cpf, matricula, genero, data_nascimento, provas_atletismo) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [campusId, nome, cpf, matricula, genero, dataNascimento, provasAtletismoJson]
-    );
-    atletaId = resultado.insertId;
-  }
-
-  await db.query('DELETE FROM atleta_modalidade WHERE atleta_id = ?', [atletaId]);
-  for (const modalidadeId of [...new Set(modalidadeIds)]) {
-    await db.query('INSERT INTO atleta_modalidade (atleta_id, modalidade_id) VALUES (?, ?)', [atletaId, modalidadeId]);
-  }
-
-  return atletaId;
 }
 
 function normalizarMatricula(matricula) {
@@ -259,7 +122,7 @@ function obterAnoEvento(opcoes = {}) {
 }
 
 function normalizarStatusSolicitado(status) {
-  const statusNormalizado = String(status || 'Regular').trim().toLowerCase();
+  const statusNormalizado = String(status || 'Analise').trim().toLowerCase();
   if (statusNormalizado.startsWith('anal') || statusNormalizado.startsWith('pend')) {
     return 'Analise';
   }
@@ -374,181 +237,388 @@ function extrairGeneroPorModalidade(modalidades = []) {
   return 'Masculino';
 }
 
-function criarEstadoPadraoCampus() {
-  const inscricoesPadrao = campusBase.reduce((acumulador, campus, index) => {
-    const primeiraModalidade = modalidadesBase[index % modalidadesBase.length];
-    const segundaModalidade = modalidadesBase[(index + 2) % modalidadesBase.length];
-
-    acumulador[campus.nome] = [primeiraModalidade, segundaModalidade].filter((modalidade, posicao, lista) => lista.indexOf(modalidade) === posicao);
-    return acumulador;
-  }, {});
-
-  const atletasPadrao = campusBase.map((campus, index) => ({
-    id: index + 1,
-    nome: nomesAtletas[index],
-    campus: campus.nome,
-    matricula: `2026${String(index + 1).padStart(4, '0')}`,
-    modalidade: inscricoesPadrao[campus.nome][0],
-    dataNascimento: `200${index % 3 === 0 ? 6 : 7}-${String((index % 9) + 1).padStart(2, '0')}-${String((index % 27) + 1).padStart(2, '0')}`,
-    status: 'Regular'
-  }));
-
+function montarAtletaCache(linha, modalidades = []) {
   return {
-    inscricoesCampus: inscricoesPadrao,
-    atletasCampus: atletasPadrao
+    id: Number(linha.id),
+    nome: String(linha.nome || '').trim(),
+    matricula: String(linha.matricula || '').trim(),
+    modalidades: modalidades.slice(),
+    modalidade: modalidades.length ? modalidades.join(', ') : String(linha.modalidade || ''),
+    dataNascimento: String(linha.dataNascimento || linha.data_nascimento || '').trim(),
+    cpf: formatarCPF(linha.cpf),
+    campus: String(linha.campus_nome || linha.campusNome || '').trim(),
+    genero: String(linha.genero || 'Masculino').trim(),
+    status: normalizarStatusExibicao(linha.status),
+    atletismoProvas: parseJsonArray(linha.provas_atletismo),
+    tenisMesaParticipacoes: parseJsonArray(linha.tenis_mesa_participacoes)
   };
 }
 
-function carregarEstadoCampus() {
-  const estado = readState();
-  const padrao = criarEstadoPadraoCampus();
-  const campusPersistido = estado.campus || {};
-  const inscricoesPersistidas = campusPersistido.inscricoesCampus || campusPersistido.inscricoes || {};
+/* =====================================================================
+   Carga do cache a partir do MySQL (fonte única de verdade)
+   ===================================================================== */
 
-  return {
-    inscricoesCampus: {
-      ...padrao.inscricoesCampus,
-      ...inscricoesPersistidas
-    },
-    atletasCampus: Object.prototype.hasOwnProperty.call(campusPersistido, 'atletasCampus')
-      ? campusPersistido.atletasCampus
-      : (Object.prototype.hasOwnProperty.call(campusPersistido, 'atletas') ? campusPersistido.atletas : padrao.atletasCampus)
-  };
-}
+async function carregarCacheDeInscricoesEAtletas() {
+  try {
+    const [campusRows] = await db.query('SELECT id, nome FROM campus');
+    const [atletasRows] = await db.query(
+      `SELECT a.id, a.nome, a.cpf, a.matricula, a.genero, a.data_nascimento,
+              a.provas_atletismo, a.tenis_mesa_participacoes, a.status,
+              c.nome AS campus_nome
+       FROM atletas a
+       JOIN campus c ON c.id = a.campus_id
+       ORDER BY c.nome ASC, a.nome ASC`
+    );
+    const [inscricoesRows] = await db.query(
+      'SELECT cm.campus_id, m.nome AS modalidade_nome FROM campus_modalidade cm JOIN modalidades m ON m.id = cm.modalidade_id'
+    );
+    const [atletaModalidadeRows] = await db.query(
+      'SELECT am.atleta_id, m.nome AS modalidade_nome FROM atleta_modalidade am JOIN modalidades m ON m.id = am.modalidade_id'
+    );
 
-function persistirEstadoCampus() {
-  const estadoAtual = readState();
-  estadoAtual.campus = {
-    inscricoesCampus,
-    atletasCampus
-  };
+    const nomePorCampusId = new Map(campusRows.map((campus) => [Number(campus.id), String(campus.nome || '').trim()]));
 
-  writeState(estadoAtual);
-}
-
-const { gerarSlug } = require('../utils/slug');
-
-function removerCampusDoEstado(campusAtual) {
-  const nomesCampus = [campusAtual?.nome, campusAtual?.nomeExibicao, campusAtual?.slug]
-    .filter((valor) => typeof valor === 'string' && valor.trim())
-    .map((valor) => valor.trim())
-    .filter((valor, index, lista) => lista.indexOf(valor) === index);
-
-  if (inscricoesCampus && typeof inscricoesCampus === 'object') {
-    for (const nomeCampus of nomesCampus) {
-      delete inscricoesCampus[nomeCampus];
-      delete inscricoesCampus[gerarSlug(nomeCampus)];
-    }
-  }
-
-  if (Array.isArray(atletasCampus)) {
-    const proximoEstado = atletasCampus.filter((atleta) => {
-      const campusNome = String(atleta?.campus || '').trim();
-      const campusSlug = String(atleta?.campusSlug || '').trim();
-      return (
-        campusNome !== String(campusAtual?.nome || '').trim() &&
-        campusNome !== String(campusAtual?.nomeExibicao || '').trim() &&
-        campusSlug !== String(campusAtual?.slug || '').trim()
-      );
+    const inscricoes = {};
+    campusRows.forEach((campus) => {
+      inscricoes[String(campus.nome || '').trim()] = [];
+    });
+    inscricoesRows.forEach((linha) => {
+      const nomeCampus = nomePorCampusId.get(Number(linha.campus_id));
+      if (!nomeCampus || !linha.modalidade_nome) return;
+      if (!inscricoes[nomeCampus]) inscricoes[nomeCampus] = [];
+      if (!inscricoes[nomeCampus].includes(linha.modalidade_nome)) {
+        inscricoes[nomeCampus].push(linha.modalidade_nome);
+      }
     });
 
-    atletasCampus.splice(0, atletasCampus.length, ...proximoEstado);
-  }
+    const modalidadesPorAtleta = new Map();
+    atletaModalidadeRows.forEach((linha) => {
+      if (!linha.modalidade_nome) return;
+      if (!modalidadesPorAtleta.has(linha.atleta_id)) modalidadesPorAtleta.set(linha.atleta_id, []);
+      const lista = modalidadesPorAtleta.get(linha.atleta_id);
+      if (!lista.includes(linha.modalidade_nome)) lista.push(linha.modalidade_nome);
+    });
 
-  persistirEstadoCampus();
+    cache.inscricoesCampus = inscricoes;
+    cache.atletasCampus = atletasRows.map((linha) => montarAtletaCache(linha, modalidadesPorAtleta.get(linha.id) || []));
+
+    return cache;
+  } catch (error) {
+    console.error('Erro ao carregar cache de inscrições/atletas do banco:', error.message);
+    return cache;
+  }
 }
 
-function determinarStatusAtleta(dados, excluirId = null, statusSolicitado = 'Regular', opcoes = {}) {
-  const matriculaNormalizada = normalizarMatricula(dados.matricula);
-  const statusBase = normalizarStatusSolicitado(statusSolicitado);
+/* =====================================================================
+   Migração idempotente: dados legados do state store -> MySQL
+   (roda no startup; não apaga nada, só preenche lacunas)
+   ===================================================================== */
 
-  if (!matriculaNormalizada || obterAnoNascimento(dados.dataNascimento) === null) {
-    return 'Irregular';
+async function buscarCampusIdNoBanco(campusNome) {
+  const nome = String(campusNome || '').trim();
+  if (!nome) {
+    return null;
   }
 
-  const matriculaRepetida = atletasCampus.some((atleta) => {
-    if (excluirId && atleta.id === Number(excluirId)) {
-      return false;
+  try {
+    const [linhas] = await db.query(
+      'SELECT id FROM campus WHERE nome = ? OR nome_exibicao = ? OR slug = ? LIMIT 1',
+      [nome, nome, gerarSlug(nome)]
+    );
+    return linhas[0]?.id || null;
+  } catch (error) {
+    return null;
+  }
+}
+
+async function garantirModalidadeNoBanco(nomeModalidade) {
+  const nome = normalizarNomeModalidadeParaBanco(nomeModalidade);
+  if (!nome) {
+    return null;
+  }
+
+  const nomeBase = nome.replace(/\s+(Masculino|Feminino)$/i, '').trim();
+  const genero = inferirGeneroModalidade(nome);
+  const tipoConfronto = inferirTipoConfrontoModalidade(nome);
+  const formatoDisputa = inferirFormatoDisputaModalidade(nome);
+
+  try {
+    const [linhas] = await db.query(
+      `SELECT id FROM modalidades
+       WHERE genero = ? AND (nome = ? OR nome = ?)
+       ORDER BY (nome = ?) DESC, id ASC
+       LIMIT 1`,
+      [genero, nome, nomeBase, nome]
+    );
+
+    if (linhas[0]?.id) {
+      return linhas[0].id;
     }
 
-    return normalizarMatricula(atleta.matricula) === matriculaNormalizada;
-  });
+    const [resultado] = await db.query(
+      'INSERT INTO modalidades (nome, genero, tipo_confronto, formato_disputa) VALUES (?, ?, ?, ?)',
+      [nome, genero, tipoConfronto, formatoDisputa]
+    );
 
-  if (matriculaRepetida) {
-    return 'Irregular';
+    return resultado.insertId;
+  } catch (error) {
+    return null;
   }
-
-  if (!atletaEhSub19(dados, opcoes)) {
-    return 'Irregular';
-  }
-
-  return statusBase;
 }
 
-function localizarAtletaPorId(atletaId) {
-  return atletasCampus.find((item) => item.id === Number(atletaId)) || null;
+async function sincronizarLinksCampusModalidade(campusId, modalidades) {
+  if (!campusId) {
+    return;
+  }
+
+  const modalidadesSelecionadas = normalizarInscricoesCampus(modalidades);
+  const modalidadeIds = [];
+
+  for (const modalidade of modalidadesSelecionadas) {
+    const modalidadeId = await garantirModalidadeNoBanco(modalidade);
+    if (modalidadeId) {
+      modalidadeIds.push(modalidadeId);
+    }
+  }
+
+  const idsUnicos = [...new Set(modalidadeIds)];
+  await db.query('DELETE FROM campus_modalidade WHERE campus_id = ?', [campusId]);
+
+  for (const modalidadeId of idsUnicos) {
+    await db.query('INSERT INTO campus_modalidade (campus_id, modalidade_id) VALUES (?, ?)', [campusId, modalidadeId]);
+  }
 }
 
-// Retorna as modalidades cadastradas para o campus informado.
+async function garantizarModalidadesDoAtletaNoBanco(atletaId, modalidadesSelecionadas = []) {
+  const modalidadeIds = [];
+
+  for (const modalidade of normalizarModalidades(modalidadesSelecionadas)) {
+    const modalidadeId = await garantirModalidadeNoBanco(modalidade);
+    if (modalidadeId) {
+      modalidadeIds.push(modalidadeId);
+    }
+  }
+
+  await db.query('DELETE FROM atleta_modalidade WHERE atleta_id = ?', [atletaId]);
+  for (const modalidadeId of [...new Set(modalidadeIds)]) {
+    await db.query('INSERT INTO atleta_modalidade (atleta_id, modalidade_id) VALUES (?, ?)', [atletaId, modalidadeId]);
+  }
+}
+
+async function sincronizarAtletaNoBanco(campusId, atletaDados, modalidadesSelecionadas = [], extras = {}) {
+  if (!campusId) {
+    return null;
+  }
+
+  const nome = String(atletaDados?.nome || '').trim();
+  const matricula = normalizarMatricula(atletaDados?.matricula);
+  const cpf = normalizarCPFParaBanco(atletaDados?.cpf);
+  const genero = normalizarGenero(atletaDados?.genero) || 'Masculino';
+  const dataNascimento = String(atletaDados?.dataNascimento || '').trim();
+  const modalidades = normalizarModalidades(modalidadesSelecionadas);
+  const modalidadeIds = [];
+
+  for (const modalidade of modalidades) {
+    const modalidadeId = await garantirModalidadeNoBanco(modalidade);
+    if (modalidadeId) {
+      modalidadeIds.push(modalidadeId);
+    }
+  }
+
+  const provasAtletismoJson = Array.isArray(atletaDados?.atletismoProvas) && atletaDados.atletismoProvas.length
+    ? JSON.stringify(atletaDados.atletismoProvas)
+    : null;
+
+  const tenisMesaJson = Array.isArray(atletaDados?.tenisMesaParticipacoes) && atletaDados.tenisMesaParticipacoes.length
+    ? JSON.stringify(atletaDados.tenisMesaParticipacoes)
+    : null;
+
+  const statusSolicitado = String(extras.status || 'Analise').trim();
+  const status = STATUS_ATLETA.includes(statusSolicitado) ? statusSolicitado : 'Analise';
+
+  const [existente] = await db.query(
+    'SELECT id, status FROM atletas WHERE campus_id = ? AND matricula = ? LIMIT 1',
+    [campusId, matricula]
+  );
+
+  const statusAtual = STATUS_ATLETA.includes(String(existente?.[0]?.status || '').trim())
+    ? String(existente[0].status).trim()
+    : 'Analise';
+  const statusFinal = status === 'Analise' ? (statusSolicitado === 'Analise' ? statusAtual : status) : status;
+
+  let atletaId = existente?.[0]?.id || null;
+
+  if (atletaId) {
+    await db.query(
+      `UPDATE atletas SET
+         nome = ?, cpf = ?, genero = ?, data_nascimento = ?,
+         provas_atletismo = COALESCE(?, provas_atletismo),
+         tenis_mesa_participacoes = COALESCE(?, tenis_mesa_participacoes),
+         status = ?
+       WHERE id = ?`,
+      [nome, cpf, genero, dataNascimento, provasAtletismoJson, tenisMesaJson, statusFinal, atletaId]
+    );
+  } else {
+    const [resultado] = await db.query(
+      `INSERT INTO atletas
+         (campus_id, nome, cpf, matricula, genero, data_nascimento, provas_atletismo, tenis_mesa_participacoes, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [campusId, nome, cpf, matricula, genero, dataNascimento, provasAtletismoJson, tenisMesaJson, status]
+    );
+    atletaId = resultado.insertId;
+  }
+
+  await garantizarModalidadesDoAtletaNoBanco(atletaId, modalidadeIds.length ? normalizarModalidades(modalidadesSelecionadas) : []);
+
+  return atletaId;
+}
+
+async function migrarDadosCampusDoStateParaBanco() {
+  const estado = readState();
+  const campusState = estado.campus || {};
+  const inscricoesState = campusState.inscricoesCampus || campusState.inscricoes || {};
+  const atletasState = Array.isArray(campusState.atletasCampus)
+    ? campusState.atletasCampus
+    : (Array.isArray(campusState.atletas) ? campusState.atletas : []);
+
+  const nomesDeCampusEstado = [
+    ...Object.keys(inscricoesState),
+    ...new Set(atletasState.map((atleta) => String(atleta.campus || '').trim()).filter(Boolean))
+  ].filter(Boolean);
+
+  let atletasMigrados = 0;
+
+  try {
+    const campi = await listarCampi();
+    for (const campus of campi) {
+      const nomesCampus = [...new Set([campus.nome, campus.nomeExibicao, campus.slug].map((valor) => String(valor || '').trim()).filter(Boolean))];
+      const bateComEstado = nomesCampus.some((nomeEstado) =>
+        nomesDeCampusEstado.includes(nomeEstado) || gerarSlug(nomeEstado) === String(campus.slug || '').trim()
+      );
+      if (!bateComEstado) continue;
+
+      const inscricoes = nomesCampus
+        .map((nomeEstado) => inscricoesState[nomeEstado] || inscricoesState[gerarSlug(nomeEstado)] || null)
+        .find((lista) => Array.isArray(lista) && lista.length);
+      if (inscricoes && inscricoes.length) {
+        const [jaExistem] = await db.query('SELECT COUNT(*) AS total FROM campus_modalidade WHERE campus_id = ?', [campus.id]);
+        if (Number(jaExistem[0]?.total || 0) === 0) {
+          await sincronizarLinksCampusModalidade(campus.id, inscricoes);
+        }
+      }
+
+      for (const atleta of atletasState) {
+        const nomeAtletaCampus = String(atleta.campus || '').trim();
+        const campusBate = nomesCampus.some((nomeEstado) => nomeAtletaCampus === nomeEstado || gerarSlug(nomeAtletaCampus) === String(campus.slug || '').trim());
+        if (!campusBate) continue;
+
+        const matricula = normalizarMatricula(atleta.matricula);
+        const nome = String(atleta.nome || '').trim();
+        if (!matricula || !nome) continue;
+
+        const statusSolicitado = String(atleta.status || '').trim();
+        const status = STATUS_ATLETA.includes(statusSolicitado)
+          ? statusSolicitado
+          : (statusSolicitado ? normalizarStatusSolicitado(atleta.status) : 'Analise');
+        const modalidadesSelecionadas = normalizarModalidades(atleta.modalidades || atleta.modalidade);
+
+        const [existente] = await db.query(
+          'SELECT id, status FROM atletas WHERE campus_id = ? AND matricula = ? LIMIT 1',
+          [campus.id, matricula]
+        );
+
+        if (existente[0]) {
+          const novosCampos = [];
+          const novosValores = [];
+          const provasJson = Array.isArray(atleta.atletismoProvas) && atleta.atletismoProvas.length ? JSON.stringify(atleta.atletismoProvas) : null;
+          const tenisJson = Array.isArray(atleta.tenisMesaParticipacoes) && atleta.tenisMesaParticipacoes.length ? JSON.stringify(atleta.tenisMesaParticipacoes) : null;
+
+          if (provasJson) {
+            novosCampos.push('provas_atletismo = ?');
+            novosValores.push(provasJson);
+          }
+          if (tenisJson) {
+            novosCampos.push('tenis_mesa_participacoes = ?');
+            novosValores.push(tenisJson);
+          }
+          const statusDb = STATUS_ATLETA.includes(String(existente[0].status || '').trim()) ? String(existente[0].status).trim() : 'Analise';
+          if (status !== statusDb) {
+            novosCampos.push('status = ?');
+            novosValores.push(status);
+          }
+          if (novosCampos.length) {
+            novosValores.push(existente[0].id);
+            await db.query(`UPDATE atletas SET ${novosCampos.join(', ')} WHERE id = ?`, novosValores);
+          }
+
+          if (modalidadesSelecionadas.length) {
+            await garantizarModalidadesDoAtletaNoBanco(existente[0].id, modalidadesSelecionadas);
+          }
+        } else {
+          const cpfAtleta = normalizarCPFParaBanco(atleta.cpf);
+          if (cpfAtleta) {
+            const [porCpf] = await db.query('SELECT id FROM atletas WHERE cpf = ? LIMIT 1', [cpfAtleta]);
+            if (porCpf[0]) {
+              await garantizarModalidadesDoAtletaNoBanco(porCpf[0].id, modalidadesSelecionadas);
+              continue;
+            }
+          }
+          await sincronizarAtletaNoBanco(campus.id, atleta, modalidadesSelecionadas, { status });
+          atletasMigrados++;
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Erro ao migrar dados de campus do state para o banco:', error.message);
+  }
+
+  try {
+    const migracaoAnterior = estado.migracaoCampusParaBanco || {};
+    if (!migracaoAnterior.executadaEm || atletasMigrados > 0) {
+      estado.migracaoCampusParaBanco = {
+        executadaEm: new Date().toISOString(),
+        atletasMigrados
+      };
+      writeState(estado);
+    }
+  } catch (_) {
+    // flag opcional de migração; falha não deve interromper o startup
+  }
+
+  return atletasMigrados;
+}
+
+/* =====================================================================
+   Leituras (fonte: cache carregado do MySQL)
+   ===================================================================== */
+
 function getInscricoes(campusNome) {
-  return (inscricoesCampus[campusNome] || []).slice();
+  return (cache.inscricoesCampus[campusNome] || []).slice();
 }
 
-// Salva a lista de modalidades escolhidas por um campus.
-async function salvarInscricoes(campusNome, modalidades) {
-  const listaNormalizada = normalizarInscricoesCampus(modalidades);
-  inscricoesCampus[campusNome] = listaNormalizada;
-  persistirEstadoCampus();
-
-  const campusId = await garantirCampusNoBanco(campusNome);
-  if (campusId) {
-    await sincronizarLinksCampusModalidade(campusId, listaNormalizada);
-  }
-
-  return getInscricoes(campusNome);
-}
-
-// Busca os atletas pertencentes a um campus específico.
 function getAtletas(campusNome) {
-  return atletasCampus.filter((item) => item.campus === campusNome).map((item) => ({
-    ...item,
-    modalidades: normalizarModalidades(item.modalidades || item.modalidade),
-    modalidade: Array.isArray(item.modalidades) ? item.modalidades.join(', ') : item.modalidade,
-    genero: item.genero || extrairGeneroPorModalidade(item.modalidades || item.modalidade),
-    status: normalizarStatusExibicao(item.status),
-    atletismoProvas: Array.isArray(item.atletismoProvas) ? item.atletismoProvas : [],
-    tenisMesaParticipacoes: Array.isArray(item.tenisMesaParticipacoes) ? item.tenisMesaParticipacoes : []
-  }));
+  return cache.atletasCampus
+    .filter((item) => item.campus === campusNome)
+    .map((item) => ({ ...item }));
 }
 
 function getAtletasParaAnalise(campusNome = null) {
-  const base = campusNome ? atletasCampus.filter((item) => item.campus === campusNome) : atletasCampus;
-  return base.map((item) => ({
-    ...item,
-    modalidades: normalizarModalidades(item.modalidades || item.modalidade),
-    modalidade: Array.isArray(item.modalidades) ? item.modalidades.join(', ') : item.modalidade,
-    genero: item.genero || extrairGeneroPorModalidade(item.modalidades || item.modalidade),
-    status: normalizarStatusExibicao(item.status),
-    atletismoProvas: Array.isArray(item.atletismoProvas) ? item.atletismoProvas : [],
-    tenisMesaParticipacoes: Array.isArray(item.tenisMesaParticipacoes) ? item.tenisMesaParticipacoes : []
-  })).sort((a, b) => a.campus.localeCompare(b.campus) || a.nome.localeCompare(b.nome));
+  const base = campusNome
+    ? cache.atletasCampus.filter((item) => item.campus === campusNome)
+    : cache.atletasCampus;
+
+  return base
+    .map((item) => ({ ...item }))
+    .sort((a, b) => a.campus.localeCompare(b.campus) || a.nome.localeCompare(b.nome));
 }
 
 function getAtletaPorId(atletaId) {
-  const atleta = localizarAtletaPorId(atletaId);
-  return atleta ? {
-    ...atleta,
-    modalidades: normalizarModalidades(atleta.modalidades || atleta.modalidade),
-    modalidade: Array.isArray(atleta.modalidades) ? atleta.modalidades.join(', ') : atleta.modalidade,
-    genero: atleta.genero || extrairGeneroPorModalidade(atleta.modalidades || atleta.modalidade),
-    status: normalizarStatusExibicao(atleta.status),
-    atletismoProvas: Array.isArray(atleta.atletismoProvas) ? atleta.atletismoProvas : [],
-    tenisMesaParticipacoes: Array.isArray(atleta.tenisMesaParticipacoes) ? atleta.tenisMesaParticipacoes : []
-  } : null;
+  const atleta = cache.atletasCampus.find((item) => item.id === Number(atletaId));
+  return atleta ? { ...atleta } : null;
 }
 
 function getQuantidadeRegulares(campusNome) {
-  return atletasCampus.filter((item) => item.campus === campusNome && normalizarStatusExibicao(item.status) === 'Regular').length;
+  return cache.atletasCampus.filter((item) => item.campus === campusNome && item.status === 'Regular').length;
 }
 
 function getQuantidadePendentes(campusNome) {
@@ -556,15 +626,15 @@ function getQuantidadePendentes(campusNome) {
 }
 
 function getQuantidadeAnalise(campusNome) {
-  return atletasCampus.filter((item) => item.campus === campusNome && normalizarStatusExibicao(item.status) === 'Analise').length;
+  return cache.atletasCampus.filter((item) => item.campus === campusNome && item.status === 'Analise').length;
 }
 
 function getQuantidadeReprovados(campusNome) {
-  return atletasCampus.filter((item) => item.campus === campusNome && normalizarStatusExibicao(item.status) === 'Reprovado').length;
+  return cache.atletasCampus.filter((item) => item.campus === campusNome && item.status === 'Reprovado').length;
 }
 
 function getQuantidadeTotal(campusNome) {
-  return atletasCampus.filter((item) => item.campus === campusNome).length;
+  return cache.atletasCampus.filter((item) => item.campus === campusNome).length;
 }
 
 function getQuantidadeDisponivelRegular(campusNome, limiteRegularTotalCampus) {
@@ -577,11 +647,52 @@ function getQuantidadeDisponivelRegular(campusNome, limiteRegularTotalCampus) {
   return Math.max(limite - getQuantidadeTotal(campusNome), 0);
 }
 
-// Cria um novo atleta com status regular ou pendente.
+/* =====================================================================
+   Escritas (MySQL + atualização do cache)
+   ===================================================================== */
+
+async function salvarInscricoes(campusNome, modalidades) {
+  const listaNormalizada = normalizarInscricoesCampus(modalidades);
+  cache.inscricoesCampus[campusNome] = listaNormalizada;
+
+  const campusId = await buscarCampusIdNoBanco(campusNome);
+  if (campusId) {
+    await sincronizarLinksCampusModalidade(campusId, listaNormalizada);
+  }
+
+  return getInscricoes(campusNome);
+}
+
+function removerCampusDoEstado(campusAtual) {
+  const nomesCampus = [campusAtual?.nome, campusAtual?.nomeExibicao, campusAtual?.slug]
+    .filter((valor) => typeof valor === 'string' && valor.trim())
+    .map((valor) => valor.trim())
+    .filter((valor, index, lista) => lista.indexOf(valor) === index);
+
+  if (cache.inscricoesCampus && typeof cache.inscricoesCampus === 'object') {
+    for (const nomeCampus of nomesCampus) {
+      delete cache.inscricoesCampus[nomeCampus];
+      delete cache.inscricoesCampus[gerarSlug(nomeCampus)];
+    }
+  }
+
+  cache.atletasCampus = cache.atletasCampus.filter((atleta) => {
+    const campusNome = String(atleta?.campus || '').trim();
+    const campusSlug = String(atleta?.campusSlug || '').trim();
+    return (
+      campusNome !== String(campusAtual?.nome || '').trim() &&
+      campusNome !== String(campusAtual?.nomeExibicao || '').trim() &&
+      campusSlug !== String(campusAtual?.slug || '').trim()
+    );
+  });
+
+  return true;
+}
+
 async function cadastrarAtleta(campusNome, dados, opcoes = {}) {
   const campos = validarCamposObrigatoriosAtleta(dados);
   const matriculaNormalizada = normalizarMatricula(campos.matricula);
-  const matriculaExistente = atletasCampus.some((atleta) => atleta.campus === campusNome && normalizarMatricula(atleta.matricula) === matriculaNormalizada);
+  const matriculaExistente = cache.atletasCampus.some((atleta) => atleta.campus === campusNome && normalizarMatricula(atleta.matricula) === matriculaNormalizada);
   const statusSolicitado = 'Analise';
   const limiteRegularTotalCampus = Number(opcoes.limiteRegularTotalCampus || 0);
   const modalidadesSelecionadas = campos.modalidades;
@@ -630,29 +741,42 @@ async function cadastrarAtleta(campusNome, dados, opcoes = {}) {
     throw erro;
   }
 
+  const campusId = await buscarCampusIdNoBanco(campusNome);
+  if (!campusId) {
+    const erro = new Error('Campus não localizado no banco de dados.');
+    erro.code = 'CAMPUS_NAO_ENCONTRADO';
+    throw erro;
+  }
+
   const atleta = {
-    id: Date.now(),
     nome: nomeCompleto,
     matricula: matriculaNormalizada,
-    modalidade: modalidadesSelecionadas.join(', '),
     modalidades: modalidadesSelecionadas,
     dataNascimento: campos.dataNascimento,
     cpf: campos.cpf,
     campus: campusNome,
     genero: campos.genero,
-    status: statusSolicitado,
     atletismoProvas: detalhesAtleta.atletismoProvas,
     tenisMesaParticipacoes: detalhesAtleta.tenisMesaParticipacoes
   };
-  atletasCampus.push(atleta);
-  persistirEstadoCampus();
 
-  const campusId = await garantirCampusNoBanco(campusNome);
-  if (campusId) {
-    await sincronizarAtletaNoBanco(campusId, atleta, modalidadesSelecionadas);
-  }
+  const atletaId = await sincronizarAtletaNoBanco(campusId, atleta, modalidadesSelecionadas, { status: statusSolicitado });
+  const novoAtleta = montarAtletaCache({
+    id: atletaId,
+    nome: nomeCompleto,
+    cpf: campos.cpf,
+    matricula: matriculaNormalizada,
+    genero: campos.genero,
+    dataNascimento: campos.dataNascimento,
+    provas_atletismo: detalhesAtleta.atletismoProvas.length ? JSON.stringify(detalhesAtleta.atletismoProvas) : null,
+    tenis_mesa_participacoes: detalhesAtleta.tenisMesaParticipacoes.length ? JSON.stringify(detalhesAtleta.tenisMesaParticipacoes) : null,
+    status: statusSolicitado,
+    campus_nome: campusNome
+  }, modalidadesSelecionadas);
 
-  return atleta;
+  cache.atletasCampus.push(novoAtleta);
+
+  return novoAtleta;
 }
 
 async function atualizarAtleta(atletaId, campusNome, dados, opcoes = {}) {
@@ -663,7 +787,7 @@ async function atualizarAtleta(atletaId, campusNome, dados, opcoes = {}) {
 
   const campos = validarCamposObrigatoriosAtleta(dados);
   const matriculaNormalizada = normalizarMatricula(campos.matricula);
-  const matriculaExistente = atletasCampus.some((item) => item.campus === campusNome && item.id !== Number(atletaId) && normalizarMatricula(item.matricula) === matriculaNormalizada);
+  const matriculaExistente = cache.atletasCampus.some((item) => item.campus === campusNome && item.id !== Number(atletaId) && normalizarMatricula(item.matricula) === matriculaNormalizada);
   const statusSolicitado = 'Analise';
   const limiteRegularTotalCampus = Number(opcoes.limiteRegularTotalCampus || 0);
   const modalidadesSelecionadas = campos.modalidades;
@@ -707,7 +831,7 @@ async function atualizarAtleta(atletaId, campusNome, dados, opcoes = {}) {
   }
 
   if (limiteRegularTotalCampus > 0) {
-    const totalSemAtletaAtual = atletasCampus.filter((item) => item.campus === campusNome && item.id !== Number(atletaId)).length;
+    const totalSemAtletaAtual = cache.atletasCampus.filter((item) => item.campus === campusNome && item.id !== Number(atletaId)).length;
     if (totalSemAtletaAtual >= limiteRegularTotalCampus) {
       const erro = new Error('O campus atingiu o limite total de atletas permitido.');
       erro.code = 'LIMITE_REGULAR_EXCEDIDO';
@@ -715,27 +839,49 @@ async function atualizarAtleta(atletaId, campusNome, dados, opcoes = {}) {
     }
   }
 
-  atleta.nome = nomeCompleto;
-  atleta.matricula = matriculaNormalizada;
-  atleta.modalidade = modalidadesSelecionadas.join(', ');
-  atleta.modalidades = modalidadesSelecionadas;
-  atleta.dataNascimento = campos.dataNascimento;
-  atleta.cpf = campos.cpf;
-  atleta.genero = campos.genero;
-  atleta.status = statusSolicitado;
-  atleta.atletismoProvas = detalhesAtleta.atletismoProvas;
-  atleta.tenisMesaParticipacoes = detalhesAtleta.tenisMesaParticipacoes;
-  persistirEstadoCampus();
-
-  const campusId = await garantirCampusNoBanco(campusNome);
-  if (campusId) {
-    await sincronizarAtletaNoBanco(campusId, atleta, modalidadesSelecionadas);
+  const campusId = await buscarCampusIdNoBanco(campusNome);
+  if (!campusId) {
+    const erro = new Error('Campus não localizado no banco de dados.');
+    erro.code = 'CAMPUS_NAO_ENCONTRADO';
+    throw erro;
   }
 
-  return { ...atleta };
+  await sincronizarAtletaNoBanco(campusId, {
+    nome: nomeCompleto,
+    matricula: matriculaNormalizada,
+    cpf: campos.cpf,
+    genero: campos.genero,
+    dataNascimento: campos.dataNascimento,
+    atletismoProvas: detalhesAtleta.atletismoProvas,
+    tenisMesaParticipacoes: detalhesAtleta.tenisMesaParticipacoes
+  }, modalidadesSelecionadas, { status: statusSolicitado });
+
+  const atualizado = montarAtletaCache({
+    id: Number(atletaId),
+    nome: nomeCompleto,
+    cpf: campos.cpf,
+    matricula: matriculaNormalizada,
+    genero: campos.genero,
+    dataNascimento: campos.dataNascimento,
+    provas_atletismo: detalhesAtleta.atletismoProvas.length ? JSON.stringify(detalhesAtleta.atletismoProvas) : null,
+    tenis_mesa_participacoes: detalhesAtleta.tenisMesaParticipacoes.length ? JSON.stringify(detalhesAtleta.tenisMesaParticipacoes) : null,
+    status: statusSolicitado,
+    campus_nome: campusNome
+  }, modalidadesSelecionadas);
+
+  const indice = cache.atletasCampus.findIndex((item) => item.id === Number(atletaId));
+  if (indice >= 0) {
+    cache.atletasCampus[indice] = atualizado;
+  }
+
+  return { ...atualizado };
 }
 
-function atualizarStatusAtleta(atletaId, novoStatus) {
+function localizarAtletaPorId(atletaId) {
+  return cache.atletasCampus.find((item) => item.id === Number(atletaId)) || null;
+}
+
+async function atualizarStatusAtleta(atletaId, novoStatus) {
   const atleta = localizarAtletaPorId(atletaId);
 
   if (!atleta) {
@@ -747,34 +893,40 @@ function atualizarStatusAtleta(atletaId, novoStatus) {
     return null;
   }
 
-  atleta.status = statusNormalizado;
-  persistirEstadoCampus();
-  return { ...atleta };
+  const indice = cache.atletasCampus.findIndex((item) => item.id === Number(atletaId));
+  if (indice >= 0) {
+    cache.atletasCampus[indice].status = statusNormalizado;
+  }
+
+  try {
+    await db.query('UPDATE atletas SET status = ? WHERE id = ?', [statusNormalizado, Number(atletaId)]);
+  } catch (error) {
+    console.error('Erro ao persistir status do atleta no banco:', error.message);
+  }
+
+  return { ...cache.atletasCampus[indice] || atleta };
 }
 
 async function excluirAtleta(atletaId, campusNome) {
-  const indice = atletasCampus.findIndex((item) => item.id === Number(atletaId) && item.campus === campusNome);
+  const indice = cache.atletasCampus.findIndex((item) => item.id === Number(atletaId) && item.campus === campusNome);
   if (indice === -1) {
     return false;
   }
 
-  atletasCampus.splice(indice, 1);
-  persistirEstadoCampus();
-
-  const campusId = await garantirCampusNoBanco(campusNome);
-  if (campusId) {
-    const idNumerico = Number(atletaId);
-    const [linhas] = await db.query('SELECT id FROM atletas WHERE campus_id = ? AND id = ? LIMIT 1', [campusId, idNumerico]);
-    if (linhas[0]?.id) {
-      await db.query('DELETE FROM atleta_modalidade WHERE atleta_id = ?', [linhas[0].id]);
-      await db.query('DELETE FROM atletas WHERE id = ?', [linhas[0].id]);
+  const [atleta] = cache.atletasCampus.splice(indice, 1);
+  const campusId = await buscarCampusIdNoBanco(campusNome);
+  if (campusId && atleta) {
+    try {
+      await db.query('DELETE FROM atleta_modalidade WHERE atleta_id = ?', [Number(atleta.id)]);
+      await db.query('DELETE FROM atletas WHERE id = ? AND campus_id = ?', [Number(atleta.id), campusId]);
+    } catch (error) {
+      console.error('Erro ao excluir atleta do banco:', error.message);
     }
   }
 
   return true;
 }
 
-// Cria uma substituição com status pendente de laudo.
 async function substituirAtleta(campusNome, dados) {
   const nomeCompleto = validarNomeCompleto(dados.nome);
   if (!nomeCompleto) {
@@ -785,37 +937,48 @@ async function substituirAtleta(campusNome, dados) {
 
   const modalidadesSelecionadas = normalizarModalidades(dados.modalidades || dados.modalidade);
   const detalhesAtleta = validarDetalhesAtleta(dados, modalidadesSelecionadas);
-  const atleta = { id: Date.now(), ...dados, nome: nomeCompleto, campus: campusNome, matricula: normalizarMatricula(dados.matricula), modalidades: modalidadesSelecionadas, genero: normalizarGenero(dados.genero), cpf: normalizarCPF(dados.cpf), status: 'Pendente', atletismoProvas: detalhesAtleta.atletismoProvas, tenisMesaParticipacoes: detalhesAtleta.tenisMesaParticipacoes };
-  atleta.modalidade = Array.isArray(atleta.modalidades) ? atleta.modalidades.join(', ') : dados.modalidade;
-  atletasCampus.push(atleta);
-  persistirEstadoCampus();
-
-  const campusId = await garantirCampusNoBanco(campusNome);
-  if (campusId) {
-    await sincronizarAtletaNoBanco(campusId, atleta, modalidadesSelecionadas);
+  const matricula = normalizarMatricula(dados.matricula);
+  const campusId = await buscarCampusIdNoBanco(campusNome);
+  if (!campusId) {
+    const erro = new Error('Campus não localizado no banco de dados.');
+    erro.code = 'CAMPUS_NAO_ENCONTRADO';
+    throw erro;
   }
 
-  return atleta;
+  const atleta = {
+    nome: nomeCompleto,
+    matricula,
+    modalidade: Array.isArray(dados.modalidades) ? dados.modalidades.join(', ') : dados.modalidade,
+    genero: normalizarGenero(dados.genero),
+    cpf: normalizarCPF(dados.cpf),
+    campus: campusNome,
+    atletismoProvas: detalhesAtleta.atletismoProvas,
+    tenisMesaParticipacoes: detalhesAtleta.tenisMesaParticipacoes
+  };
+
+  const atletaId = await sincronizarAtletaNoBanco(campusId, atleta, modalidadesSelecionadas, { status: 'Analise' });
+  const novoAtleta = montarAtletaCache({
+    id: atletaId,
+    nome: nomeCompleto,
+    cpf: normalizarCPFParaBanco(dados.cpf),
+    matricula,
+    genero: normalizarGenero(dados.genero) || 'Masculino',
+    dataNascimento: String(dados.dataNascimento || '').trim(),
+    provas_atletismo: detalhesAtleta.atletismoProvas.length ? JSON.stringify(detalhesAtleta.atletismoProvas) : null,
+    tenis_mesa_participacoes: detalhesAtleta.tenisMesaParticipacoes.length ? JSON.stringify(detalhesAtleta.tenisMesaParticipacoes) : null,
+    status: 'Analise',
+    campus_nome: campusNome
+  }, modalidadesSelecionadas);
+
+  cache.atletasCampus.push(novoAtleta);
+
+  return novoAtleta;
 }
 
-/* Garante que os atletas do estado com provas de atletismo existam no banco
-   (cobre inscrições antigas criadas antes da sincronização automática) */
+/* Mantido por compatibilidade: o antigo "sincronizar do state" agora é a
+   migração idempotente do state store em direção ao MySQL. */
 async function sincronizarAtletasComProvasNoBanco() {
-  const alvos = atletasCampus.filter((atleta) => Array.isArray(atleta.atletismoProvas) && atleta.atletismoProvas.length);
-  let sincronizados = 0;
-
-  for (const atleta of alvos) {
-    try {
-      const campusId = await garantirCampusNoBanco(atleta.campus);
-      if (!campusId) continue;
-      const atletaId = await sincronizarAtletaNoBanco(campusId, atleta, normalizarModalidades(atleta.modalidades || atleta.modalidade));
-      if (atletaId) sincronizados++;
-    } catch (error) {
-      console.error('Erro ao sincronizar atleta do estado no banco:', error.message);
-    }
-  }
-
-  return sincronizados;
+  return migrarDadosCampusDoStateParaBanco();
 }
 
 module.exports = {
@@ -839,5 +1002,7 @@ module.exports = {
   atualizarStatusAtleta,
   excluirAtleta,
   substituirAtleta,
-  sincronizarAtletasComProvasNoBanco
+  sincronizarAtletasComProvasNoBanco,
+  carregarCacheDeInscricoesEAtletas,
+  migrarDadosCampusDoStateParaBanco
 };

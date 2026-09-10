@@ -127,6 +127,14 @@
           <div style="margin-top:0.75rem; display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap;">
             <% if (jogo.status === 'Encerrado') { %>
               <span style="font-size:0.7rem; padding:0.25rem 0.6rem; border-radius:999px; background:rgba(88,214,141,0.18); color:#58d68d; font-weight:700;">Encerrado</span>
+              <% if (!jogo.wo) { %>
+                <a class="btn btn-secondary" style="font-size:0.8rem; padding:0.4rem 0.8rem;" href="/juiz/jogos/<%= jogo.id %>/placar?editar=1">Corrigir placar</a>
+              <% } else { %>
+                <form action="/juiz/jogos/<%= jogo.id %>/desfazer-wo" method="POST" style="display:inline;">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <button type="submit" class="btn btn-secondary" style="font-size:0.8rem; padding:0.4rem 0.8rem;">Cancelar W.O.</button>
+                </form>
+              <% } %>
             <% } else if (jogo.bloqueado) { %>
               <span style="font-size:0.7rem; padding:0.25rem 0.6rem; border-radius:999px; background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.7);"><%= jogo.status || 'Agendado' %></span>
               <span style="font-size:0.7rem; padding:0.35rem 0.7rem; border-radius:6px; background:rgba(180,130,60,0.15); color:#b4823c; font-weight:600; cursor:not-allowed;">Aguardando fase anterior</span>

@@ -10,21 +10,6 @@ const { ehTenisDeMesa, normalizarSubCategoriaFiltro } = require('../services/jog
 const resultadosIndividuaisService = require('../services/resultadosIndividuaisService');
 const mataMataService = require('../services/mataMataService');
 
-const IFCS = [
-    'IFC Araquari', 'IFC Blumenau', 'IFC Brusque', 'IFC Camboriú', 'IFC Concórdia',
-    'IFC Fraiburgo', 'IFC Ibirama', 'IFC Luzerna', 'IFC Rio do Sul', 'IFC Santa Rosa do Sul',
-    'IFC São Bento do Sul', 'IFC São Francisco do Sul', 'IFC Sombrio', 'IFC Videira', 'IFC Abelardo Luz'
-];
-
-const modalidades = [
-    { slug: 'futsal-masculino', nome: 'Futsal Masculino', genero: 'Masculino', icone: '⚽', dia: '24/06', chaves: ['A', 'B'] },
-    { slug: 'futsal-feminino', nome: 'Futsal Feminino', genero: 'Feminino', icone: '⚽', dia: '24/06', chaves: ['A'] },
-    { slug: 'voleibol-masculino', nome: 'Voleibol Masculino', genero: 'Masculino', icone: '🏐', dia: '25/06', chaves: ['A', 'B'] },
-    { slug: 'voleibol-feminino', nome: 'Voleibol Feminino', genero: 'Feminino', icone: '🏐', dia: '25/06', chaves: ['A'] },
-    { slug: 'basquete-masculino', nome: 'Basquete Masculino', genero: 'Masculino', icone: '🏀', dia: '26/06', chaves: ['A', 'B'] },
-    { slug: 'basquete-feminino', nome: 'Basquete Feminino', genero: 'Feminino', icone: '🏀', dia: '26/06', chaves: ['A'] }
-];
-
 function normalizarNomeBase(nome) {
     return String(nome || '').trim();
 }
@@ -57,9 +42,9 @@ function obterBaseEsporte(valor = '') {
     }
 
     return texto
-        .replace(/-(masculino|feminino)$/g, '')
-        .replace(/\s+(masculino|feminino)$/g, '')
-        .replace(/(^masculino$|^feminino$)/g, '')
+        .replace(/-(masculino|feminino|misto)$/g, '')
+        .replace(/\s+(masculino|feminino|misto)$/g, '')
+        .replace(/(^masculino$|^feminino$|^misto$)/g, '')
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '');
 }
@@ -74,6 +59,7 @@ function mapearImagemModalidade(nome) {
     if (nomeNormalizado.includes('handebol')) return '/imagens/handebol1.svg';
     if (nomeNormalizado.includes('tenis')) return '/imagens/tenisdemesa1.svg';
     if (nomeNormalizado.includes('xadrez')) return '/imagens/xadrez1.svg';
+    if (nomeNormalizado.includes('badminton')) return '/imagens/badminton.png';
     if (nomeNormalizado.includes('atletismo')) return '/imagens/atletismo1.svg';
 
     return '/imagens/atletismo1.svg';
@@ -122,7 +108,7 @@ function formatarModalidadesParaHome(modalidadesBanco = [], generoAtivo = '', mo
             if (mapa.has(chave)) {
                 return;
             }
-            const nomeExibicao = String(nome).replace(/\s+(masculino|feminino|masc\.?|fem\.?)$/i, '').trim() || nome;
+            const nomeExibicao = String(nome).replace(/\s+(masculino|feminino|misto|masc\.?|fem\.?)$/i, '').trim() || nome;
             const slugMod = String(mod.slug || `${baseSlug}-${String(genero || 'geral').trim().toLowerCase()}`).trim();
             const item = {
                 ...mod,
@@ -161,8 +147,8 @@ function formatarModalidadesParaHome(modalidadesBanco = [], generoAtivo = '', mo
         };
 
         const slugComparavel = String(slugMod || slugBase || '').trim().toLowerCase();
-        const baseSemGenero = slugBase.replace(/-(masculino|feminino)$/i, '');
-        const modalidadeAtivaBase = modalidadeAtivaSlug.replace(/-(masculino|feminino)$/i, '');
+        const baseSemGenero = slugBase.replace(/-(masculino|feminino|misto)$/i, '');
+        const modalidadeAtivaBase = modalidadeAtivaSlug.replace(/-(masculino|feminino|misto)$/i, '');
         const coincideComAtiva = Boolean(modalidadeAtivaSlug) && (
             slugComparavel === modalidadeAtivaSlug ||
             slugBase === modalidadeAtivaSlug ||
@@ -178,11 +164,14 @@ function formatarModalidadesParaHome(modalidadesBanco = [], generoAtivo = '', mo
             return;
         }
 
-        const atual = mapa.get(chave);
-        if ((String(atual.genero || '').trim().toLowerCase() === 'masculino' && String(genero || '').trim().toLowerCase() === 'feminino') ||
-            (String(atual.genero || '').trim().toLowerCase() === 'feminino' && String(genero || '').trim().toLowerCase() === 'masculino')) {
+        const generoAtual = String(atual.genero || '').trim().toLowerCase();
+        const generoNovo = String(genero || '').trim().toLowerCase();
+        const cruzadoMascFem = (generoAtual === 'masculino' && generoNovo === 'feminino') ||
+            (generoAtual === 'feminino' && generoNovo === 'masculino');
+        const filtroPrefereNovo = Boolean(generoFiltro) && generoNovo === generoFiltro && generoAtual !== generoFiltro;
+        if (cruzadoMascFem || filtroPrefereNovo) {
             const itemPreferido = generoFiltro
-                ? (String(genero || '').trim().toLowerCase() === generoFiltro ? item : atual)
+                ? (generoNovo === generoFiltro ? item : atual)
                 : atual;
             mapa.set(chave, itemPreferido);
         }
@@ -216,22 +205,6 @@ function agruparJogosPorDia(jogos) {
     }, {});
 }
 
-function normalizarNomeCampusJogo(nome) {
-    return String(nome || '')
-        .replace(/^IFC\s+/i, '')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9áéíóúâêôãõç]/gi, '')
-        .trim()
-        .toLowerCase();
-}
-
-function jogoEnvolveCampus(jogo, nomeCampus) {
-    const alvo = normalizarNomeCampusJogo(nomeCampus);
-    if (!alvo) return false;
-    return normalizarNomeCampusJogo(jogo.casa) === alvo || normalizarNomeCampusJogo(jogo.fora) === alvo;
-}
-
 function gerarDiasDoEvento(configuracoes) {
     const config = configuracoes && typeof configuracoes === 'object' ? configuracoes : {};
     const inicioEvento = String(config.inicio_evento || '').trim();
@@ -261,45 +234,6 @@ function gerarDiasDoEvento(configuracoes) {
     return dias.length ? dias : ['24/06', '25/06', '26/06'];
 }
 
-function gerarJogos() {
-    return modalidades.map((modalidade, index) => ({
-        ...modalidade,
-        jogos: [
-            {
-                id: index * 3 + 1,
-                data: modalidade.dia,
-                horario: ['09:00', '10:30', '13:30'][index % 3],
-                casa: IFCS[(index * 2) % IFCS.length],
-                fora: IFCS[(index * 3 + 1) % IFCS.length],
-                placar: ['3 x 1', '2 x 2', '4 x 3'][index % 3],
-                status: 'Encerrado'
-            },
-            {
-                id: index * 3 + 2,
-                data: modalidade.dia,
-                horario: ['11:00', '12:15', '15:00'][index % 3],
-                casa: IFCS[(index * 4 + 2) % IFCS.length],
-                fora: IFCS[(index * 5 + 3) % IFCS.length],
-                placar: ['2 x 0', '3 x 1', '1 x 1'][index % 3],
-                status: 'Encerrado'
-            },
-            {
-                id: index * 3 + 3,
-                data: modalidade.dia,
-                horario: ['16:00', '17:30', '18:30'][index % 3],
-                casa: IFCS[(index * 6 + 4) % IFCS.length],
-                fora: IFCS[(index * 7 + 5) % IFCS.length],
-                placar: ['4 x 2', '2 x 1', '3 x 2'][index % 3],
-                status: 'Agendado'
-            }
-        ]
-    }));
-}
-
-function filtrarPorDia(dia = '24/06', slug = '') {
-    return gerarJogos().filter((item) => item.dia === dia && (!slug || item.slug === slug));
-}
-
 /* GET home page (Usuário Comum) */
 router.get('/', async function(req, res, next) {
     try {
@@ -310,7 +244,18 @@ router.get('/', async function(req, res, next) {
         const modalidadesBanco = await adminModel.getModalidadesBanco();
         const configuracoesBanco = await adminModel.getConfiguracoesBanco();
         const configuracoesAtuais = configuracoesBanco || adminModel.getConfiguracoes();
-        const generosDisponiveis = [...new Set((Array.isArray(modalidadesBanco) ? modalidadesBanco : []).map((mod) => String(mod.genero || '').trim()).filter(Boolean))];
+        const modalidadesBancoLista = Array.isArray(modalidadesBanco) ? modalidadesBanco : [];
+        const baseEsporteFiltro = obterBaseEsporte(modalidadeSelecionada);
+        const baseEsporteExisteNoCatalogo = baseEsporteFiltro && modalidadesBancoLista.some((mod) =>
+            obterBaseEsporte(String(mod.slug || mod.slugBase || '')) === baseEsporteFiltro ||
+            obterBaseEsporte(String(mod.nome || mod.nomeBase || '')) === baseEsporteFiltro
+        );
+        const modalidadesParaFiltroGenero = baseEsporteExisteNoCatalogo
+            ? modalidadesBancoLista.filter((mod) =>
+                obterBaseEsporte(String(mod.slug || mod.slugBase || '')) === baseEsporteFiltro ||
+                obterBaseEsporte(String(mod.nome || mod.nomeBase || '')) === baseEsporteFiltro)
+            : modalidadesBancoLista;
+        const generosDisponiveis = [...new Set(modalidadesParaFiltroGenero.map((mod) => String(mod.genero || '').trim()).filter(Boolean))];
         const jogosPublicadosBase = await adminModel.getJogosPublicados({});
         const diasDisponiveisBase = [...new Set((Array.isArray(jogosPublicadosBase) ? jogosPublicadosBase : []).map((jogo) => String(jogo.data || '').trim()).filter(Boolean))].sort((a, b) => {
             const [diaA, mesA] = a.split('/').map(Number);
@@ -661,20 +606,20 @@ router.get('/', async function(req, res, next) {
                     provasPorGenero = {};
                     resultadosFinaisAtletismo = {};
                 }
-            } else {
-                for (const modalidadeTabela of modalidadesParaTabela) {
-                    if (!modalidadeTabela || !modalidadeTabela.id) continue;
-                    if (resultadosIndividuaisService.ehXadrez(String(modalidadeTabela.nome || ''))) {
-                        const [xadrezPub] = await db.query('SELECT 1 FROM resultados_xadrez WHERE modalidade_id = ? AND publicado = 1 LIMIT 1', [modalidadeTabela.id]);
-                        if (xadrezPub.length === 0) continue;
-                        const classif = await resultadosIndividuaisService.obterClassificacaoXadrez(modalidadeTabela.id);
-                        if (!classif.length) continue;
-                        tipoClassificacaoIndividual = 'xadrez';
-                        classificacaoIndividual = classificacaoIndividual.concat(classif);
-                        const generoChave = String(modalidadeTabela.genero || 'Geral').trim() || 'Geral';
-                        if (!classificacaoXadrezPorGenero) classificacaoXadrezPorGenero = {};
-                        classificacaoXadrezPorGenero[generoChave] = (classificacaoXadrezPorGenero[generoChave] || []).concat(classif);
-                    }
+            }
+            for (const modalidadeTabela of modalidadesParaTabela) {
+                if (!modalidadeTabela || !modalidadeTabela.id) continue;
+                if (resultadosIndividuaisService.ehXadrez(String(modalidadeTabela.nome || ''))) {
+                    const [xadrezPub] = await db.query('SELECT 1 FROM resultados_xadrez WHERE modalidade_id = ? AND publicado = 1 LIMIT 1', [modalidadeTabela.id]);
+                    if (xadrezPub.length === 0) continue;
+                    const classif = await resultadosIndividuaisService.obterClassificacaoXadrez(modalidadeTabela.id);
+                    if (!classif.length) continue;
+                    const linhasMapeadas = classif.map((linha) => ({ ...linha, pontos: Number(linha.pontuacao) || 0 }));
+                    if (!tipoClassificacaoIndividual) tipoClassificacaoIndividual = 'xadrez';
+                    classificacaoIndividual = classificacaoIndividual.concat(linhasMapeadas);
+                    const generoChave = String(modalidadeTabela.genero || 'Geral').trim() || 'Geral';
+                    if (!classificacaoXadrezPorGenero) classificacaoXadrezPorGenero = {};
+                    classificacaoXadrezPorGenero[generoChave] = (classificacaoXadrezPorGenero[generoChave] || []).concat(linhasMapeadas);
                 }
             }
         }
@@ -970,14 +915,20 @@ router.get('/chaveamento', async function(req, res, next) {
                 if (xadrezPub.length > 0) {
                 const resultadosIndividuaisService = require('../services/resultadosIndividuaisService');
                 const linhas = await resultadosIndividuaisService.obterClassificacaoXadrez(modalidadeAtiva.id);
-                const temResultado = linhas.some((l) => Number(l.pontuacao) > 0 || Number(l.vitorias) > 0 || Number(l.derrotas) > 0 || Number(l.empates) > 0);
-                if (temResultado) {
-                    classificadosXadrez = linhas.map((l) => ({
+                classificadosXadrez = (linhas || []).map((l) => {
+                    const vitorias = Number(l.vitorias) || 0;
+                    const empates = Number(l.empates) || 0;
+                    const derrotas = Number(l.derrotas) || 0;
+                    return {
                         nomeAtleta: l.atleta_nome,
                         nomeCampus: l.campus_nome || '',
-                        pontuacaoAtual: Number(l.pontuacao) || 0
-                    }));
-                }
+                        pontuacaoAtual: Number(l.pontuacao) || 0,
+                        vitorias,
+                        empates,
+                        derrotas,
+                        jogos: vitorias + empates + derrotas
+                    };
+                });
                 }
             } else {
                 const chaves = await adminModel.getChavesModalidade(modalidadeAtiva.id, subCategoria);

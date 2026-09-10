@@ -393,6 +393,8 @@ async function registrarCartoes(jogoId, cartoes = []) {
   const jogo = jogoRows[0];
   if (!jogo) return;
 
+  let inseriuNovoCartao = false;
+
   for (const cartao of cartoes) {
     const campusId = Number(cartao.campus_id || 0);
     const tipo = String(cartao.tipo || '').trim().toLowerCase();
@@ -408,9 +410,12 @@ async function registrarCartoes(jogoId, cartoes = []) {
       'INSERT INTO cartoes (jogo_id, campus_id, tipo, jogador_nome, minuto) VALUES (?, ?, ?, ?, ?)',
       [id, campusId, tipo, cartao.jogador_nome || null, cartao.minuto || null]
     );
+    inseriuNovoCartao = true;
   }
 
-  await atualizarContadoresCartoes(jogo.modalidade_id, jogo.chave_id, id);
+  if (inseriuNovoCartao) {
+    await atualizarContadoresCartoes(jogo.modalidade_id, jogo.chave_id, id);
+  }
 }
 
 async function atualizarContadoresCartoes(modalidadeId, chaveId, jogoId) {
@@ -457,7 +462,8 @@ async function getClassificacaoModalidade(modalidadeId, chaveId = null, opcoes =
               COALESCE(c.nome, a.nome) AS participante_nome,
               COALESCE(c.nome_exibicao, a.nome) AS participante_exibicao,
               COALESCE(c.foto_perfil, '/imagens/avatar.svg') AS participante_foto,
-              ch.numero_chave
+              ch.numero_chave,
+              ch.sub_categoria
          FROM classificacao_grupos cg
          LEFT JOIN campus c ON c.id = cg.campus_id
          LEFT JOIN atletas a ON a.id = cg.atleta_id
@@ -467,7 +473,8 @@ async function getClassificacaoModalidade(modalidadeId, chaveId = null, opcoes =
               COALESCE(c.nome, a.nome) AS participante_nome,
               COALESCE(c.nome_exibicao, a.nome) AS participante_exibicao,
               COALESCE(c.foto_perfil, '/imagens/avatar.svg') AS participante_foto,
-              ch.numero_chave
+              ch.numero_chave,
+              ch.sub_categoria
          FROM classificacao_grupos cg
          LEFT JOIN campus c ON c.id = cg.campus_id
          LEFT JOIN atletas a ON a.id = cg.atleta_id

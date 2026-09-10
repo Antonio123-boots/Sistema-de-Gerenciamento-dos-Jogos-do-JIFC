@@ -311,12 +311,13 @@
 .institution-avatar-image {
   border: none;
   border-radius: 0;
-  object-fit: cover;
+  background: transparent;
+  object-fit: contain;
   object-position: center;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: none;
 }
 
 .institution-avatar-image:hover {
-  transform: scale(1.04);
-  box-shadow: 0 6px 20px rgba(236, 228, 45, 0.2);
+  transform: none;
+  box-shadow: none;
 }

@@ -23,6 +23,7 @@
 
     const temBaterias = formatoProva === 'final_por_tempo' || formatoProva === 'baterias_com_final';
     const temFinal = formatoProva === 'baterias_com_final';
+    const ehCorrida = prova.tipo_resultado === 'tempo';
     const atletasComFinal = atletas.filter((atleta) => resultadosEtapa.final[Number(atleta.id)]);
     const estiloInput = 'padding:0.35rem; border-radius:6px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#fff; font-size:0.85rem; text-align:center;';
     const estiloInputTempo = estiloInput + ' font-family:monospace;';
@@ -45,6 +46,10 @@
             <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
               <th style="padding:0.5rem; text-align:left; color:rgba(255,255,255,0.6);">Atleta</th>
               <th style="padding:0.5rem; text-align:left; color:rgba(255,255,255,0.6);">Campus</th>
+              <% if (ehCorrida) { %>
+                <th style="padding:0.5rem; text-align:center; color:rgba(255,255,255,0.6);">Raia</th>
+                <th style="padding:0.5rem; text-align:center; color:rgba(255,255,255,0.6);">Bateria</th>
+              <% } %>
               <% if (prova.tipo_resultado === 'tempo') { %>
                 <th style="padding:0.5rem; text-align:center; color:rgba(255,255,255,0.6);">Tempo (segundos)</th>
               <% } else { %>
@@ -61,6 +66,14 @@
               <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
                 <td style="padding:0.45rem 0.5rem; color:#fff; font-weight:600;"><%= atleta.nome %></td>
                 <td style="padding:0.45rem 0.5rem; color:rgba(255,255,255,0.7);"><%= atleta.campus_nome %></td>
+                <% if (ehCorrida) { %>
+                  <td style="padding:0.3rem; text-align:center;">
+                    <input type="number" name="resultados[<%= atleta.id %>][numero_raia]" value="<%= r.numero_raia != null ? r.numero_raia : '' %>" min="1" placeholder="Raia" style="<%= estiloInput %> width:65px;">
+                  </td>
+                  <td style="padding:0.3rem; text-align:center;">
+                    <input type="number" name="resultados[<%= atleta.id %>][numero_bateria]" value="<%= r.numero_bateria != null ? r.numero_bateria : '' %>" min="1" placeholder="Bateria" style="<%= estiloInput %> width:65px;">
+                  </td>
+                <% } %>
                 <td style="padding:0.3rem; text-align:center;">
                   <input type="hidden" name="resultados[<%= atleta.id %>][atleta_id]" value="<%= atleta.id %>">
                   <% if (prova.tipo_resultado === 'tempo') { %>
@@ -104,12 +117,24 @@
         Informe o número da bateria de cada atleta e o tempo. A posição e os pontos são calculados automaticamente
         <%= temFinal ? 'pela Final.' : 'pelos melhores tempos entre todas as baterias (final por tempo).' %>
       </p>
-      <div style="overflow-x:auto;">
+      <%
+        const bateriasJuiz = [...atletas.reduce((grupos, atleta) => {
+          const resultadoAtleta = resultadosEtapa.prova[Number(atleta.id)] || {};
+          const numeroBateria = Math.max(1, Number(resultadoAtleta.numero_bateria) || 1);
+          if (!grupos.has(numeroBateria)) grupos.set(numeroBateria, []);
+          grupos.get(numeroBateria).push(atleta);
+          return grupos;
+        }, new Map())].sort((a, b) => a[0] - b[0]);
+      %>
+      <% bateriasJuiz.forEach(([numeroBateria, atletasBateria]) => { %>
+      <div style="margin-bottom:1rem; overflow-x:auto;">
+        <h3 style="font-size:0.85rem; margin:0 0 0.4rem; color:#ece42d;">Bateria <%= numeroBateria %></h3>
         <table style="width:100%; border-collapse:collapse; font-size:0.8rem;">
           <thead>
             <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
               <th style="padding:0.5rem; text-align:left; color:rgba(255,255,255,0.6);">Atleta</th>
               <th style="padding:0.5rem; text-align:left; color:rgba(255,255,255,0.6);">Campus</th>
+              <th style="padding:0.5rem; text-align:center; color:rgba(255,255,255,0.6);">Raia</th>
               <th style="padding:0.5rem; text-align:center; color:rgba(255,255,255,0.6);">Bateria</th>
               <th style="padding:0.5rem; text-align:center; color:rgba(255,255,255,0.6);">Tempo (segundos)</th>
               <% if (temFinal) { %>
@@ -121,16 +146,19 @@
             </tr>
           </thead>
           <tbody>
-            <% atletas.forEach((atleta) => {
+            <% atletasBateria.forEach((atleta) => {
               const r = resultadosEtapa.prova[Number(atleta.id)] || {};
             %>
               <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
                 <td style="padding:0.45rem 0.5rem; color:#fff; font-weight:600;"><%= atleta.nome %></td>
                 <td style="padding:0.45rem 0.5rem; color:rgba(255,255,255,0.7);"><%= atleta.campus_nome %></td>
                 <td style="padding:0.3rem; text-align:center;">
+                  <input type="number" name="resultados[<%= atleta.id %>][numero_raia]" value="<%= r.numero_raia != null ? r.numero_raia : '' %>" min="1" placeholder="Raia" style="<%= estiloInput %> width:65px;">
+                </td>
+                <td style="padding:0.3rem; text-align:center;">
                   <input type="hidden" name="resultados[<%= atleta.id %>][atleta_id]" value="<%= atleta.id %>">
-                  <input type="number" name="resultados[<%= atleta.id %>][numero_bateria]" value="<%= Number(r.numero_bateria) || 1 %>" min="1" placeholder="1"
-                         style="<%= estiloInput %> width:55px;">
+                      <input type="number" name="resultados[<%= atleta.id %>][numero_bateria]" value="<%= r.numero_bateria != null ? r.numero_bateria : '' %>" min="1" placeholder="Bateria"
+                        style="<%= estiloInput %> width:65px;">
                 </td>
                 <td style="padding:0.3rem; text-align:center;">
                   <input type="text" name="resultados[<%= atleta.id %>][resultado_tempo]" value="<%= r.resultado_tempo_exibicao || '' %>" placeholder="10,500"
@@ -157,6 +185,7 @@
           </tbody>
         </table>
       </div>
+      <% }) %>
 
       <% if (temFinal) { %>
 

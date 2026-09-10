@@ -12,7 +12,7 @@ function getCampusModel() {
   return campusModel;
 }
 
-const senhaPadraoCampus = process.env.DEFAULT_CAMPUS_PASSWORD || 'jifc2026';
+const senhaPadraoCampus = process.env.DEFAULT_CAMPUS_PASSWORD ? String(process.env.DEFAULT_CAMPUS_PASSWORD).trim() : '';
 
 async function prepararSenhaParaSalvar(senhaInformada) {
   const senha = String(senhaInformada || senhaPadraoCampus).trim();
@@ -208,6 +208,10 @@ async function seedDefaultCampi() {
     return;
   }
 
+  if (!senhaPadraoCampus) {
+    throw new Error('DEFAULT_CAMPUS_PASSWORD não configurado no .env. Configure-o para popular os campi padrão.');
+  }
+
   const [rows] = await pool.query('SELECT COUNT(*) AS total FROM campus');
   const total = Number(rows?.[0]?.total || 0);
   if (total > 0) {
@@ -261,7 +265,6 @@ async function listarCredenciaisCampus() {
   return campi.map((campus) => ({
     nomeExibicao: campus.nomeExibicao,
     email: campus.email,
-    senha: campus.senha,
     banned: Boolean(campus.banned)
   }));
 }
@@ -543,7 +546,6 @@ async function adicionarCampus(dados) {
 }
 
 module.exports = {
-  senhaPadraoCampus,
   listarCampi,
   listarCampiSync,
   obterCampusPorSlug,

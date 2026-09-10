@@ -14,8 +14,6 @@ const configuracoesPadrao = {
   limite_atletas_total_campus: 0
 };
 
-const atletasPendentes = [];
-
 function carregarConfiguracoes() {
   const estado = readState();
   return { ...configuracoesPadrao, ...(estado.configuracoes || {}) };
@@ -23,6 +21,61 @@ function carregarConfiguracoes() {
 
 function getConfiguracoes() {
   return cloneState(carregarConfiguracoes());
+}
+
+function normalizarFluxoCronologico(config = {}) {
+  const dataOuNull = (valor) => {
+    const texto = String(valor || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(texto)) return null;
+    const data = new Date(`${texto}T00:00:00`);
+    return Number.isNaN(data.getTime()) ? null : texto;
+  };
+
+  const maiorData = (primeira, segunda) => {
+    if (!primeira) return segunda;
+    if (!segunda) return primeira;
+    return primeira >= segunda ? primeira : segunda;
+  };
+
+  const ajustarIntervalo = (inicio, fim, limiteInicio = null) => {
+    let inicioAjustado = dataOuNull(inicio);
+    let fimAjustado = dataOuNull(fim);
+
+    if (limiteInicio) {
+      inicioAjustado = maiorData(inicioAjustado, limiteInicio);
+    }
+    if (!inicioAjustado && fimAjustado) inicioAjustado = fimAjustado;
+    if (inicioAjustado && (!fimAjustado || fimAjustado < inicioAjustado)) {
+      fimAjustado = inicioAjustado;
+    }
+
+    return [inicioAjustado, fimAjustado];
+  };
+
+  const [inicioModalidades, fimModalidades] = ajustarIntervalo(
+    config.inicio_inscricao_modalidades,
+    config.fim_inscricao_modalidades
+  );
+  const [inicioAtletas, fimAtletas] = ajustarIntervalo(
+    config.inicio_inscricao_atletas,
+    config.fim_inscricao_atletas,
+    fimModalidades
+  );
+  const [inicioSorteio, fimSorteio] = ajustarIntervalo(
+    config.inicio_sorteio_chaves,
+    config.fim_sorteio_chaves,
+    fimAtletas
+  );
+
+  return {
+    ...config,
+    inicio_inscricao_modalidades: inicioModalidades,
+    fim_inscricao_modalidades: fimModalidades,
+    inicio_inscricao_atletas: inicioAtletas,
+    fim_inscricao_atletas: fimAtletas,
+    inicio_sorteio_chaves: inicioSorteio,
+    fim_sorteio_chaves: fimSorteio
+  };
 }
 
 function salvarConfiguracoes(novosDados) {
@@ -35,17 +88,62 @@ function salvarConfiguracoes(novosDados) {
     (inicioEvento ? new Date(`${inicioEvento}T00:00:00`).getFullYear() : configuracoesAtuais.ano_evento)
   );
 
-  estadoAtual.configuracoes = {
+  estadoAtual.configuracoes = normalizarFluxoCronologico({
     ...configuracoesAtuais,
     ...novosDados,
     ano_evento: Number.isFinite(anoDerivado) ? anoDerivado : configuracoesAtuais.ano_evento,
     limite_atletas_total_campus: Number(
       novosDados.limite_atletas_total_campus ?? configuracoesAtuais.limite_atletas_total_campus ?? 0
     )
-  };
+  });
 
   writeState(estadoAtual);
+  persistirConfiguracoesNoBanco(estadoAtual.configuracoes).catch((error) => {
+    console.error('Erro ao espelhar configurações no banco:', error.message);
+  });
   return getConfiguracoes();
+}
+
+/* Espelha as configurações do state store na tabela configuracoes_evento.
+   Grava sempre a linha mais recente; datas vazias viram NULL (estados parciais). */
+async function persistirConfiguracoesNoBanco(config) {
+  const dataOuNull = (valor) => {
+    const texto = String(valor || '').trim();
+    return /^\d{4}-\d{2}-\d{2}$/.test(texto) ? texto : null;
+  };
+
+  const configNormalizada = normalizarFluxoCronologico(config);
+  const valores = {
+    ano_evento: Number(configNormalizada.ano_evento) || new Date().getFullYear(),
+    inicio_evento: dataOuNull(configNormalizada.inicio_evento),
+    fim_evento: dataOuNull(configNormalizada.fim_evento),
+    inicio_inscricao_modalidades: dataOuNull(configNormalizada.inicio_inscricao_modalidades),
+    fim_inscricao_modalidades: dataOuNull(configNormalizada.fim_inscricao_modalidades),
+    inicio_inscricao_atletas: dataOuNull(configNormalizada.inicio_inscricao_atletas),
+    fim_inscricao_atletas: dataOuNull(configNormalizada.fim_inscricao_atletas),
+    inicio_sorteio_chaves: dataOuNull(configNormalizada.inicio_sorteio_chaves),
+    fim_sorteio_chaves: dataOuNull(configNormalizada.fim_sorteio_chaves),
+    limite_atletas_total_campus: Number(configNormalizada.limite_atletas_total_campus) || 0
+  };
+
+  const colunas = [
+    'ano_evento', 'inicio_evento', 'fim_evento',
+    'inicio_inscricao_modalidades', 'fim_inscricao_modalidades',
+    'inicio_inscricao_atletas', 'fim_inscricao_atletas',
+    'inicio_sorteio_chaves', 'fim_sorteio_chaves',
+    'limite_atletas_total_campus'
+  ];
+
+  const [existentes] = await db.query('SELECT id FROM configuracoes_evento ORDER BY id DESC LIMIT 1');
+  const valoresFinais = colunas.map((coluna) => valores[coluna]);
+
+  if (existentes[0]) {
+    const atribuicoes = colunas.map((coluna) => `${coluna} = ?`).join(', ');
+    await db.query(`UPDATE configuracoes_evento SET ${atribuicoes} WHERE id = ?`, [...valoresFinais, existentes[0].id]);
+  } else {
+    const placeholders = colunas.map(() => '?').join(', ');
+    await db.query(`INSERT INTO configuracoes_evento (${colunas.join(', ')}) VALUES (${placeholders})`, valoresFinais);
+  }
 }
 
 function getAnoJifc() {
@@ -62,16 +160,6 @@ function getAnoJifc() {
   }
 
   return new Date() > limiteEvento ? anoBase + 1 : anoBase;
-}
-
-function getAtletasPendentes() {
-  return atletasPendentes.map((item) => ({ ...item }));
-}
-
-function validarAtleta(atletaId) {
-  const atleta = atletasPendentes.find((item) => item.id === Number(atletaId));
-  if (atleta) atleta.status = 'Regular';
-  return atleta;
 }
 
 async function getConfiguracoesBanco() {
@@ -121,8 +209,24 @@ module.exports = {
   getConfiguracoes,
   salvarConfiguracoes,
   getAnoJifc,
-  getAtletasPendentes,
-  validarAtleta,
   getConfiguracoesBanco,
-  gerarDatasEventoDisponiveis
+  gerarDatasEventoDisponiveis,
+  persistirConfiguracoesParaBanco
 };
+
+/* Idempotente: espelha as configurações atuais do state store no banco.
+   Usado no startup para migrar estados legados e manter as fontes em sincronia. */
+async function persistirConfiguracoesParaBanco() {
+  const estado = readState();
+  if (!estado.configuracoes || typeof estado.configuracoes !== 'object') {
+    return;
+  }
+  const configuracoes = normalizarFluxoCronologico({ ...configuracoesPadrao, ...estado.configuracoes });
+  const estadoAnterior = JSON.stringify(estado.configuracoes);
+  const estadoAtualizado = JSON.stringify(configuracoes);
+  if (estadoAnterior !== estadoAtualizado) {
+    estado.configuracoes = configuracoes;
+    writeState(estado);
+  }
+  await persistirConfiguracoesNoBanco(configuracoes);
+}

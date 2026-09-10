@@ -1,4 +1,4 @@
-<article class="panel-card" style="position:relative; padding:1rem; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.08); border-radius:18px; display:flex; flex-direction:column; justify-content:space-between; height:100%;">
+<article class="panel-card" style="position:relative; padding:1rem; background:transparent; border:1px solid rgba(255,255,255,0.08); border-radius:18px; display:flex; flex-direction:column; justify-content:space-between; height:100%;">
     <% if (Boolean(jogo.wo)) { %>
         <span style="position:absolute; top:0.6rem; right:0.75rem; font-size:0.55rem; font-weight:800; letter-spacing:0.08em; padding:0.15rem 0.45rem; border-radius:6px; line-height:1.2; background:rgba(245,176,65,0.18); color:#f5b041;">W.O.</span>
     <% } %>
@@ -9,6 +9,7 @@
       const fotoForaReal = !!(jogo.fotoFora && jogo.fotoFora !== '/imagens/avatar.svg');
             const ehTenisMesa = String(jogo.modalidadeBaseSlug || '').startsWith('tenis-de-mesa')
                 || /t[eê]nis\s+de\s+mesa/i.test(String(jogo.modalidade || ''));
+            const modalidadeExibicao = String(jogo.modalidade || '').replace(/\s+(masculino|feminino)$/i, '').trim();
             const cidadeCasa = String(jogo.cidadeCasa || jogo.casa || 'Campus não informado').replace(/^IFC\s+/i, '');
             const cidadeFora = String(jogo.cidadeFora || jogo.fora || 'Campus não informado').replace(/^IFC\s+/i, '');
     %>
@@ -20,14 +21,16 @@
             <% if (ehTenisMesa) { %>
                 TÊNIS DE MESA <%= jogo.subCategoria === 'dupla' ? 'DUPLA' : 'INDIVIDUAL' %> · <%= jogo.genero %>
             <% } else { %>
-                <%= jogo.modalidade %> · <%= jogo.genero %>
+                <%= modalidadeExibicao %> · <%= jogo.genero %>
             <% } %>
         </div>
     </div>
 
     <div style="display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); gap:0.75rem; align-items:center; flex:1;">
         <div style="text-align:center; min-width:0;">
+            <% if (jogo.slugCasa) { %><a href="/equipes/<%= encodeURIComponent(jogo.slugCasa) %>" aria-label="Ver perfil de <%= jogo.casa %>" style="display:block;width:max-content;margin:0 auto;"><% } %>
             <img src="<%= jogo.fotoCasa || '/imagens/avatar.svg' %>" alt="Foto do campus <%= jogo.casa %>" class="campus-photo campus-photo--md campus-photo--badge <%= fotoCasaReal ? 'campus-photo--real' : 'campus-photo--default' %>" style="margin:0 auto 0.55rem;">
+            <% if (jogo.slugCasa) { %></a><% } %>
             <% if (ehTenisMesa && jogo.atletaCasa) { %>
                 <div style="font-size:0.75rem; color:#fff; font-weight:700; line-height:1.2; word-break:break-word;"><%= jogo.atletaCasa %></div>
                 <div style="font-size:0.65rem; color:#cfd8dc; line-height:1.2; word-break:break-word;"><%= cidadeCasa %></div>
@@ -84,7 +87,9 @@
         </div>
 
         <div style="text-align:center; min-width:0;">
+            <% if (jogo.slugFora) { %><a href="/equipes/<%= encodeURIComponent(jogo.slugFora) %>" aria-label="Ver perfil de <%= jogo.fora %>" style="display:block;width:max-content;margin:0 auto;"><% } %>
             <img src="<%= jogo.fotoFora || '/imagens/avatar.svg' %>" alt="Foto do campus <%= jogo.fora %>" class="campus-photo campus-photo--md campus-photo--badge <%= fotoForaReal ? 'campus-photo--real' : 'campus-photo--default' %>" style="margin:0 auto 0.55rem;">
+            <% if (jogo.slugFora) { %></a><% } %>
             <% if (ehTenisMesa && jogo.atletaFora) { %>
                 <div style="font-size:0.75rem; color:#fff; font-weight:700; line-height:1.2; word-break:break-word;"><%= jogo.atletaFora %></div>
                 <div style="font-size:0.65rem; color:#cfd8dc; line-height:1.2; word-break:break-word;"><%= cidadeFora %></div>
