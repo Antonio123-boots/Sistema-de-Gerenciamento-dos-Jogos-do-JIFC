@@ -433,6 +433,21 @@ async function ensureBoletinsTable() {
   `);
 }
 
+async function ensureRascunhoEdicoesTable() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS rascunho_edicoes (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      admin_email VARCHAR(150) NOT NULL,
+      ano_jifc INT DEFAULT NULL,
+      etapa VARCHAR(40) DEFAULT 'dados',
+      dados_json LONGTEXT NOT NULL,
+      criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uq_rascunho_admin (admin_email)
+    )
+  `);
+}
+
 async function ensureEdicoesAnterioresTable() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS edicoes_anteriores (
@@ -715,6 +730,7 @@ async function ensureSchema() {
   await ensureResultadosXadrezTable();
   await ensureResultadosXadrezPublicadoColumn();
   await ensureBoletinsTable();
+  await ensureRascunhoEdicoesTable();
   await ensureEdicoesAnterioresTable();
   await ensureAtletasProvasColumn();
   await ensureAtletasStatusColumns();
@@ -741,4 +757,4 @@ async function ensureSchema() {
   }
 }
 
-module.exports = { ensureSchema, ensureCampusTable, ensureConfiguracoesEventoTable, ensureJogoPublicadoColumn, ensureJogoWoColumn, ensureMataMataColumns, garantirSubCategoriaChavesJogos, ensureJuizModalidadeTable, ensureCartoesTable, ensureResultadosPorSetsTable, ensureClassificacaoCartoesColumns, ensureProvasTable, ensureResultadosAtletismoTable, ensureResultadosXadrezTable, ensureAtletasProvasColumn, ensureProvasPublicadoColumn, ensureResultadosXadrezPublicadoColumn, ensureEdicoesAnterioresTable, sincronizarProvasAtletismoDoState, sincronizarProvasPadraoAtletismo };
+module.exports = { ensureSchema, ensureCampusTable, ensureConfiguracoesEventoTable, ensureJogoPublicadoColumn, ensureJogoWoColumn, ensureMataMataColumns, garantirSubCategoriaChavesJogos, ensureJuizModalidadeTable, ensureCartoesTable, ensureResultadosPorSetsTable, ensureClassificacaoCartoesColumns, ensureProvasTable, ensureResultadosAtletismoTable, ensureResultadosXadrezTable, ensureAtletasProvasColumn, ensureProvasPublicadoColumn, ensureResultadosXadrezPublicadoColumn, ensureEdicoesAnterioresTable, ensureRascunhoEdicoesTable, sincronizarProvasAtletismoDoState, sincronizarProvasPadraoAtletismo };

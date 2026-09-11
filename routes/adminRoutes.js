@@ -3,6 +3,7 @@ const router = express.Router();
 const { body, param, validationResult } = require('express-validator');
 const adminController = require('../controllers/adminController');
 const juizController = require('../controllers/juizController');
+const edicaoWizardController = require('../controllers/edicaoWizardController');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
 router.use(requireAuth, requireRole('admin'));
@@ -62,6 +63,22 @@ router.post('/edicoes/salvar-ano-atual', adminController.salvarEdicaoAtualAno);
 router.post('/edicoes/importar', adminController.importarEdicaoArquivo);
 router.post('/edicoes/excluir/:ano', adminController.excluirEdicaoAno);
 router.get('/edicoes/exportar/:ano', adminController.exportarEdicaoAno);
+
+router.get('/edicoes/nova', edicaoWizardController.renderWizard);
+router.post('/edicoes/nova/dados', edicaoWizardController.salvarDadosGerais);
+router.post('/edicoes/nova/campi', edicaoWizardController.salvarCampi);
+router.post('/edicoes/nova/modalidades', edicaoWizardController.salvarModalidades);
+router.post('/edicoes/nova/modalidades/ir', edicaoWizardController.irParaModalidade);
+router.post('/edicoes/nova/voltar/:etapa', edicaoWizardController.voltarEtapa);
+router.post('/edicoes/nova/modalidade/:idx/participantes', edicaoWizardController.salvarParticipantes);
+router.post('/edicoes/nova/modalidade/:idx/voltar-participantes', edicaoWizardController.voltarParticipantes);
+router.post('/edicoes/nova/modalidade/:idx/grupos', edicaoWizardController.salvarGrupos);
+router.post('/edicoes/nova/modalidade/:idx/voltar-grupos', edicaoWizardController.voltarGrupos);
+router.post('/edicoes/nova/modalidade/:idx/confrontos', edicaoWizardController.salvarConfrontos);
+router.post('/edicoes/nova/modalidade/:idx/voltar-confrontos', edicaoWizardController.voltarConfrontos);
+router.post('/edicoes/nova/modalidade/:idx/resultados', edicaoWizardController.salvarResultados);
+router.post('/edicoes/nova/salvar', edicaoWizardController.salvarFinal);
+router.post('/edicoes/nova/cancelar', edicaoWizardController.cancelar);
 
 router.get('/juizes', juizController.renderListar);
 router.get('/juizes/cadastrar', juizController.renderCadastrar);
