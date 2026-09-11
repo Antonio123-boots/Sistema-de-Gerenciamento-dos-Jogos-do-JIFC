@@ -23,6 +23,15 @@
                 </div>
                 <div class="nav-buttons">
                     <a href="/equipes" class="nav-btn">EQUIPES</a>
+                    <% if (typeof edicoesAnteriores !== 'undefined' && Array.isArray(edicoesAnteriores) && edicoesAnteriores.length) { %>
+                        <select id="seletor-ano-edicao" onchange="window.location.href = this.value;"
+                            style="background:#1c1d3b; color:#8fa3ad; border:1px solid rgba(255,255,255,0.15); border-radius:8px; padding:0.34rem 0.7rem; font-size:0.7rem; font-weight:800; letter-spacing:0.06em; text-transform:uppercase; cursor:pointer; outline:none; font-family:inherit;">
+                            <option value="/" <%= (typeof anoSelecionadoUnico === 'undefined' || !anoSelecionadoUnico) ? 'selected' : '' %>>JIFC <%= typeof anoAtualJifc !== 'undefined' ? anoAtualJifc : '' %></option>
+                            <% edicoesAnteriores.forEach((ed) => { %>
+                                <option value="/?ano=<%= ed.ano %>" <%= (typeof anoSelecionadoUnico !== 'undefined' && anoSelecionadoUnico === ed.ano) ? 'selected' : '' %>><%= ed.titulo %></option>
+                            <% }); %>
+                        </select>
+                    <% } %>
                     <% if (typeof usuarioLogado !== 'undefined' && usuarioLogado) { %>
                         <% if (usuarioLogado.tipo === 'juiz') { %>
                             <a href="/juiz" class="nav-btn">MEUS JOGOS</a>
@@ -59,6 +68,13 @@
     </div>
 
     <% if (typeof mostrarFiltros !== 'undefined' && mostrarFiltros) { %>
+        <%
+            const baseHome = (typeof anoSelecionadoUnico !== 'undefined' && anoSelecionadoUnico) ? '/?ano=' + anoSelecionadoUnico : '/';
+            const montarHref = (p) => {
+                const q = (p && p.toString) ? p.toString() : '';
+                return baseHome + (baseHome === '/' ? (q ? '?' + q : '') : (q ? '&' + q : ''));
+            };
+        %>
         <div class="menu-modalidades">
             <div class="modalidades-container">
                 <ul class="modalidades-list">
@@ -77,13 +93,13 @@
                             if (typeof generoSelecionado !== 'undefined' && generoSelecionado && String(generoSelecionado).trim()) query.set('genero', generoSelecionado);
                             if (!isActive && slugBase) query.set('modalidade', slugBase);
                             const href = isActive
-                                ? '/' + ((() => {
+                                ? montarHref((() => {
                                     const limpar = new URLSearchParams();
                                     if (typeof diaSelecionado !== 'undefined' && diaSelecionado) limpar.set('dia', diaSelecionado);
                                     if (typeof generoSelecionado !== 'undefined' && generoSelecionado && String(generoSelecionado).trim()) limpar.set('genero', generoSelecionado);
-                                    return limpar.toString() ? '?' + limpar.toString() : '';
+                                    return limpar;
                                 })())
-                                : '/' + (query.toString() ? '?' + query.toString() : '');
+                                : montarHref(query);
                         %>
                             <li class="modalidade-item <%= isActive ? 'is-active active-sport' : '' %>">
                                 <a href="<%= href %>" class="<%= isActive ? 'active-sport' : '' %>">
@@ -122,14 +138,14 @@
                         const isActiveGenero = typeof generoSelecionado !== 'undefined' && generoSelecionado === genero;
                         if (!isActiveGenero) queryGenero.set('genero', genero);
                         const hrefGenero = isActiveGenero
-                            ? '/' + ((() => {
+                            ? montarHref((() => {
                                 const limpar = new URLSearchParams();
                                 if (typeof diaSelecionado !== 'undefined' && diaSelecionado) limpar.set('dia', diaSelecionado);
                                 if (baseModalidadeSelecionada) limpar.set('modalidade', baseModalidadeSelecionada);
                                 if (typeof mostrarSubFiltroTenis !== 'undefined' && mostrarSubFiltroTenis && typeof subCategoriaAtiva !== 'undefined' && subCategoriaAtiva) limpar.set('sub', subCategoriaAtiva);
-                                return limpar.toString() ? '?' + limpar.toString() : '';
+                                return limpar;
                             })())
-                            : '/' + (queryGenero.toString() ? '?' + queryGenero.toString() : '');
+                            : montarHref(queryGenero);
                     %>
                         <li class="filter-item <%= isActiveGenero ? 'is-active' : '' %>"><a href="<%= hrefGenero %>"><%= genero.toUpperCase() %></a></li>
                     <% }); %>
@@ -148,11 +164,11 @@
                         <% if (typeof generoSelecionado !== 'undefined' && generoSelecionado) queryDia.set('genero', generoSelecionado); %>
                         <% const isActiveDay = typeof diaSelecionado !== 'undefined' && diaSelecionado === dia; %>
                         <% if (!isActiveDay) queryDia.set('dia', dia); %>
-                        <% const hrefDia = isActiveDay ? '/' + ((() => {
+                        <% const hrefDia = isActiveDay ? montarHref((() => {
                             const limpar = new URLSearchParams();
                             if (typeof generoSelecionado !== 'undefined' && generoSelecionado) limpar.set('genero', generoSelecionado);
-                            return limpar.toString() ? '?' + limpar.toString() : '';
-                        })()) : '/' + (queryDia.toString() ? '?' + queryDia.toString() : ''); %>
+                            return limpar;
+                        })()) : montarHref(queryDia); %>
                         <li class="dia-item <%= isActiveDay ? 'is-active' : '' %>"><a href="<%= hrefDia %>"><%= dia %></a></li>
                     <% }); %>
                 </ul>
@@ -175,14 +191,14 @@
                         const isActiveSub = typeof subCategoriaAtiva !== 'undefined' && subCategoriaAtiva === subFiltro.valor;
                         if (!isActiveSub) querySub.set('sub', subFiltro.valor);
                         const hrefSub = isActiveSub
-                            ? '/' + ((() => {
+                            ? montarHref((() => {
                                 const limpar = new URLSearchParams();
                                 if (typeof diaSelecionado !== 'undefined' && diaSelecionado) limpar.set('dia', diaSelecionado);
                                 if (baseModalidadeSelecionada) limpar.set('modalidade', baseModalidadeSelecionada);
                                 if (typeof generoSelecionado !== 'undefined' && generoSelecionado) limpar.set('genero', generoSelecionado);
-                                return limpar.toString() ? '?' + limpar.toString() : '';
+                                return limpar;
                             })())
-                            : '/' + (querySub.toString() ? '?' + querySub.toString() : '');
+                            : montarHref(querySub);
                     %>
                         <li class="filter-item <%= isActiveSub ? 'is-active' : '' %>"><a href="<%= hrefSub %>"><%= subFiltro.label.toUpperCase() %></a></li>
                     <% }); %>

@@ -2,8 +2,11 @@ const adminModel = require('../models/adminModel');
 const campusModel = require('../models/campusModel');
 const resultadosIndividuaisService = require('../services/resultadosIndividuaisService');
 const mataMataService = require('../services/mataMataService');
+const boletimService = require('../services/boletimService');
+const edicaoService = require('../services/edicaoService');
 const db = require('../config/db');
 const { listarCampi, adicionarCampus, atualizarCampus, banCampus, desbanirCampus, removerCampus } = require('../models/campiCatalog');
+const { obterStatusPrazos } = require('../utils/statusPrazos');
 
 async function renderConfigurar(req, res) {
   try {
@@ -211,19 +214,24 @@ async function excluirCampusCadastro(req, res) {
   }
 }
 
-function salvarConfiguracoes(req, res) {
-  adminModel.salvarConfiguracoes({
-    inicio_evento: req.body.inicio_evento,
-    fim_evento: req.body.fim_evento,
-    inicio_inscricao_modalidades: req.body.inicioInscricoesModalidades,
-    fim_inscricao_modalidades: req.body.fimInscricoesModalidades,
-    inicio_inscricao_atletas: req.body.inicioInscricoesAtletas,
-    fim_inscricao_atletas: req.body.fimInscricoesAtletas,
-    inicio_sorteio_chaves: req.body.inicioSorteio,
-    fim_sorteio_chaves: req.body.fimSorteio,
-    limite_atletas_total_campus: req.body.limite_atletas_total_campus
-  });
-  res.redirect('/admin/configurar');
+async function salvarConfiguracoes(req, res) {
+  try {
+    await adminModel.salvarConfiguracoes({
+      inicio_evento: req.body.inicio_evento,
+      fim_evento: req.body.fim_evento,
+      inicio_inscricao_modalidades: req.body.inicioInscricoesModalidades,
+      fim_inscricao_modalidades: req.body.fimInscricoesModalidades,
+      inicio_inscricao_atletas: req.body.inicioInscricoesAtletas,
+      fim_inscricao_atletas: req.body.fimInscricoesAtletas,
+      inicio_sorteio_chaves: req.body.inicioSorteio,
+      fim_sorteio_chaves: req.body.fimSorteio,
+      limite_atletas_total_campus: req.body.limite_atletas_total_campus
+    });
+    res.redirect('/admin/configurar?sucesso=' + encodeURIComponent('Configurações salvas com sucesso.'));
+  } catch (error) {
+    console.error('Erro ao salvar configurações:', error.message);
+    res.redirect('/admin/configurar?erro=' + encodeURIComponent('Não foi possível salvar as configurações: ' + error.message));
+  }
 }
 
 /* ===== Atletismo: provas inscritas por atleta ===== */
@@ -243,15 +251,7 @@ async function renderChaveamento(req, res) {
     const inicioSorteio = configuracoes.inicio_sorteio_chaves;
     const fimSorteio = configuracoes.fim_sorteio_chaves;
 
-    const prazoModalidadesAberto = Boolean(inicioModalidades && fimModalidades && hojeStr >= inicioModalidades && hojeStr <= fimModalidades);
-    const prazoAtletasAberto = Boolean(inicioAtletas && fimAtletas && hojeStr >= inicioAtletas && hojeStr <= fimAtletas);
-    const inscricoesConfiguradas = Boolean(inicioModalidades && fimModalidades && inicioAtletas && fimAtletas);
-    const inscricoesAbertas = inscricoesConfiguradas && (prazoModalidadesAberto || prazoAtletasAberto);
-    const inscricoesEncerradas = inscricoesConfiguradas && hojeStr >= fimModalidades && hojeStr >= fimAtletas;
-    const sorteioDisponivelPorData = (!inicioSorteio || hojeStr >= inicioSorteio) && (!fimSorteio || hojeStr <= fimSorteio);
-    const prazoSorteioAberto = Boolean(inscricoesEncerradas && sorteioDisponivelPorData);
-    const sorteioBloqueado = inscricoesAbertas || !prazoSorteioAberto;
-    const resumoDisponivel = inscricoesConfiguradas;
+    const { prazoModalidadesAberto, prazoAtletasAberto, inscricoesAbertas, inscricoesEncerradas, prazoSorteioAberto, sorteioBloqueado, resumoDisponivel } = obterStatusPrazos(configuracoes, hojeStr);
 
     let listaModalidades = [];
     try {
@@ -273,8 +273,6 @@ async function renderChaveamento(req, res) {
       console.error('Erro ao buscar modalidades para o chaveamento:', error);
       listaModalidades = [];
     }
-
-    const chaveamentoBloqueado = false;
 
     let modalidadeAtiva = { id: 0, nome: '—', categoria: '' };
     let modalidadeAtivaNome = '—';
@@ -538,10 +536,31 @@ async function renderChaveamento(req, res) {
         ORDER BY m.nome ASC, m.genero ASC
       `);
 
+      let statusJifcEncerrado = false;
+      let edicaoAnoAtualJaSalva = false;
+      const anoJifcAtual = Number(adminModel.getAnoJifc() || 0);
+      try {
+        const statusJifc = await boletimService.obterStatusJifc();
+        statusJifcEncerrado = Boolean(statusJifc && statusJifc.encerrado);
+      } catch (erroStatus) {
+        console.error('Erro ao verificar status do JIFC (chaveamento):', erroStatus);
+      }
+      if (statusJifcEncerrado) {
+        try {
+          const edicaoDoAno = await edicaoService.obterEdicao(anoJifcAtual);
+          edicaoAnoAtualJaSalva = Boolean(edicaoDoAno);
+        } catch (erroEdicao) {
+          console.error('Erro ao verificar edição do ano atual:', erroEdicao);
+        }
+      }
+
       res.render('adm/chaveamento', {
         title: 'Chaveamento dos Jogos — JIFC',
         usuarioLogado: req.user,
         mostrarFiltros: false,
+        statusJifcEncerrado,
+        edicaoAnoAtualJaSalva,
+        anoJifcAtual: Number(adminModel.getAnoJifc() || 0),
         inscricoesAbertas,
         chaveamentoBloqueado: false,
         sorteioBloqueado,
@@ -636,19 +655,8 @@ async function gerarChaveamento(req, res) {
     const configuracoes = adminModel.getConfiguracoes();
     const hoje = new Date();
     const hojeStr = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
-    const inicioSorteio = configuracoes.inicio_sorteio_chaves;
-    const fimSorteio = configuracoes.fim_sorteio_chaves;
-    const inicioModalidades = configuracoes.inicio_inscricao_modalidades;
-    const fimModalidades = configuracoes.fim_inscricao_modalidades;
-    const inicioAtletas = configuracoes.inicio_inscricao_atletas;
-    const fimAtletas = configuracoes.fim_inscricao_atletas;
-    const prazoModalidadesAberto = Boolean(inicioModalidades && fimModalidades && hojeStr >= inicioModalidades && hojeStr <= fimModalidades);
-    const prazoAtletasAberto = Boolean(inicioAtletas && fimAtletas && hojeStr >= inicioAtletas && hojeStr <= fimAtletas);
-    const inscricoesConfiguradas = Boolean(inicioModalidades && fimModalidades && inicioAtletas && fimAtletas);
-    const inscricoesAbertas = inscricoesConfiguradas && (prazoModalidadesAberto || prazoAtletasAberto);
-    const inscricoesEncerradas = inscricoesConfiguradas && hojeStr >= fimModalidades && hojeStr >= fimAtletas;
-    const sorteioDisponivelPorData = (!inicioSorteio || hojeStr >= inicioSorteio) && (!fimSorteio || hojeStr <= fimSorteio);
-    const permitirGerarSorteio = forcarSorteio || Boolean(inscricoesEncerradas && sorteioDisponivelPorData);
+    const { prazoSorteioAberto } = obterStatusPrazos(configuracoes, hojeStr);
+    const permitirGerarSorteio = forcarSorteio || prazoSorteioAberto;
 
     if (!permitirGerarSorteio) {
       const mensagem = inicioSorteio
@@ -1011,6 +1019,87 @@ async function gerarBoletimFinal(req, res) {
   }
 }
 
+async function renderEdicoesAnteriores(req, res) {
+  try {
+    const edicoes = await adminModel.listarEdicoes();
+    const statusJifc = await adminModel.obterStatusJifc();
+    const anoAtual = adminModel.getAnoJifc();
+
+    res.render('adm/edicoesAnteriores', {
+      title: 'Edições Anteriores',
+      usuarioLogado: req.user,
+      mostrarFiltros: false,
+      edicoes,
+      statusJifc,
+      anoAtual,
+      mensagemErro: req.query.erro || '',
+      mensagemSucesso: req.query.sucesso || ''
+    });
+  } catch (error) {
+    console.error('Erro ao carregar edições anteriores:', error);
+    res.redirect('/admin/configurar?erro=' + encodeURIComponent('Erro ao carregar edições anteriores.'));
+  }
+}
+
+async function salvarEdicaoAtualAno(req, res) {
+  try {
+    const ano = Number(req.body.ano_jifc || adminModel.getAnoJifc());
+    const resultado = await adminModel.salvarEdicaoAtual(ano);
+    res.redirect('/admin/edicoes?sucesso=' + encodeURIComponent(`Edição do JIFC ${resultado.ano} salva em edições anteriores.`));
+  } catch (error) {
+    res.redirect('/admin/edicoes?erro=' + encodeURIComponent(error.message || 'Erro ao salvar a edição.'));
+  }
+}
+
+async function importarEdicaoArquivo(req, res) {
+  try {
+    const texto = String(req.body.edicao_json_texto || '').trim();
+    if (!texto) {
+      throw new Error('Nenhum arquivo enviado.');
+    }
+
+    let dados;
+    try {
+      dados = JSON.parse(texto);
+    } catch (_) {
+      throw new Error('O arquivo enviado não é um JSON válido.');
+    }
+
+    const resultado = await adminModel.importarEdicao(dados);
+    let mensagem = `Edição do JIFC ${resultado.ano} importada com sucesso.`;
+    if (Array.isArray(resultado.avisos) && resultado.avisos.length) {
+      mensagem += ' Avisos: ' + resultado.avisos.join(' ');
+    }
+    res.redirect('/admin/edicoes?sucesso=' + encodeURIComponent(mensagem));
+  } catch (error) {
+    res.redirect('/admin/edicoes?erro=' + encodeURIComponent('Erro ao importar a edição: ' + (error.message || error)));
+  }
+}
+
+async function excluirEdicaoAno(req, res) {
+  try {
+    await adminModel.excluirEdicao(req.params.ano);
+    res.redirect('/admin/edicoes?sucesso=' + encodeURIComponent(`Edição ${req.params.ano} excluída.`));
+  } catch (error) {
+    res.redirect('/admin/edicoes?erro=' + encodeURIComponent(error.message || 'Erro ao excluir a edição.'));
+  }
+}
+
+async function exportarEdicaoAno(req, res) {
+  try {
+    const dados = await adminModel.exportarEdicao(req.params.ano);
+    if (!dados) {
+      return res.redirect('/admin/edicoes?erro=' + encodeURIComponent('Edição não encontrada.'));
+    }
+    const ano = Number(req.params.ano);
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="jifc-${ano}.json"`);
+    res.send(JSON.stringify(dados, null, 2));
+  } catch (error) {
+    res.redirect('/admin/edicoes?erro=' + encodeURIComponent('Erro ao exportar a edição.'));
+  }
+}
+
 module.exports = {
   renderConfigurar,
   cadastrarModalidade,
@@ -1039,6 +1128,11 @@ module.exports = {
   recalcularClassificacoes,
   renderBoletins,
   renderBoletimAno,
-  gerarBoletimFinal
+  gerarBoletimFinal,
+  renderEdicoesAnteriores,
+  salvarEdicaoAtualAno,
+  importarEdicaoArquivo,
+  excluirEdicaoAno,
+  exportarEdicaoAno
 };
 module.exports.renderResumoCampus = renderResumoCampus;

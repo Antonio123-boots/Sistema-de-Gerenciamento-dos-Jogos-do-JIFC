@@ -57,6 +57,12 @@ router.get('/boletins', adminController.renderBoletins);
 router.get('/boletins/:ano', adminController.renderBoletimAno);
 router.post('/boletins/gerar', adminController.gerarBoletimFinal);
 
+router.get('/edicoes', adminController.renderEdicoesAnteriores);
+router.post('/edicoes/salvar-ano-atual', adminController.salvarEdicaoAtualAno);
+router.post('/edicoes/importar', adminController.importarEdicaoArquivo);
+router.post('/edicoes/excluir/:ano', adminController.excluirEdicaoAno);
+router.get('/edicoes/exportar/:ano', adminController.exportarEdicaoAno);
+
 router.get('/juizes', juizController.renderListar);
 router.get('/juizes/cadastrar', juizController.renderCadastrar);
 router.post('/juizes/cadastrar', [

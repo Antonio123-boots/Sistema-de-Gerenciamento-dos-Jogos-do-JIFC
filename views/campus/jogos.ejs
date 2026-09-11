@@ -1,4 +1,33 @@
-<div class="container">
-  <h2>Jogos do Campus</h2>
-  <p>Em breve.</p>
-</div>
+<section class="profile-shell">
+  <article class="profile-card profile-card--wide">
+    <div class="profile-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+      <div>
+        <h1 style="font-size:1.3rem; margin:0;">Jogos do Campus</h1>
+        <p class="panel-subtitle" style="margin:0.2rem 0 0;"><%= jogosCampus.length %> jogo(s) do seu campus</p>
+      </div>
+    </div>
+
+    <% const diasDisponiveis = Array.isArray(diasJogosCampus) ? diasJogosCampus : []; %>
+    <% if (diasDisponiveis.length > 1) { %>
+      <div style="display:flex; gap:0.5rem; margin-top:1.25rem; flex-wrap:wrap;">
+        <% diasDisponiveis.forEach((dia) => { %>
+          <a href="/campus/jogos?dia=<%= encodeURIComponent(dia) %>" class="day-chip <%= diaJogosSelecionado === dia ? 'is-active' : '' %>"><%= dia %></a>
+        <% }) %>
+      </div>
+    <% } %>
+
+    <% const jogosDoDia = diaJogosSelecionado && jogosCampusPorDia ? (jogosCampusPorDia[diaJogosSelecionado] || []) : []; %>
+    <% if (jogosDoDia.length) { %>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:1rem; margin-top:1.25rem; width:100%;">
+        <% jogosDoDia.forEach((jogo) => { %>
+          <%- include('../partials/cardJogoHome', { jogo: jogo }) %>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <article class="mini-card" style="text-align:center; margin-top:1.5rem;">
+        <h2 style="font-size:1.1rem;">Nenhum jogo encontrado</h2>
+        <p class="panel-subtitle">Seu campus ainda não possui jogos programados.</p>
+      </article>
+    <% } %>
+  </article>
+</section>

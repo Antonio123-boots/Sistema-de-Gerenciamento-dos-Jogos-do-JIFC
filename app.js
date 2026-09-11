@@ -18,7 +18,7 @@ const { decodificarToken } = require('./middleware/auth');
 const { ensureSchema } = require('./config/ensureSchema');
 
 const app = express();
-const PORT = process.env.PORT || 3006;
+const PORT = process.env.PORT || 3000;
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -77,21 +77,13 @@ function startServer(port) {
 
     server.on('error', (error) => {
         if (error.code === 'EADDRINUSE') {
-            console.error('');
-            console.error('================================================================');
-            console.error(`A porta ${port} já está em uso neste computador.`);
-            console.error('Provavelmente o servidor do JIFC já está rodando em outra aba ou terminal.');
-            console.error('');
-            console.error('Como resolver:');
-            console.error('  1) Feche a outra janela do terminal com o app em execução e tente novamente;');
-            console.error('  2) Se não encontrar, encerre o processo da porta com:');
-            console.error(`       netstat -ano | findstr :${port}`);
-            console.error('       taskkill /PID <numero_do_PID> /F');
-            console.error('================================================================');
-            process.exit(1);
+            const proximaPorta = Number(port) + 1;
+            console.warn(`A porta ${port} já está em uso. Tentando a porta ${proximaPorta}...`);
+            server.close(() => startServer(proximaPorta));
             return;
         }
-        throw error;
+        console.error('Erro ao iniciar o servidor:', error.message);
+        process.exit(1);
     });
 }
 

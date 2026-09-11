@@ -1,5 +1,6 @@
 const campusModel = require('../models/campusModel');
 const adminModel = require('../models/adminModel');
+const jogoService = require('../services/jogoService');
 
 const atletaFormDrafts = new Map();
 
@@ -316,15 +317,31 @@ async function substituirAtleta(req, res) {
 async function renderJogos(req, res) {
   try {
     const nomeCampus = req.user.nome;
+    const nomeExibicao = req.user.nomeExibicao;
+    const nomesCampus = [nomeCampus, nomeExibicao].filter(Boolean);
     const jogos = await adminModel.getJogos();
-    const jogosCampus = jogos.filter((jogo) =>
-      jogo.casa === nomeCampus || jogo.fora === nomeCampus
-    );
+    const jogosCampus = jogoService.filtrarJogosDoCampus(jogos, nomesCampus);
+    const jogosCampusPorDia = {};
+    jogosCampus.forEach((jogo) => {
+      const dia = String(jogo.data || '').trim();
+      if (!dia) return;
+      if (!jogosCampusPorDia[dia]) jogosCampusPorDia[dia] = [];
+      jogosCampusPorDia[dia].push(jogo);
+    });
+    const diasJogosCampus = Object.keys(jogosCampusPorDia).sort((a, b) => {
+      const [diaA, mesA] = a.split('/').map(Number);
+      const [diaB, mesB] = b.split('/').map(Number);
+      return ((mesA || 1) * 100 + (diaA || 1)) - ((mesB || 1) * 100 + (diaB || 1));
+    });
+    const diaJogosSelecionado = diasJogosCampus.includes(req.query.dia) ? req.query.dia : (diasJogosCampus[0] || '');
     res.render('campus/jogos', {
       title: 'Jogos do Campus',
       usuarioLogado: req.user,
       mostrarFiltros: false,
-      jogosCampus
+      jogosCampus,
+      jogosCampusPorDia,
+      diasJogosCampus,
+      diaJogosSelecionado
     });
   } catch (error) {
     console.error(error);

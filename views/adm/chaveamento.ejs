@@ -11,8 +11,24 @@
       <% } else { %>
         <span class="status-tag">Inscrições Finalizadas</span>
       <% } %>
+      <a href="/admin/edicoes" class="btn btn-ghost" style="margin-left:0.5rem;">Edições anteriores</a>
     </div>
   </div>
+
+  <% if (typeof statusJifcEncerrado !== 'undefined' && statusJifcEncerrado && typeof edicaoAnoAtualJaSalva !== 'undefined' && !edicaoAnoAtualJaSalva) { %>
+    <section class="panel-card" style="margin-top:1.2rem; border:1px solid rgba(236,228,45,0.35); background:rgba(236,228,45,0.08);">
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.8rem; padding:1rem;">
+        <div>
+          <div style="font-weight:800; color:#fff; font-size:0.95rem;">O JIFC <%= typeof anoJifcAtual !== 'undefined' ? anoJifcAtual : '' %> foi finalizado!</div>
+          <div style="font-size:0.8rem; color:#cfd8dc; margin-top:0.2rem;">Deseja salvar esta edição em&nbsp;«Edições anteriores»? O campeonato fica disponível para consulta pelos anos.</div>
+        </div>
+        <form action="/admin/edicoes/salvar-ano-atual" method="POST">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button type="submit" class="btn btn-primary" style="font-size:0.78rem; font-weight:800; padding:0.55rem 1rem;">Salvar JIFC <%= typeof anoJifcAtual !== 'undefined' ? anoJifcAtual : '' %></button>
+        </form>
+      </div>
+    </section>
+  <% } %>
 
   <% if (typeof chaveamentoBloqueado !== 'undefined' && chaveamentoBloqueado) { %>
     <section class="panel-card" style="margin-top:1.5rem; border:1px solid rgba(255,107,107,0.35); background:rgba(255,107,107,0.08);">

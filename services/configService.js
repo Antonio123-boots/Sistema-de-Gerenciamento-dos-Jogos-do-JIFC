@@ -78,7 +78,7 @@ function normalizarFluxoCronologico(config = {}) {
   };
 }
 
-function salvarConfiguracoes(novosDados) {
+async function salvarConfiguracoes(novosDados, persistirFn = persistirConfiguracoesNoBanco) {
   const estadoAtual = readState();
   const configuracoesAtuais = { ...configuracoesPadrao, ...(estadoAtual.configuracoes || {}) };
   const inicioEvento = novosDados.inicio_evento || configuracoesAtuais.inicio_evento || '';
@@ -88,7 +88,7 @@ function salvarConfiguracoes(novosDados) {
     (inicioEvento ? new Date(`${inicioEvento}T00:00:00`).getFullYear() : configuracoesAtuais.ano_evento)
   );
 
-  estadoAtual.configuracoes = normalizarFluxoCronologico({
+  const novasConfiguracoes = normalizarFluxoCronologico({
     ...configuracoesAtuais,
     ...novosDados,
     ano_evento: Number.isFinite(anoDerivado) ? anoDerivado : configuracoesAtuais.ano_evento,
@@ -97,10 +97,14 @@ function salvarConfiguracoes(novosDados) {
     )
   });
 
-  writeState(estadoAtual);
-  persistirConfiguracoesNoBanco(estadoAtual.configuracoes).catch((error) => {
-    console.error('Erro ao espelhar configurações no banco:', error.message);
-  });
+  // Fonte única: grava primeiro no MySQL. O JSON é apenas um cache síncrono de
+  // leitura — só é atualizado depois que o banco aceitar a gravação. Se o banco
+  // falhar, a exceção é propagada e o JSON permanece inalterado (nada diverge).
+  await persistirFn(novasConfiguracoes);
+  const estadoParaGravar = readState();
+  estadoParaGravar.configuracoes = novasConfiguracoes;
+  writeState(estadoParaGravar);
+
   return getConfiguracoes();
 }
 

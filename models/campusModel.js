@@ -689,17 +689,12 @@ function removerCampusDoEstado(campusAtual) {
   return true;
 }
 
-async function cadastrarAtleta(campusNome, dados, opcoes = {}) {
-  const campos = validarCamposObrigatoriosAtleta(dados);
-  const matriculaNormalizada = normalizarMatricula(campos.matricula);
-  const matriculaExistente = cache.atletasCampus.some((atleta) => atleta.campus === campusNome && normalizarMatricula(atleta.matricula) === matriculaNormalizada);
-  const statusSolicitado = 'Analise';
-  const limiteRegularTotalCampus = Number(opcoes.limiteRegularTotalCampus || 0);
+function validarDadosCadastroAtleta({ campos, dados, opcoes = {}, matriculaDuplicada = false, limiteRegularTotalCampus = 0, contagemParaLimite = 0 }) {
   const modalidadesSelecionadas = campos.modalidades;
   const detalhesAtleta = validarDetalhesAtleta(dados, modalidadesSelecionadas);
   const nomeCompleto = validarNomeCompleto(campos.nome);
 
-  if (matriculaExistente) {
+  if (matriculaDuplicada) {
     const erro = new Error('Já existe um atleta cadastrado com esta matrícula neste campus.');
     erro.code = 'MATRICULA_DUPLICADA';
     throw erro;
@@ -735,11 +730,29 @@ async function cadastrarAtleta(campusNome, dados, opcoes = {}) {
     throw erro;
   }
 
-  if (limiteRegularTotalCampus > 0 && getQuantidadeTotal(campusNome) >= limiteRegularTotalCampus) {
+  if (limiteRegularTotalCampus > 0 && contagemParaLimite >= limiteRegularTotalCampus) {
     const erro = new Error('O campus atingiu o limite total de atletas permitido.');
     erro.code = 'LIMITE_REGULAR_EXCEDIDO';
     throw erro;
   }
+
+  return { nomeCompleto, detalhesAtleta, modalidadesSelecionadas, matriculaNormalizada: normalizarMatricula(campos.matricula) };
+}
+
+async function cadastrarAtleta(campusNome, dados, opcoes = {}) {
+  const campos = validarCamposObrigatoriosAtleta(dados);
+  const matriculaNormalizada = normalizarMatricula(campos.matricula);
+  const matriculaExistente = cache.atletasCampus.some((atleta) => atleta.campus === campusNome && normalizarMatricula(atleta.matricula) === matriculaNormalizada);
+  const statusSolicitado = 'Analise';
+  const limiteRegularTotalCampus = Number(opcoes.limiteRegularTotalCampus || 0);
+  const { nomeCompleto, detalhesAtleta, modalidadesSelecionadas } = validarDadosCadastroAtleta({
+    campos,
+    dados,
+    opcoes,
+    matriculaDuplicada: matriculaExistente,
+    limiteRegularTotalCampus,
+    contagemParaLimite: getQuantidadeTotal(campusNome)
+  });
 
   const campusId = await buscarCampusIdNoBanco(campusNome);
   if (!campusId) {
@@ -790,54 +803,15 @@ async function atualizarAtleta(atletaId, campusNome, dados, opcoes = {}) {
   const matriculaExistente = cache.atletasCampus.some((item) => item.campus === campusNome && item.id !== Number(atletaId) && normalizarMatricula(item.matricula) === matriculaNormalizada);
   const statusSolicitado = 'Analise';
   const limiteRegularTotalCampus = Number(opcoes.limiteRegularTotalCampus || 0);
-  const modalidadesSelecionadas = campos.modalidades;
-  const detalhesAtleta = validarDetalhesAtleta(dados, modalidadesSelecionadas);
-  const nomeCompleto = validarNomeCompleto(campos.nome);
-
-  if (matriculaExistente) {
-    const erro = new Error('Já existe um atleta cadastrado com esta matrícula neste campus.');
-    erro.code = 'MATRICULA_DUPLICADA';
-    throw erro;
-  }
-
-  if (obterAnoNascimento(campos.dataNascimento) === null) {
-    const erro = new Error('Data de nascimento inválida.');
-    erro.code = 'DATA_INVALIDA';
-    throw erro;
-  }
-
-  if (!nomeCompleto) {
-    const erro = new Error('Informe o nome completo do atleta, com nome e sobrenome.');
-    erro.code = 'NOME_INCOMPLETO';
-    throw erro;
-  }
-
-  if (!atletaEhSub19(campos, opcoes)) {
-    const erro = new Error('A idade do atleta excede o limite permitido para esta categoria');
-    erro.code = 'IDADE_LIMITE_EXCEDIDO';
-    throw erro;
-  }
-
-  if (!modalidadesSelecionadas.length) {
-    const erro = new Error('Selecione ao menos uma modalidade para este atleta.');
-    erro.code = 'MODALIDADES_OBRIGATORIAS';
-    throw erro;
-  }
-
-  if (modalidadesSelecionadas.length > 3) {
-    const erro = new Error('O atleta pode participar de no máximo 3 esportes.');
-    erro.code = 'MODALIDADES_EXCEDIDAS';
-    throw erro;
-  }
-
-  if (limiteRegularTotalCampus > 0) {
-    const totalSemAtletaAtual = cache.atletasCampus.filter((item) => item.campus === campusNome && item.id !== Number(atletaId)).length;
-    if (totalSemAtletaAtual >= limiteRegularTotalCampus) {
-      const erro = new Error('O campus atingiu o limite total de atletas permitido.');
-      erro.code = 'LIMITE_REGULAR_EXCEDIDO';
-      throw erro;
-    }
-  }
+  const totalSemAtletaAtual = cache.atletasCampus.filter((item) => item.campus === campusNome && item.id !== Number(atletaId)).length;
+  const { nomeCompleto, detalhesAtleta, modalidadesSelecionadas } = validarDadosCadastroAtleta({
+    campos,
+    dados,
+    opcoes,
+    matriculaDuplicada: matriculaExistente,
+    limiteRegularTotalCampus,
+    contagemParaLimite: totalSemAtletaAtual
+  });
 
   const campusId = await buscarCampusIdNoBanco(campusNome);
   if (!campusId) {
@@ -985,6 +959,7 @@ module.exports = {
   normalizarCPF,
   normalizarMatricula,
   validarCamposObrigatoriosAtleta,
+  validarDadosCadastroAtleta,
   getInscricoes,
   salvarInscricoes,
   removerCampusDoEstado,
