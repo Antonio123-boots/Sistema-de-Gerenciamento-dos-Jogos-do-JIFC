@@ -344,6 +344,24 @@ async function obterClassificacaoXadrez(modalidadeId) {
   return rows;
 }
 
+async function obterClassificacaoGeralXadrez(modalidadeId) {
+  const [rows] = await db.query(
+    `SELECT c.id AS campus_id, COALESCE(NULLIF(c.nome_exibicao, ''), c.nome) AS campus_nome,
+            COALESCE(SUM(rx.pontuacao), 0) AS pontos,
+            COALESCE(SUM(rx.vitorias), 0) AS vitorias,
+            COALESCE(SUM(rx.derrotas), 0) AS derrotas,
+            COALESCE(SUM(rx.empates), 0) AS empates
+     FROM resultados_xadrez rx
+     JOIN atletas a ON a.id = rx.atleta_id
+     JOIN campus c ON c.id = a.campus_id
+     WHERE rx.modalidade_id = ?
+     GROUP BY c.id, campus_nome
+     ORDER BY pontos DESC, vitorias DESC, campus_nome ASC`,
+    [modalidadeId]
+  );
+  return rows;
+}
+
 async function sincronizarResultadosXadrezModalidade(modalidadeId) {
   const id = Number(modalidadeId || 0);
   if (!id) return;
@@ -449,6 +467,7 @@ module.exports = {
   obterResultadosXadrez,
   salvarResultadosXadrez,
   obterClassificacaoXadrez,
+  obterClassificacaoGeralXadrez,
   sincronizarResultadosXadrezModalidade,
   ehEsporteIndividual,
   ehAtletismo,

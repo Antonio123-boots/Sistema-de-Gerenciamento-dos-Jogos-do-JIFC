@@ -1,0 +1,3 @@
+colunas administradores: ["id","nome","email","senha","foto_perfil","ativo","criado_em"]
+admins: []
+rascunhos: [{"admin_email":"e2e@teste.com","ano_jifc":null,"etapa":"dados"},{"admin_email":"admin@ifc.edu.br","ano_jifc":2025,"etapa":"modalidade"}]

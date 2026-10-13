@@ -213,6 +213,36 @@ function cidadeSemPrefixo(nome) {
     return String(nome || 'Campus').replace(/^IFC\s+/i, '').trim();
 }
 
+/* Converto datas salvas como ISO (AAAA-MM-DD) para o padrão DD/MM usado na home */
+function formatarDiaCard(valor) {
+    const texto = String(valor || '').trim();
+    const iso = texto.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return iso ? `${iso[3]}/${iso[2]}` : texto;
+}
+
+/* Aceita atletismo salvo tanto em bloco único ({ provas }) quanto em lista por modalidade (wizard) */
+function normalizarAtletismoDaEdicao(dados) {
+    const blocos = (Array.isArray(dados.atletismo) ? dados.atletismo : [dados.atletismo]).filter(Boolean);
+    const provas = [];
+    blocos.forEach((bloco) => {
+        if (bloco && Array.isArray(bloco.provas)) provas.push(...bloco.provas);
+    });
+    return provas;
+}
+
+/* Aceita xadrez salvo tanto em bloco único ({ classificacao }) quanto em lista por modalidade (wizard) */
+function normalizarXadrezDaEdicao(dados) {
+    const blocos = (Array.isArray(dados.xadrez) ? dados.xadrez : [dados.xadrez]).filter(Boolean);
+    const classificacao = [];
+    blocos.forEach((bloco) => {
+        const generoBloco = String((bloco && (bloco.modalidadeGenero || bloco.genero)) || '').trim();
+        (bloco && Array.isArray(bloco.classificacao) ? bloco.classificacao : []).forEach((linha) => {
+            classificacao.push({ ...linha, generoLinha: String(linha.genero || generoBloco || '').trim() });
+        });
+    });
+    return classificacao;
+}
+
 function montarCardJogoHistorico(jogo, mapaCampi) {
     const casaCamp = mapaCampi.get(Number(jogo.casaId));
     const foraCamp = mapaCampi.get(Number(jogo.foraId));
@@ -224,7 +254,7 @@ function montarCardJogoHistorico(jogo, mapaCampi) {
         status: jogo.status,
         wo: Boolean(jogo.wo),
         publicado: 1,
-        data: String(jogo.data || '').trim(),
+        data: formatarDiaCard(jogo.data),
         horario: String(jogo.horario || '').trim(),
         local_jogo: String(jogo.local || '').trim(),
         modalidade: jogo.modalidade,
@@ -259,6 +289,7 @@ function renderizarEdicaoAnterior(req, res, edicaoRegistro, anoAtualJifc) {
     const modalidadeSelecionada = String(req.query.modalidade || '').trim();
     const generoSelecionado = String(req.query.genero || '').trim();
     const diaSelecionadoSolicitado = String(req.query.dia || '').trim();
+    const subCategoriaSolicitada = String(req.query.sub || '').trim();
 
     const mapaCampi = new Map((Array.isArray(dados.campi) ? dados.campi : []).map((c) => [Number(c.id), c]));
     const modalidadesEdicao = (Array.isArray(dados.modalidades) ? dados.modalidades : []).map((mod) => ({
@@ -269,6 +300,8 @@ function renderizarEdicaoAnterior(req, res, edicaoRegistro, anoAtualJifc) {
         icone: mod.icone || '/imagens/atletismo1.svg'
     }));
     const baseEsporteFiltro = obterBaseEsporte(modalidadeSelecionada);
+    const ehTenisMesaAtivo = baseEsporteFiltro === 'tenis-de-mesa';
+    const subCategoriaSelecionada = ehTenisMesaAtivo ? normalizarSubCategoriaFiltro(subCategoriaSolicitada) : '';
     const modalidadesDoEsporte = baseEsporteFiltro
         ? modalidadesEdicao.filter((mod) => obterBaseEsporte(String(mod.nome || '')) === baseEsporteFiltro)
         : modalidadesEdicao;
@@ -288,10 +321,13 @@ function renderizarEdicaoAnterior(req, res, edicaoRegistro, anoAtualJifc) {
         const atendeModalidade = !baseEsporteFiltro || baseJogo === baseEsporteFiltro;
         const atendeGenero = !generoSelecionado || String(jogo.genero || '').toLowerCase() === generoSelecionado.toLowerCase();
         const atendeDia = !diaSelecionadoSolicitado || String(jogo.data || '') === diaSelecionadoSolicitado;
-        return atendeModalidade && atendeGenero && atendeDia;
+        const atendeSubCategoria = ehTenisMesaAtivo && subCategoriaSelecionada
+            ? String(jogo.subCategoria || 'geral').toLowerCase() === subCategoriaSelecionada
+            : true;
+        return atendeModalidade && atendeGenero && atendeDia && atendeSubCategoria;
     });
 
-    const diasDisponiveis = [...new Set(jogosEdicao.map((j) => String(j.data || '').trim()).filter(Boolean))].sort((a, b) => {
+    const diasDisponiveis = [...new Set(jogosCard.map((j) => String(j.data || '').trim()).filter(Boolean))].sort((a, b) => {
         const [da, ma] = a.split('/').map(Number);
         const [db, mb] = b.split('/').map(Number);
         return (ma * 100 + da) - (mb * 100 + db);
@@ -301,31 +337,37 @@ function renderizarEdicaoAnterior(req, res, edicaoRegistro, anoAtualJifc) {
     const generoSelecionadoValido = generosDisponiveis.some((g) => g.toLowerCase() === generoSelecionado.toLowerCase()) ? generoSelecionado : '';
 
     const gruposEdicao = Array.isArray(dados.grupos) ? dados.grupos : [];
+    const classificacao = [];
+    let proximoIdGrupo = 1;
     const grupos = gruposEdicao
         .filter((g) => modalidadesAlvoIds.has(Number(g.modalidadeId)))
         .reduce((acumulador, linha) => {
             const mod = modalidadesEdicao.find((m) => m.id === Number(linha.modalidadeId));
             const letra = String(linha.grupo || 'Geral').trim();
             const generoGrupo = (mod && mod.genero) || 'Geral';
-            const chaveGrupo = `${Number(linha.modalidadeId)}|${letra}|${generoGrupo}`;
+            const subCategoriaGrupo = String(linha.subCategoria || linha.sub_categoria || 'geral').trim();
+            if (ehTenisMesaAtivo && subCategoriaSelecionada && subCategoriaGrupo !== subCategoriaSelecionada) {
+                return acumulador;
+            }
+            const chaveGrupo = `${Number(linha.modalidadeId)}|${letra}|${generoGrupo}|${subCategoriaGrupo}`;
             let grupo = acumulador.get(chaveGrupo);
             if (!grupo) {
                 grupo = {
-                    id: Number(linha.chaveId || linha.modalidadeId || 0),
+                    id: proximoIdGrupo++,
                     numero_chave: Number(linha.chaveId || 1),
                     letra,
                     genero_modalidade: generoGrupo,
                     nome_modalidade: (mod && mod.nome) || '',
-                    subCategoria: String(linha.subCategoria || linha.sub_categoria || 'geral').trim(),
+                    subCategoria: subCategoriaGrupo,
                     integrantes: []
                 };
                 acumulador.set(chaveGrupo, grupo);
             }
             const campusDado = mapaCampi.get(Number(linha.campusId));
-            grupo.integrantes.push({
+            const integrante = {
                 id: Number(linha.campusId || 0),
                 campus_id: Number(linha.campusId || 0),
-                nome: linha.campus || linha.atleta || ((campusDado && campusDado.nomeExibicao) || 'Campus'),
+                nome: linha.atleta || linha.campus || ((campusDado && campusDado.nomeExibicao) || 'Campus'),
                 foto: (campusDado && campusDado.foto) || '/imagens/avatar.svg',
                 pontos: Number(linha.pontos || 0),
                 jogos_jogados: Number(linha.jogosJogados || 0),
@@ -339,76 +381,121 @@ function renderizarEdicaoAnterior(req, res, edicaoRegistro, anoAtualJifc) {
                 cartoes_vermelhos: Number(linha.cartoesVermelhos || 0),
                 sets_ganhos: Number(linha.setsGanhos || 0),
                 sets_perdidos: Number(linha.setsPerdidos || 0)
+            };
+            grupo.integrantes.push(integrante);
+            classificacao.push({
+                ...integrante,
+                chave_id: grupo.id,
+                numero_chave: grupo.id,
+                subCategoria: subCategoriaGrupo,
+                genero_modalidade: generoGrupo,
+                nome_modalidade: (mod && mod.nome) || '',
+                grupo_label: letra
             });
             return acumulador;
         }, new Map());
     const gruposExibicao = [...grupos.values()].sort((a, b) => {
         const ordemGenero = (g) => String(g || '').toLowerCase().includes('feminino') ? 1 : 0;
-        return ordemGenero(a.genero_modalidade) - ordemGenero(b.genero_modalidade) || String(a.letra).localeCompare(String(b.letra));
+        const ordemSub = (s) => (String(s || '') === 'individual' ? 0 : (String(s || '') === 'dupla' ? 1 : 2));
+        return ordemGenero(a.genero_modalidade) - ordemGenero(b.genero_modalidade) || ordemSub(a.subCategoria) - ordemSub(b.subCategoria) || String(a.letra).localeCompare(String(b.letra));
     });
 
-    const xadrezDados = dados.xadrez && Array.isArray(dados.xadrez.classificacao) ? dados.xadrez.classificacao : [];
     const classificacaoXadrezPorGenero = {};
-    xadrezDados.forEach((linha) => {
-        const genero = String(linha.genero || 'Geral').trim();
+    normalizarXadrezDaEdicao(dados).forEach((linha) => {
+        const genero = String(linha.generoLinha || 'Geral').trim();
+        const pontos = Number(linha.pontuacao != null ? linha.pontuacao : (linha.pontos || 0));
         if (!classificacaoXadrezPorGenero[genero]) classificacaoXadrezPorGenero[genero] = [];
         classificacaoXadrezPorGenero[genero].push({
-            atleta_nome: linha.atleta || linha.atletaNome || '',
-            campus_nome: linha.campus || linha.campusNome || '',
-            pontuacao: Number(linha.pontuacao || linha.pontos || 0),
-            pontos: Number(linha.pontuacao || linha.pontos || 0),
+            atleta_nome: linha.atleta || linha.atletaNome || linha.atleta_nome || linha.nome || 'Atleta',
+            campus_nome: linha.campus || linha.campusNome || linha.campus_nome || '—',
+            pontuacao: pontos,
+            pontos,
             vitorias: Number(linha.vitorias || 0),
             empates: Number(linha.empates || 0),
             derrotas: Number(linha.derrotas || 0)
         });
     });
-    const classificacaoIndividual = Object.values(classificacaoXadrezPorGenero).flat().map((l) => ({ ...l, pontos: Number(l.pontuacao) || 0 }));
 
     const ehAtletismo = baseEsporteFiltro ? /atletismo/.test(baseEsporteFiltro) : false;
+    const ehXadrez = baseEsporteFiltro ? /xadrez/.test(baseEsporteFiltro) : false;
+    const ordemSlugsAtletismo = ['100m', '200m', '400m', '800m', '1500m', '4x100m', '4x400m', 'salto-em-distancia', 'salto-em-altura', 'arremesso'];
+    const { resolverSlugDaProva } = require('../utils/atletismoProvas');
     const provasAtletismo = [];
     const provasPorGenero = {};
-    if (ehAtletismo && dados.atletismo && Array.isArray(dados.atletismo.provas)) {
-        const ordemSlugs = ['100m', '200m', '400m', '800m', '1500m', '4x100m', '4x400m', 'salto-em-distancia', 'salto-em-altura', 'arremesso'];
-        dados.atletismo.provas.forEach((prova) => {
-            const slug = String(prova.slug || gerarSlugBase(String(prova.nome || ''))).trim();
+    const resultadosFinaisAtletismo = {};
+    let provaFiltroSelecionada = '';
+    if (ehAtletismo) {
+        normalizarAtletismoDaEdicao(dados).forEach((prova) => {
+            const slug = String(prova.slug || resolverSlugDaProva(String(prova.nome || '')) || gerarSlugBase(String(prova.nome || ''))).trim().toLowerCase();
             const nome = String(prova.nome || '').trim();
             const genero = String(prova.genero || prova.categoria || 'Geral').trim();
             if (!slug || !nome) return;
-            const atletas = (Array.isArray(prova.resultados) ? prova.resultados : []).map((r) => ({
-                nome: r.atleta || r.atletaNome || r.atleta_nome || 'Atleta',
-                campus: r.campus || r.campusNome || r.campus_nome || '—',
-                resultado: r.resultado || r.tempo || r.medida || '',
-                pontos: Number(r.pontos || 0),
-                posicaoFinal: r.posicaoFinal || r.posicao || null
-            }));
+            const atletas = (Array.isArray(prova.resultados) ? prova.resultados : []).map((r) => {
+                const resultado = (r.resultado != null && String(r.resultado) !== '')
+                    ? String(r.resultado)
+                    : ((r.tempo != null && String(r.tempo) !== '') ? String(r.tempo) : (r.medida != null ? String(r.medida) : ''));
+                return {
+                    nome: r.atleta || r.atletaNome || r.atleta_nome || 'Atleta',
+                    campus: r.campus || r.campusNome || r.campus_nome || '—',
+                    resultado,
+                    pontos: Number(r.pontos || 0),
+                    posicao: r.posicao != null ? Number(r.posicao) : null,
+                    posicaoFinal: r.posicaoFinal != null ? Number(r.posicaoFinal) : (r.posicao != null ? Number(r.posicao) : null),
+                    numeroBateria: r.bateria != null ? Number(r.bateria) : null,
+                    numeroRaia: r.raia != null ? Number(r.raia) : null,
+                    temResultadoSalvo: Boolean(resultado || r.posicao != null || r.posicaoFinal != null)
+                };
+            });
             if (!provasPorGenero[genero]) provasPorGenero[genero] = [];
             provasPorGenero[genero].push({ slug, nome, genero, atletas });
             if (!provasAtletismo.some((p) => p.slug === slug)) provasAtletismo.push({ slug, nome });
+            if (prova.final) {
+                if (!resultadosFinaisAtletismo[genero]) resultadosFinaisAtletismo[genero] = {};
+                resultadosFinaisAtletismo[genero][slug] = atletas.map((a) => ({
+                    posicao: a.posicao || a.posicaoFinal,
+                    nome: a.nome,
+                    campus: a.campus,
+                    tempo: a.resultado || '—',
+                    pontos: a.pontos
+                }));
+            }
         });
-        provasAtletismo.sort((a, b) => {
-            const ia = ordemSlugs.indexOf(a.slug);
-            const ib = ordemSlugs.indexOf(b.slug);
+        const ordenarProvas = (lista) => lista.sort((a, b) => {
+            const ia = ordemSlugsAtletismo.indexOf(a.slug);
+            const ib = ordemSlugsAtletismo.indexOf(b.slug);
             return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
         });
+        ordenarProvas(provasAtletismo);
+        Object.keys(provasPorGenero).forEach((genero) => ordenarProvas(provasPorGenero[genero]));
     }
     const classificacaoAtletismoPorGenero = {};
     if (ehAtletismo) {
-        provasAtletismo.forEach((prova) => {
-            const genero = String(prova.genero || 'Geral');
-            if (!classificacaoAtletismoPorGenero[genero]) classificacaoAtletismoPorGenero[genero] = new Map();
-            (Array.isArray(prova.atletas) ? prova.atletas : []).forEach((atleta) => {
-                const campusNome = String(atleta.campus || '—');
-                const atual = classificacaoAtletismoPorGenero[genero].get(campusNome) || { campus_nome: campusNome, pontos: 0, provas_pontuadas: 0, foto_perfil: ((mapaCampi && [...mapaCampi.values()].find((c) => String(c.nomeExibicao || '') === campusNome)) || {}).foto || '/imagens/avatar.svg' };
-                atual.pontos += Number(atleta.pontos || 0);
-                atual.provas_pontuadas += 1;
-                classificacaoAtletismoPorGenero[genero].set(campusNome, atual);
+        Object.keys(provasPorGenero).forEach((genero) => {
+            const mapa = new Map();
+            (provasPorGenero[genero] || []).forEach((prova) => {
+                (Array.isArray(prova.atletas) ? prova.atletas : []).forEach((atleta) => {
+                    if (Number(atleta.pontos || 0) <= 0) return;
+                    const campusNome = String(atleta.campus || '—').trim();
+                    const fotoCampus = ((mapaCampi && [...mapaCampi.values()].find((c) => String(c.nomeExibicao || '').trim() === campusNome)) || {}).foto || '/imagens/avatar.svg';
+                    const atual = mapa.get(campusNome) || { campus_nome: campusNome, pontos: 0, provas_pontuadas: 0, foto_perfil: fotoCampus };
+                    atual.pontos += Number(atleta.pontos || 0);
+                    atual.provas_pontuadas += 1;
+                    mapa.set(campusNome, atual);
+                });
             });
-        });
-        Object.keys(classificacaoAtletismoPorGenero).forEach((genero) => {
-            classificacaoAtletismoPorGenero[genero] = [...classificacaoAtletismoPorGenero[genero].values()].sort((a, b) => b.pontos - a.pontos);
+            classificacaoAtletismoPorGenero[genero] = [...mapa.values()].sort((a, b) => b.pontos - a.pontos);
         });
     }
-    const tipoClassificacaoIndividual = ehAtletismo ? 'atletismo' : (/xadrez/i.test(baseEsporteFiltro || '') ? 'xadrez' : null);
+    const classificacaoIndividual = ehAtletismo
+        ? Object.values(classificacaoAtletismoPorGenero).flat()
+        : (ehXadrez ? Object.values(classificacaoXadrezPorGenero).flat().map((l) => ({ ...l, pontos: Number(l.pontuacao) || 0 })) : []);
+    const tipoClassificacaoIndividual = ehAtletismo
+        ? (Object.keys(classificacaoAtletismoPorGenero).length ? 'atletismo' : null)
+        : (ehXadrez && Object.keys(classificacaoXadrezPorGenero).length ? 'xadrez' : null);
+    const provaSolicitadaSlug = String(req.query.prova || '').trim().toLowerCase();
+    if (ehAtletismo && provasAtletismo.length) {
+        provaFiltroSelecionada = provasAtletismo.some((p) => p.slug === provaSolicitadaSlug) ? provaSolicitadaSlug : provasAtletismo[0].slug;
+    }
 
     res.locals.modalidades = todasAsModalidades;
     res.locals.anoAtualJifc = anoAtualJifc;
@@ -428,18 +515,18 @@ function renderizarEdicaoAnterior(req, res, edicaoRegistro, anoAtualJifc) {
         esporteAtivo: Boolean(baseEsporteFiltro),
         jogos: jogosFiltrados,
         grupos: gruposExibicao,
-        classificacao: [],
+        classificacao,
         classificacaoIndividual,
         classificacaoAtletismoPorGenero,
         tipoClassificacaoIndividual,
         classificacaoXadrezPorGenero,
         provasAtletismo,
         provasPorGenero,
-        resultadosFinaisAtletismo: {},
-        provaFiltroSelecionada: '',
+        resultadosFinaisAtletismo,
+        provaFiltroSelecionada,
         regrasClassificacao,
-        mostrarSubFiltroTenis: false,
-        subCategoriaAtiva: 'geral',
+        mostrarSubFiltroTenis: ehTenisMesaAtivo,
+        subCategoriaAtiva: subCategoriaSelecionada,
         mensagemErro: req.query.erro || '',
         mensagemSucesso: req.query.sucesso || ''
     });

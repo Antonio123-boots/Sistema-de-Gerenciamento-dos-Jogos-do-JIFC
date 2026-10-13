@@ -156,6 +156,7 @@ async function capturarJogos() {
 }
 
 async function capturarAtletismo() {
+  const { resolverSlugDaProva } = require('../utils/atletismoProvas');
   const modalidades = await capturarModalidades();
   const modalidadesAtletismo = modalidades.filter((m) =>
     /atletismo/i.test(String(m.base || m.nome).toLowerCase())
@@ -173,6 +174,8 @@ async function capturarAtletismo() {
         id: prova.id,
         modalidadeId: mod.id,
         modalidadeGenero: mod.genero,
+        genero: mod.genero,
+        slug: resolverSlugDaProva(prova.nome) || '',
         nome: String(prova.nome || '').trim(),
         tipoResultado: String(prova.tipo_resultado || 'medida').trim(),
         ordem: Number(prova.ordem || 0),
@@ -183,6 +186,11 @@ async function capturarAtletismo() {
           campus: String(r.campus_nome || '').trim() || null,
           valorTempo: r.resultado_tempo_exibicao ? String(r.resultado_tempo_exibicao) : null,
           valorMedida: r.resultado_medida != null ? Number(r.resultado_medida) : null,
+          tempo: r.resultado_tempo_exibicao ? String(r.resultado_tempo_exibicao) : null,
+          medida: r.resultado_medida != null ? Number(r.resultado_medida) : null,
+          resultado: r.resultado_tempo_exibicao
+            ? String(r.resultado_tempo_exibicao)
+            : (r.resultado_medida != null ? Number(r.resultado_medida) : null),
           posicao: Number(r.posicao_final || 0),
           pontos: Number(r.pontos || 0),
           bateria: Number(r.numero_bateria || 0),
@@ -223,11 +231,13 @@ async function capturarXadrez() {
   if (!modalidadesXadrez.length) return null;
 
   const classificacao = [];
+  const campiPorGenero = [];
   for (const mod of modalidadesXadrez) {
     try {
       const [linhas] = await db.query(`
-        SELECT rx.atleta_id, rx.pontuacao, rx.vitorias, rx.derrotas, rx.empates, rx.publicado,
-               a.nome AS atleta_nome, a.campus_id AS campus_id, c.nome_exibicao AS campus_nome
+         SELECT rx.atleta_id, rx.pontuacao, rx.vitorias, rx.derrotas, rx.empates, rx.publicado,
+           a.nome AS atleta_nome, a.campus_id AS campus_id,
+           COALESCE(NULLIF(c.nome_exibicao, ''), c.nome) AS campus_nome
         FROM resultados_xadrez rx
         JOIN atletas a ON rx.atleta_id = a.id
         LEFT JOIN campus c ON a.campus_id = c.id
@@ -248,12 +258,27 @@ async function capturarXadrez() {
           publicado: Boolean(linha.publicado)
         });
       });
+
+      const classificacaoCampi = await resultadosIndividuaisService.obterClassificacaoGeralXadrez(mod.id);
+      (classificacaoCampi || []).forEach((linha, index) => {
+        campiPorGenero.push({
+          genero: mod.genero,
+          campusId: linha.campus_id,
+          campus: String(linha.campus_nome || '').trim() || null,
+          posicao: index + 1,
+          pontos: Number(linha.pontos || 0),
+          vitorias: Number(linha.vitorias || 0),
+          derrotas: Number(linha.derrotas || 0),
+          empates: Number(linha.empates || 0)
+        });
+      });
     } catch (_) { /* resultados de xadrez são opcionais */ }
   }
 
   return {
     modalidadeId: modalidadesXadrez[0].id,
-    classificacao
+    classificacao,
+    campi: campiPorGenero
   };
 }
 

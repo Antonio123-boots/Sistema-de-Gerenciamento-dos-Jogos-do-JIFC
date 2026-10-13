@@ -11,7 +11,11 @@ const extensoesPorMime = {
   'image/png': 'png',
   'image/gif': 'gif',
   'image/webp': 'webp',
-  'image/bmp': 'bmp'
+  'image/bmp': 'bmp',
+  'image/svg+xml': 'svg',
+  'image/avif': 'avif',
+  'image/x-icon': 'ico',
+  'image/vnd.microsoft.icon': 'ico'
 };
 
 const ASSINATURAS_IMAGEM = {
@@ -24,7 +28,14 @@ const ASSINATURAS_IMAGEM = {
   'image/webp': (b) => b.length > 12 &&
     b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 &&
     b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50,
-  'image/bmp': (b) => b.length > 2 && b[0] === 0x42 && b[1] === 0x4D
+  'image/bmp': (b) => b.length > 2 && b[0] === 0x42 && b[1] === 0x4D,
+  'image/svg+xml': (b) => {
+    const texto = b.toString('utf8').trim();
+    return /^<svg(?:\s|>)/i.test(texto) && !/<script(?:\s|>)/i.test(texto) && !/<foreignObject(?:\s|>)/i.test(texto);
+  },
+  'image/avif': (b) => b.length > 11 && b.toString('ascii', 4, 8) === 'ftyp' && b.toString('ascii', 8, 12).trim() === 'avif',
+  'image/x-icon': (b) => b.length > 3 && b[0] === 0x00 && b[1] === 0x00 && b[2] === 0x01 && b[3] === 0x00,
+  'image/vnd.microsoft.icon': (b) => b.length > 3 && b[0] === 0x00 && b[1] === 0x00 && b[2] === 0x01 && b[3] === 0x00
 };
 
 function normalizarIdentificador(valor) {
@@ -65,7 +76,7 @@ function decodificarBase64(valorTexto) {
 
 function validarImagemBase64(mime, buffer) {
   if (!extensoesPorMime[mime]) {
-    return 'Formato de imagem não permitido. Use JPG, PNG, GIF, WebP ou BMP.';
+    return 'Formato de imagem não permitido. Use um formato de imagem compatível, como JPG, PNG, GIF, WebP, SVG, AVIF, ICO ou BMP.';
   }
 
   const validaBytes = ASSINATURAS_IMAGEM[mime];

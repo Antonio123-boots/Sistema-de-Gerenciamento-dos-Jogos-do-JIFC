@@ -170,6 +170,29 @@ async function getConfiguracoesBanco() {
   try {
     const [linhas] = await db.query('SELECT * FROM configuracoes_evento ORDER BY id DESC LIMIT 1');
     const configuracaoBanco = linhas[0] || {};
+
+    const normalizarDataBanco = (valor) => {
+      if (valor instanceof Date && !Number.isNaN(valor.getTime())) {
+        const ano = valor.getFullYear();
+        const mes = String(valor.getMonth() + 1).padStart(2, '0');
+        const dia = String(valor.getDate()).padStart(2, '0');
+        return `${ano}-${mes}-${dia}`;
+      }
+      return valor;
+    };
+
+    const camposData = [
+      'inicio_evento', 'fim_evento',
+      'inicio_inscricao_modalidades', 'fim_inscricao_modalidades',
+      'inicio_inscricao_atletas', 'fim_inscricao_atletas',
+      'inicio_sorteio_chaves', 'fim_sorteio_chaves'
+    ];
+    for (const campo of camposData) {
+      if (configuracaoBanco[campo] != null) {
+        configuracaoBanco[campo] = normalizarDataBanco(configuracaoBanco[campo]);
+      }
+    }
+
     return {
       ...getConfiguracoes(),
       ...configuracaoBanco

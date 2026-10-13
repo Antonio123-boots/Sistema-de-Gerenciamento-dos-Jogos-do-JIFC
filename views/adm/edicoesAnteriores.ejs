@@ -1,123 +1,103 @@
-<section class="panel-card">
-  <div class="profile-header">
-    <div>
-      <h1>Edições Anteriores</h1>
-    </div>
-    <div>
-      <% if (statusJifc && statusJifc.encerrado) { %>
-        <span class="status-tag">JIFC Encerrado</span>
-      <% } else { %>
-        <span class="status-tag" style="background: rgba(255,75,75,0.15); color: #ff6b6b;">JIFC em andamento</span>
-      <% } %>
-    </div>
-  </div>
-
-  <% if (typeof mensagemErro !== 'undefined' && mensagemErro) { %>
-    <section class="panel-card" style="margin-top:1rem; border:1px solid rgba(255,107,107,0.35); background:rgba(255,107,107,0.08);">
-      <div class="welcome-card" style="padding:1rem; background:transparent; border:none; color:#fff;">
-        <p class="panel-subtitle" style="color:#ffb3b3;"><strong>Erro:</strong> <%= mensagemErro %></p>
-      </div>
-    </section>
-  <% } %>
-
-  <% if (typeof mensagemSucesso !== 'undefined' && mensagemSucesso) { %>
-    <section class="panel-card" style="margin-top:1rem; border:1px solid rgba(75,255,135,0.3); background:rgba(75,255,135,0.08);">
-      <div class="welcome-card" style="padding:1rem; background:transparent; border:none; color:#fff;">
-        <p class="panel-subtitle" style="color:#d4ffd4;"><strong>Sucesso:</strong> <%= mensagemSucesso %></p>
-      </div>
-    </section>
-  <% } %>
-
-  <div class="acoes-sorteio" style="margin-top: 1.5rem;">
-    <div class="as-info">
-      <span class="as-label">Edições Salvas</span>
-      <span class="as-contagem"><strong><%= Array.isArray(edicoes) ? edicoes.length : 0 %></strong> edição(ões)</span>
-    </div>
-    <div class="as-botoes">
-      <% if (statusJifc && statusJifc.encerrado) { %>
-        <form action="/admin/edicoes/salvar-ano-atual" method="POST" style="display:inline-block;">
-          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-          <input type="hidden" name="ano_jifc" value="<%= anoAtual %>">
-          <button type="submit" class="btn btn-primary">Salvar JIFC <%= anoAtual %> em edições anteriores</button>
-        </form>
-      <% } else { %>
-        <button type="button" class="btn btn-ghost" disabled title="Disponível quando todos os jogos forem encerrados">
-          Salvar edição atual
-        </button>
-      <% } %>
-    </div>
-  </div>
-
-  <div class="acoes-sorteio" style="margin-top: 1.5rem; align-items:flex-start; flex-wrap:wrap;">
-    <div class="as-info" style="max-width: 480px;">
-      <span class="as-label">Importar edição antiga</span>
-      <span class="as-contagem">Envie um arquivo <strong>.json</strong> no formato de edição (mesmo formato do botão Exportar). O sistema lê o arquivo e cria o JIFC daquele ano como edição anterior.</span>
-    </div>
-    <div class="as-botoes" style="flex:1; justify-content:flex-end; min-width: 260px;">
-      <form action="/admin/edicoes/importar" method="POST" style="width:100%;">
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        <input type="hidden" name="edicao_json_texto" id="edicaoJsonTexto">
-        <label class="btn btn-secondary" for="edicaoJsonInput" style="cursor:pointer; margin-bottom:0.6rem; width:100%; text-align:center;">
-          Escolher arquivo .json
-        </label>
-        <span id="edicaoJsonNome" style="display:block; font-size:0.75rem; color:#cfd8dc; margin-bottom:0.6rem;"></span>
-        <input type="file" id="edicaoJsonInput" accept=".json,application/json" style="display:none;">
-        <button type="submit" class="btn btn-primary" style="width:100%;" id="edicaoImportarBtn" disabled>Importar edição</button>
-      </form>
-    </div>
-  </div>
-
-  <% if (Array.isArray(edicoes) && edicoes.length) { %>
-    <div class="chaveamento-layout" style="margin-top: 1.5rem;">
-      <main class="chaveamento-content">
-        <div class="tabela-scroll">
-          <table style="width:100%; min-width:760px; border-collapse: collapse;">
-            <thead>
-              <tr>
-                <th style="text-align:left; padding:0.7rem 0.8rem;">Ano</th>
-                <th style="text-align:left; padding:0.7rem 0.8rem;">Título</th>
-                <th style="text-align:left; padding:0.7rem 0.8rem;">Origem</th>
-                <th style="text-align:center; padding:0.7rem 0.8rem;">Modalidades</th>
-                <th style="text-align:center; padding:0.7rem 0.8rem;">Jogos</th>
-                <th style="text-align:right; padding:0.7rem 0.8rem;">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% edicoes.forEach((edicao) => { %>
-                <tr>
-                  <td style="padding:0.7rem 0.8rem; border-top:1px solid rgba(255,255,255,0.08);"><strong><%= edicao.ano %></strong></td>
-                  <td style="padding:0.7rem 0.8rem; border-top:1px solid rgba(255,255,255,0.08);"><%= edicao.titulo %></td>
-                  <td style="padding:0.7rem 0.8rem; border-top:1px solid rgba(255,255,255,0.08);">
-                    <% if (edicao.origem === 'importada') { %>
-                      <span class="status-tag" style="background:rgba(91,143,249,0.16); color:#8fb8ff;">Importada</span>
-                    <% } else { %>
-                      <span class="status-tag" style="background:rgba(88,214,141,0.16); color:#58d68d;">Automática</span>
-                    <% } %>
-                  </td>
-                  <td style="padding:0.7rem 0.8rem; border-top:1px solid rgba(255,255,255,0.08); text-align:center;"><%= edicao.modalidades %></td>
-                  <td style="padding:0.7rem 0.8rem; border-top:1px solid rgba(255,255,255,0.08); text-align:center;"><%= edicao.jogos %></td>
-                  <td style="padding:0.7rem 0.8rem; border-top:1px solid rgba(255,255,255,0.08); text-align:right; white-space:nowrap;">
-                    <a href="/admin/edicoes/exportar/<%= edicao.ano %>" class="btn btn-secondary" style="padding:0.55rem 0.8rem;">Exportar</a>
-                    <form action="/admin/edicoes/excluir/<%= edicao.ano %>" method="POST" style="display:inline-block; margin-left:0.4rem;">
-                      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                      <button type="submit" class="btn btn-danger" style="padding:0.55rem 0.8rem;" onclick="return confirm('Excluir a edição de <%= edicao.ano %>? Os usuários não poderão mais visualizá-la.');">Excluir</button>
-                    </form>
-                  </td>
-                </tr>
-              <% }) %>
-            </tbody>
-          </table>
+<div class="profile-shell">
+  <div class="profile-card--wide configuration-dashboard">
+    <div class="config-dashboard-header">
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+        <div>
+          <h1 class="config-main-title">Edições Anteriores</h1>
+          <p class="config-main-subtitle">Histórico oficial do JIFC por ano, com exportação e importação de edições finalizadas.</p>
         </div>
-      </main>
-    </div>
-  <% } else { %>
-    <section class="panel-card" style="margin-top:1.5rem; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03);">
-      <div class="welcome-card" style="padding:1rem; background:transparent; border:none;">
-        <p class="panel-subtitle">Ainda não há edições anteriores salvas. Quando o JIFC terminar, salve a edição atual ou importe um arquivo de uma edição antiga.</p>
+        <% if (statusJifc && statusJifc.encerrado) { %>
+          <span class="status-tag">JIFC Encerrado</span>
+        <% } else { %>
+          <span class="status-tag" style="background: rgba(255,107,107,0.15); color:#ff6b6b;">JIFC em andamento</span>
+        <% } %>
       </div>
-    </section>
-  <% } %>
-</section>
+    </div>
+
+    <% if (typeof mensagemErro !== 'undefined' && mensagemErro) { %>
+      <div class="alert alert-error"><%= mensagemErro %></div>
+    <% } %>
+    <% if (typeof mensagemSucesso !== 'undefined' && mensagemSucesso) { %>
+      <div class="alert alert-success"><%= mensagemSucesso %></div>
+    <% } %>
+
+    <div class="admin-shell">
+      <div class="management-grid management-grid--two">
+        <section class="management-panel">
+          <h2 class="context-title" style="margin-top:0;">Gerar edição de exemplo</h2>
+          <form action="/admin/edicoes/gerar-exemplo" method="POST">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button type="submit" class="btn btn-secondary" style="width:100%;" onclick="return confirm('Gerar uma edição demonstrativa no histórico de edições anteriores?');">Gerar edição de exemplo</button>
+          </form>
+          <p class="panel-info" style="margin-top:0.6rem; margin-bottom:0;">Cria uma edição fictícia com modalidades, jogos e resultados para testar o histórico.</p>
+        </section>
+
+        <section class="management-panel">
+          <h2 class="context-title" style="margin-top:0;">Salvar edição atual</h2>
+          <% if (statusJifc && statusJifc.encerrado) { %>
+            <form action="/admin/edicoes/salvar-ano-atual" method="POST">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <input type="hidden" name="ano_jifc" value="<%= anoAtual %>">
+              <button type="submit" class="btn btn-primary" style="width:100%;">Salvar JIFC <%= anoAtual %> em edições anteriores</button>
+            </form>
+            <p class="panel-info" style="margin-top:0.6rem; margin-bottom:0;">Arquiva o campeonato atual como edição consultável.</p>
+          <% } else { %>
+            <button type="button" class="btn btn-ghost" disabled title="Disponível quando todos os jogos forem encerrados" style="width:100%;">Salvar edição atual</button>
+            <p class="panel-info" style="margin-top:0.6rem; margin-bottom:0;">Disponível quando todos os jogos forem encerrados.</p>
+          <% } %>
+        </section>
+
+        <section class="management-panel">
+          <h2 class="context-title" style="margin-top:0;">Importar edição antiga</h2>
+          <form action="/admin/edicoes/importar" method="POST">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="edicao_json_texto" id="edicaoJsonTexto">
+            <label class="btn btn-secondary" for="edicaoJsonInput" style="width:100%; cursor:pointer; margin-bottom:0.5rem;">Escolher arquivo .json</label>
+            <span id="edicaoJsonNome" style="display:block; font-size:0.78rem; color:rgba(255,255,255,0.62); margin-bottom:0.5rem;"></span>
+            <input type="file" id="edicaoJsonInput" accept=".json,application/json" style="display:none;">
+            <button type="submit" class="btn btn-primary" style="width:100%;" id="edicaoImportarBtn" disabled>Importar edição</button>
+          </form>
+        </section>
+      </div>
+    </div>
+
+    <div class="inner-management-card" style="margin-bottom:0;">
+      <div class="card-context-header">
+        <h2 class="context-title">Edições salvas</h2>
+        <p class="context-subtitle"><%= Array.isArray(edicoes) ? edicoes.length : 0 %> edição(ões) no histórico.</p>
+      </div>
+
+      <% if (Array.isArray(edicoes) && edicoes.length) { %>
+        <div class="management-card-list">
+          <% edicoes.forEach((edicao) => { %>
+            <div class="management-list-item">
+              <div class="management-list-item__meta">
+                <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+                  <strong style="color:#ece42d; font-size:1.05rem;">JIFC <%= edicao.ano %></strong>
+                  <% if (edicao.origem === 'importada') { %>
+                    <span class="status-tag" style="background:rgba(91,143,249,0.16); color:#8fb8ff; font-size:0.7rem; padding:0.2rem 0.55rem;">Importada</span>
+                  <% } else { %>
+                    <span class="status-tag" style="background:rgba(88,214,141,0.16); color:#58d68d; font-size:0.7rem; padding:0.2rem 0.55rem;">Automática</span>
+                  <% } %>
+                </div>
+                <p><%= edicao.titulo %> — <%= edicao.modalidades %> modalidade(s) e <%= edicao.jogos %> jogo(s)</p>
+              </div>
+              <div class="management-actions">
+                <a href="/admin/edicoes/exportar/<%= edicao.ano %>" class="btn btn-secondary">Exportar</a>
+                <form action="/admin/edicoes/excluir/<%= edicao.ano %>" method="POST">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <button type="submit" class="btn btn-danger" onclick="return confirm('Excluir a edição de <%= edicao.ano %>? Os usuários não poderão mais visualizá-la.');">Excluir</button>
+                </form>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <p class="panel-info" style="margin:0;">Ainda não há edições anteriores salvas. Quando o JIFC terminar, salve a edição atual ou importe um arquivo de uma edição antiga.</p>
+      <% } %>
+    </div>
+  </div>
+</div>
 
 <script>
   document.addEventListener('DOMContentLoaded', function () {

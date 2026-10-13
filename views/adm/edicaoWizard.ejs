@@ -1,10 +1,22 @@
 <%
 var LT='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 var _map=mapCampusId;
-function _nc(id){ var o=_map.get(Number(id)); return o?(o.nomeExibicao||o.nome||'Campus '+id):('Campus '+id); }
 function _lc(arr){ return Array.isArray(arr)?arr:[]; }
+function _nc(id){ var o=_map.get(Number(id)); return o?(o.nomeExibicao||o.nome||'Campus '+id):('Campus '+id); }
+function _foto(id){ var o=_map.get(Number(id)); return (o&&(o.foto||o.fotoPerfil))||'/imagens/avatar.svg'; }
+function _campiParticipantes(){ var lista=(mod&&Array.isArray(mod.participantes))?mod.participantes:[]; return _lc(dados.campi).filter(function(c){ return lista.some(function(p){ return Number(p)===Number(c.id); }); }); }
+function _datas(){ return typeof periodDates!=='undefined'&&Array.isArray(periodDates)?periodDates:[]; }
+function _fmtData(d){ if(!d) return ''; var p=String(d).split('-'); return p.length===3?(p[2]+'/'+p[1]+'/'+p[0]):d; }
+function _dataOpts(sel){
+  var ds=_datas().slice();
+  var s=String(sel||'');
+  if(s&&ds.indexOf(s)<0) ds.push(s);
+  var h='<option value="">—</option>';
+  ds.forEach(function(d){ h+='<option value="'+d+'"'+(s===String(d)?' selected':'')+'>'+_fmtData(d)+'</option>'; });
+  return h;
+}
 var mainSteps=[
-  ['dados','Dados gerais'],
+  ['dados','Dados'],
   ['campi','Campi'],
   ['modalidades','Modalidades'],
   ['modalidade','Modalidade'],
@@ -12,87 +24,135 @@ var mainSteps=[
 ];
 %>
 <style>
-.wz-page{font-family:inherit;margin:0 0 40px}
+.wz-page{--acc:#ece42d;--acc-ink:#101124;--line:rgba(255,255,255,.1);--muted:rgba(255,255,255,.58);font-family:inherit;margin:0 0 40px;color:#fff}
 .wz-page *,.wz-page *::before,.wz-page *::after{box-sizing:border-box}
-.wz-hero{background:linear-gradient(135deg,#232451 0%,#2b3a67 100%);color:#fff;padding:44px 32px 28px;border-radius:0 0 26px 26px;margin:0 -12px 24px;position:relative;overflow:hidden}
-.wz-hero::after{content:'';position:absolute;right:-40px;top:-40px;width:180px;height:180px;background:radial-gradient(circle,rgba(233,196,106,.25) 0%,transparent 70%);pointer-events:none}
-.wz-hero h1{margin:0 0 6px;font-size:1.55rem;font-weight:800;letter-spacing:-.3px;line-height:1.2}
-.wz-hero p{margin:0;font-size:.82rem;opacity:.72}
-.wz-stepper{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 24px}
-.wz-step{display:flex;align-items:center;gap:7px;padding:7px 14px;border-radius:999px;font-size:.76rem;font-weight:700;background:rgba(255,255,255,.07);color:rgba(255,255,255,.45);pointer-events:none;transition:all .25s}
-.wz-step--active{background:#e9c46a;color:#1a1c3b;box-shadow:0 0 0 2px #e9c46a}
-.wz-step--done{background:rgba(233,196,106,.18);color:#e9c46a}
-.wz-card{background:#fff;border-radius:18px;padding:32px 36px;box-shadow:0 6px 28px rgba(0,0,0,.22);max-width:1140px;margin:0 auto 28px}
-.wz-card h2{margin:0 0 20px;font-size:1.18rem;font-weight:800;color:#1a1c3b;border-bottom:2px solid #eef1f6;padding-bottom:12px}
-.wz-alert{padding:12px 16px;border-radius:10px;font-size:.8rem;margin-bottom:18px;display:flex;align-items:flex-start;gap:8px}
-.wz-alert-err{background:#fff0f0;color:#b42318;border:1px solid #fecdca}
-.wz-alert-ok{background:#ecfdf3;color:#027a48;border:1px solid #abefc6}
+.wz-hero{position:relative;overflow:hidden;border-radius:18px;background:linear-gradient(135deg,#232451 0%,#101124 100%);border:1px solid rgba(255,255,255,.1);padding:26px 30px 24px;margin:0 0 24px}
+.wz-hero::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#ece42d,#f7e85a)}
+.wz-hero::after{content:'';position:absolute;right:-40px;top:-40px;width:200px;height:200px;background:radial-gradient(circle,rgba(236,228,45,.16),transparent 70%);pointer-events:none}
+.wz-hero h1{margin:0 0 6px;font-size:1.35rem;font-weight:800;letter-spacing:-.3px;line-height:1.25;color:#fff}
+.wz-hero p{margin:0;font-size:.8rem;color:var(--muted)}
+.wz-stepper{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 24px}
+.wz-step{display:inline-flex;align-items:center;gap:8px;padding:7px 14px 7px 8px;border-radius:999px;font-size:.76rem;font-weight:700;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid transparent;transition:all .22s;pointer-events:none}
+.wz-step>span:first-child{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.1);font-size:.68rem;color:inherit}
+.wz-step--active{background:var(--acc);color:var(--acc-ink);border-color:var(--acc);box-shadow:0 6px 18px rgba(236,228,45,.35)}
+.wz-step--active>span:first-child{background:rgba(16,17,36,.16);color:var(--acc-ink)}
+.wz-step--done{color:#f7f8ff;border-color:rgba(236,228,45,.4);background:rgba(236,228,45,.12)}
+.wz-step--done>span:first-child{background:var(--acc);color:var(--acc-ink)}
+.wz-card{background:rgba(255,255,255,.045);border:1px solid var(--line);border-radius:18px;padding:26px 28px;box-shadow:0 16px 36px rgba(0,0,0,.18);margin:0 0 24px}
+.wz-card h2{margin:0 0 20px;font-size:1.04rem;font-weight:800;color:#fff;border-bottom:1px solid var(--line);padding-bottom:12px}
+.wz-alert{padding:12px 16px;border-radius:10px;font-size:.8rem;margin-bottom:10px;display:flex;align-items:flex-start;gap:8px;border:1px solid transparent}
+.wz-alert-err{background:rgba(255,75,75,.12);color:#ff9d9d;border-color:rgba(255,75,75,.3)}
+.wz-alert-ok{background:rgba(0,255,136,.1);color:#8fffc9;border-color:rgba(0,255,136,.3)}
 .wz-row{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:18px}
-.wz-field{display:flex;flex-direction:column;flex:1 1 220px;min-width:180px;gap:4px}
-.wz-field label{font-size:.72rem;font-weight:700;color:#4a5568;text-transform:uppercase;letter-spacing:.03em}
-.wz-input,.wz-select{padding:10px 12px;border:1.5px solid #c5cad5;border-radius:9px;font-size:.85rem;color:#1a1c3b;background:#fff;transition:border-color .2s,box-shadow .2s;outline:none}
-.wz-input:focus,.wz-select:focus{border-color:#e9c46a;box-shadow:0 0 0 3px rgba(233,196,106,.25)}
-.wz-input[readonly]{background:#f8f9fb;color:#667085}
+.wz-field{display:flex;flex-direction:column;flex:1 1 220px;min-width:180px;gap:5px}
+.wz-field label{font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.wz-input,.wz-select{padding:10px 12px;border:1px solid rgba(255,255,255,.16);border-radius:10px;font-size:.85rem;background:rgba(10,11,28,.55);color:#eef0ff;transition:border-color .2s,box-shadow .2s;outline:none;width:100%}
+.wz-select{appearance:none;background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23aab2c2' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:30px}
+.wz-select option{color:#1c1d3b;background:#fff}
+.wz-input:focus,.wz-select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(236,228,45,.18)}
+.wz-input[readonly]{background:rgba(255,255,255,.04);color:var(--muted)}
 .wz-sm{font-size:.75rem}
-.wz-btn{padding:10px 18px;border-radius:9px;border:none;font-weight:700;font-size:.82rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .2s}
+.wz-nota{font-size:.78rem;color:#ffd08a;background:rgba(236,228,45,.1);border:1px solid rgba(236,228,45,.35);padding:9px 14px;border-radius:10px;margin:0 0 16px}
+.wz-btn{padding:9px 16px;border-radius:10px;border:1px solid transparent;font-weight:700;font-size:.8rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .18s;justify-content:center;line-height:1.2}
 .wz-btn:disabled{opacity:.55;pointer-events:none}
-.wz-btn-primary{background:linear-gradient(180deg,#273560,#1f2048);color:#fff}
-.wz-btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(31,32,72,.4)}
-.wz-btn-ghost{background:transparent;border:1.5px solid #273560;color:#273560}
-.wz-btn-ghost:hover{background:#eef1f6}
-.wz-btn-gold{background:linear-gradient(180deg,#f6dc68,#e6a33a);color:#1a1c3b}
-.wz-btn-gold:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(230,163,58,.45)}
-.wz-btn-danger{background:#fff0f0;color:#b42318;border:1px solid #fecdca}
-.wz-btn-danger:hover{background:#fee4e2}
-.wz-btn-sm{padding:7px 12px;font-size:.75rem;border-radius:8px}
+.wz-btn-primary{background:linear-gradient(135deg,#f7e85a,#ece42d);color:var(--acc-ink)}
+.wz-btn-primary:hover{box-shadow:0 6px 16px rgba(236,228,45,.35);transform:translateY(-1px);filter:brightness(1.06)}
+.wz-btn-ghost{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.2);color:#fff}
+.wz-btn-ghost:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.3)}
+.wz-btn-gold{background:rgba(236,228,45,.08);border:1px solid rgba(236,228,45,.45);color:#ece42d}
+.wz-btn-gold:hover{background:rgba(236,228,45,.16);box-shadow:0 4px 14px rgba(236,228,45,.22)}
+.wz-btn-danger{background:rgba(255,75,75,.12);color:#ff8d8d;border-color:rgba(255,75,75,.3)}
+.wz-btn-danger:hover{background:rgba(255,75,75,.2)}
+.wz-btn-sm{padding:7px 12px;font-size:.74rem;border-radius:8px}
 .wz-pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px}
-.wz-pill{padding:5px 12px;border-radius:999px;font-size:.72rem;font-weight:700;background:#eef1f6;color:#344054}
-.wz-pill--gold{background:#fcf7e4;color:#b27e10;border:1px solid #f7d98c}
-.wz-checklist{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:18px}
-.wz-check{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:10px;border:1.5px solid #e5e7eb;cursor:pointer;transition:all .2s;background:#fff}
-.wz-check:hover{border-color:#d0d5dd;background:#f8f9fb}
-.wz-check--on{border-color:#273560;background:#eef1f6}
-.wz-check input{accent-color:#273560}
-.wz-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px}
-.wz-chip{padding:7px 15px;border-radius:999px;border:1.5px solid #d0d5dd;background:#fff;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s}
-.wz-chip:hover{border-color:#a0aec0;background:#f8f9fb}
-.wz-chip--sel{border-color:#273560;background:#273560;color:#fff}
+.wz-pill{padding:5px 12px;border-radius:999px;font-size:.72rem;font-weight:700;background:rgba(255,255,255,.07);color:#e6e9f4;border:1px solid rgba(255,255,255,.12)}
+.wz-pill--gold{background:rgba(236,228,45,.12);color:#ece42d;border-color:rgba(236,228,45,.4)}
+.wz-logo{width:30px;height:30px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,.18);background:#fff;flex:0 0 auto}
+.wz-checklist{display:grid;grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:9px;margin-bottom:14px}
+.wz-checklist--tools{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.wz-check{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:11px;border:1px solid rgba(255,255,255,.1);cursor:pointer;transition:all .18s;background:rgba(255,255,255,.05)}
+.wz-check:hover{border-color:rgba(255,255,255,.22);background:rgba(255,255,255,.08)}
+.wz-check--on{border-color:var(--acc);background:rgba(236,228,45,.1)}
+.wz-check input{accent-color:var(--acc);flex:0 0 auto}
+.wz-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.wz-chip{padding:6px 13px;border-radius:999px;border:1px solid rgba(255,255,255,.2);background:transparent;font-size:.75rem;font-weight:600;cursor:pointer;transition:all .18s;color:#fff}
+.wz-chip:hover{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.06)}
+.wz-chip--sel{border-color:var(--acc);background:var(--acc);color:var(--acc-ink)}
 .wz-r{position:relative}
-.wz-r .wz-btn-remove{background:#fff0f0;border:1px solid #fecdca;cursor:pointer;color:#b42318;font-size:1rem;padding:4px 8px;border-radius:8px;flex:0 0 auto}
-.wz-r .wz-btn-remove:hover{background:#fee4e2}
-.wz-mod-row{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;background:#f8f9fb;border:1px solid #eef1f6;margin-bottom:8px;flex-wrap:wrap}
+.wz-r .wz-btn-remove{background:rgba(255,75,75,.12);border:1px solid rgba(255,75,75,.3);cursor:pointer;color:#ff8d8d;font-size:1rem;padding:4px 9px;border-radius:8px;flex:0 0 auto}
+.wz-r .wz-btn-remove:hover{background:rgba(255,75,75,.22)}
+.wz-mod-row{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:11px;background:rgba(10,11,28,.35);border:1px solid var(--line);margin-bottom:8px;flex-wrap:wrap}
 .wz-mod-row .wz-field{flex:1}
+.wz-icone-preview{width:34px;height:34px;border-radius:10px;object-fit:cover;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);flex:0 0 auto}
+.wz-upload-btn{cursor:pointer}
 .wz-mod-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:24px;align-items:center}
-.wz-mod-tab{padding:9px 18px;border-radius:999px;font-size:.76rem;font-weight:700;background:#eef1f6;color:#4a5568;pointer-events:none}
-.wz-mod-tab--active{background:#273560;color:#fff}
-.wz-mod-tab--done{background:#e9c46a;color:#1a1c3b}
-.wz-mod-tab--done::after{content:' ✓'}
+.wz-mod-tab{padding:9px 18px;border-radius:999px;font-size:.76rem;font-weight:700;background:rgba(255,255,255,.06);color:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.1);pointer-events:none}
+.wz-mod-tab--active{background:var(--acc);color:var(--acc-ink);border-color:var(--acc)}
+.wz-mod-tab--done{background:rgba(236,228,45,.12);color:#ece42d;border-color:rgba(236,228,45,.4)}
 .wz-mod-sel{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
-.wz-grp-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:#f8f9fb;border:1px solid #eef1f6;margin-bottom:8px;flex-wrap:wrap}
-.wz-cfr{display:flex;align-items:flex-end;gap:8px;padding:10px 12px;border-radius:10px;background:#f8f9fb;border:1px solid #eef1f6;margin-bottom:8px;flex-wrap:wrap}
+.wz-chave-grid{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 14px}
+.wz-chave-card{flex:1 1 150px;max-width:220px;padding:14px;border:1px solid rgba(255,255,255,.14);border-radius:14px;background:rgba(255,255,255,.05);cursor:pointer;transition:all .18s;text-align:center}
+.wz-chave-card:hover{border-color:var(--acc);background:rgba(236,228,45,.1);transform:translateY(-2px)}
+.wz-chave-card__letra{font-size:1.35rem;font-weight:800;color:var(--acc)}
+.wz-chave-card__qtd{font-size:.72rem;color:var(--muted)}
+.wz-chave-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.08);font-size:.7rem;margin:2px}
+.wz-chave-chip img{width:16px;height:16px;border-radius:50%;object-fit:cover;background:#fff}
+.wz-cfr{display:flex;align-items:flex-end;gap:8px;padding:10px 12px;border-radius:11px;background:rgba(10,11,28,.35);border:1px solid var(--line);margin-bottom:8px;flex-wrap:wrap}
 .wz-cfr .wz-input,.wz-cfr .wz-select{padding:8px 10px;font-size:.78rem}
-.wz-cfr label{font-size:.65rem;color:#667085}
-.wz-res-grp{border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;margin-bottom:24px}
-.wz-res-grp__head{background:#f0f4fa;padding:14px 18px;font-weight:700;font-size:.85rem;color:#1a1c3b;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.wz-cfr label{font-size:.64rem;color:var(--muted)}
+.wz-res-grp{border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:24px;background:rgba(255,255,255,.03)}
+.wz-res-grp__head{background:#232451;padding:14px 18px;font-weight:700;font-size:.85rem;color:#fff;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;border-bottom:1px solid rgba(236,228,45,.3)}
 .wz-table{width:100%;border-collapse:collapse;font-size:.78rem}
-.wz-table thead th{background:#1f2048;color:#fff;padding:10px 12px;text-align:left;white-space:nowrap}
-.wz-table tbody td{padding:9px 10px;border-bottom:1px solid #eef1f6;vertical-align:middle}
-.wz-table tbody tr:nth-child(even){background:#f8f9fb}
-.wz-table tbody tr:hover{background:#eef1f6}
+.wz-table thead th{background:#1f2144;color:#ece42d;padding:10px 12px;text-align:left;white-space:nowrap;border-bottom:1px solid rgba(236,228,45,.3)}
+.wz-table tbody td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle;color:#eef0ff}
+.wz-table tbody tr:nth-child(even){background:rgba(255,255,255,.025)}
+.wz-table tbody tr:hover{background:rgba(236,228,45,.05)}
 .wz-prize{display:flex;flex-wrap:wrap;gap:14px;margin:18px 0 8px}
-.wz-prize__item{padding:14px 18px;border-radius:12px;background:#f8f9fb;border:1px solid #e5e7eb;text-align:center;flex:1 1 160px}
-.wz-prize__pos{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#667085;margin-bottom:4px}
-.wz-prize__campus{font-size:.95rem;font-weight:700;color:#1a1c3b}
+.wz-prize__item{padding:14px 18px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);text-align:center;flex:1 1 160px}
+.wz-prize__pos{font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:4px}
+.wz-prize__campus{font-size:.95rem;font-weight:700;color:#fff}
 .wz-footer{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-top:24px}
-.wz-empty{padding:18px;text-align:center;color:#667085;font-size:.82rem;border:1.5px dashed #d0d5dd;border-radius:12px;margin-bottom:18px}
-.wz-json{background:#1a1c3b;color:#e9c46a;padding:18px;border-radius:12px;font-family:'Courier New',monospace;font-size:.72rem;white-space:pre-wrap;max-height:340px;overflow:auto;margin-bottom:18px}
-@media(max-width:640px){.wz-card{padding:22px 18px}.wz-hero{padding:32px 18px 22px}.wz-hero h1{font-size:1.25rem}.wz-cfr{flex-direction:column;align-items:stretch}.wz-cfr .wz-field{flex:1 1 100%}}
+.wz-empty{padding:18px;text-align:center;color:var(--muted);font-size:.82rem;border:1px dashed rgba(255,255,255,.28);border-radius:12px;margin-bottom:18px}
+.wz-modal-backdrop{position:fixed;inset:0;background:rgba(8,9,20,.72);backdrop-filter:blur(4px);z-index:1200;display:flex;align-items:center;justify-content:center;padding:16px}
+.wz-modal{background:#232451;border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:22px;width:min(480px,94vw);max-height:82vh;overflow:auto;box-shadow:0 18px 60px rgba(0,0,0,.5)}
+.wz-modal h3{margin:0 0 14px;font-size:1.02rem;color:#fff}
+.wz-modal-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid rgba(255,255,255,.12);border-radius:10px;margin-bottom:7px;cursor:pointer;background:rgba(255,255,255,.05);transition:all .18s}
+.wz-modal-item:hover{background:rgba(255,255,255,.09)}
+.wz-modal-item.sel{border-color:var(--acc);background:rgba(236,228,45,.13)}
+.wz-modal-item input{accent-color:var(--acc);flex:0 0 auto}
+summary{cursor:pointer;font-size:.78rem;font-weight:700;color:var(--muted)}
+/* ===== Revisão ===== */
+.wz-card--rev{padding:20px 22px}
+.wz-rev-sub{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.wz-rev-sub h3{margin:0;font-size:1.02rem;font-weight:800;color:#fff}
+.wz-rev-sub__gen{color:var(--muted);font-weight:600}
+.wz-rev-tag{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;font-size:.68rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+.wz-rev-tag--done{background:rgba(0,255,136,.12);color:#8fffc9;border:1px solid rgba(0,255,136,.35)}
+.wz-rev-tag--pend{background:rgba(255,190,80,.12);color:#ffcf85;border:1px solid rgba(255,190,80,.35)}
+.wz-rev-podium{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0 6px}
+.wz-podium-item{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.04)}
+.wz-podium-item--1{border-color:rgba(236,228,45,.55);background:rgba(236,228,45,.1)}
+.wz-podium-item--2{border-color:rgba(205,215,235,.4);background:rgba(205,215,235,.07)}
+.wz-podium-item--3{border-color:rgba(226,160,94,.45);background:rgba(226,160,94,.09)}
+.wz-podium__medal{width:30px;height:30px;flex:0 0 auto;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.82rem;color:#101124}
+.wz-podium-item--1 .wz-podium__medal{background:linear-gradient(135deg,#f7e85a,#e6d71f)}
+.wz-podium-item--2 .wz-podium__medal{background:linear-gradient(135deg,#e8edf6,#b3bdd2);color:#2a2c44}
+.wz-podium-item--3 .wz-podium__medal{background:linear-gradient(135deg,#e8a860,#ce7f2e)}
+.wz-podium__labels{display:flex;flex-direction:column;min-width:0}
+.wz-podium__pos{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.wz-podium__name{font-size:.92rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wz-rev-section__title{display:flex;align-items:center;gap:8px;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--acc);margin:18px 0 8px}
+.wz-rev-section__title::before{content:'';width:18px;height:3px;border-radius:99px;background:var(--acc);flex:0 0 auto}
+.wz-rev-chave .wz-table tbody td:first-child{color:var(--acc);font-weight:700}
+.wz-table tbody tr:hover{background:rgba(236,228,45,.045)}
+.wz-rev-jogos .wz-res-grp{margin-bottom:14px}
+@media(max-width:640px){.wz-hero{padding:20px 18px}.wz-hero h1{font-size:1.12rem}.wz-card{padding:20px 18px}.wz-cfr{flex-direction:column;align-items:stretch}.wz-cfr .wz-field{flex:1 1 100%}}
 </style>
 
 <div class="wz-page">
   <div class="wz-hero">
-    <h1>Assistente — Nova Edição JIFC</h1>
-    <p>Crie e configure uma edição antiga dos jogos passo a passo.</p>
+    <h1>Nova Edição JIFC</h1>
+    <p>Configure uma edição antiga dos jogos passo a passo.</p>
   </div>
 
   <div class="wz-stepper">
@@ -126,16 +186,17 @@ var mainSteps=[
       </div>
       <div class="wz-field">
         <label>Início</label>
-        <input class="wz-input" type="date" name="dataInicio" value="<%= dados.dataInicio||'' %>">
+        <input class="wz-input" type="date" name="dataInicio" required value="<%= dados.dataInicio||'' %>">
       </div>
       <div class="wz-field">
         <label>Fim</label>
-        <input class="wz-input" type="date" name="dataFim" value="<%= dados.dataFim||'' %>">
+        <input class="wz-input" type="date" name="dataFim" required value="<%= dados.dataFim||'' %>">
       </div>
     </div>
-    <p class="wz-sm" style="color:#667085;margin:-6px 0 0">O título será sempre <strong>JIFC &lt;ano&gt;</strong>.</p>
+    <p class="wz-sm" style="color:rgba(255,255,255,.55);margin:-6px 0 0">O período define os dias disponíveis nos confrontos.</p>
     <div class="wz-footer" style="margin-top:30px">
       <button class="wz-btn wz-btn-danger wz-btn-sm" type="submit" form="wzFormCancelar">Cancelar</button>
+      <button class="wz-btn wz-btn-gold" type="submit" form="wzFormPreencher">Preencher com exemplo</button>
       <button class="wz-btn wz-btn-primary" type="submit">Começar</button>
     </div>
   </form>
@@ -145,26 +206,37 @@ var mainSteps=[
 <% /* ============ CAMPI ============ */ %>
 <% if(passo==='campi'){ %>
 <div class="wz-card">
-  <h2>Participantes — Campi</h2>
+  <h2>Participantes</h2>
   <form action="/admin/edicoes/nova/campi" method="POST" id="wzFormCampi">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="wz-checklist--tools">
+      <button type="button" class="wz-btn wz-btn-ghost wz-btn-sm" id="wzToggleCampus">Selecionar todos</button>
+    </div>
     <div class="wz-checklist" id="wzCampusChecklist">
       <% campiAtuais.forEach(function(c){ var sel=(dados.campi||[]).some(function(x){return Number(x.id)===Number(c.id)}); %>
         <label class="wz-check <%= sel?'wz-check--on':'' %>">
           <input type="checkbox" name="campi_atual" value="<%= c.id %>" <%= sel?'checked':'' %>>
+          <img class="wz-logo" src="<%= c.fotoPerfil||'/imagens/avatar.svg' %>" alt="">
           <span><%= c.nomeExibicao||c.nome %></span>
         </label>
       <% }) %>
     </div>
 
-    <h3 style="font-size:.82rem;margin:0 0 12px;color:#344054">Campi manuais</h3>
     <div id="wzCustomList">
       <% _lc(dados.campi).filter(function(c){return Number(c.id)>=100000}).forEach(function(c){ %>
         <div class="wz-mod-row wz-r">
-          <div class="wz-field"><label>Nome</label><input class="wz-input" name="custom_nome" value="<%= c.nomeExibicao||'' %>" required></div>
-          <div class="wz-field" style="flex:0 1 150px"><label>Cidade</label><input class="wz-input" name="custom_cidade" value="<%= c.cidade||'' %>"></div>
-          <div class="wz-field" style="flex:0 1 90px"><label>Cor</label><input class="wz-input" type="color" name="custom_cor" value="<%= c.cor||'#2980b9' %>"></div>
-          <input type="hidden" name="custom_foto" value="<%= c.foto||'' %>">
+          <img class="wz-logo" src="<%= c.foto||'/imagens/avatar.svg' %>" alt="">
+          <div class="wz-field" style="flex:2 1 180px;min-width:150px"><label>Nome</label><input class="wz-input" name="custom_nome" value="<%= c.nomeExibicao||'' %>" required></div>
+          <div class="wz-field" style="flex:0 1 130px"><label>Cidade</label><input class="wz-input" name="custom_cidade" value="<%= c.cidade||'' %>"></div>
+          <div class="wz-field" style="flex:0 1 70px"><label>Cor</label><input class="wz-input" type="color" name="custom_cor" value="<%= c.cor||'#2980b9' %>"></div>
+          <div class="wz-field" style="flex:0 1 160px">
+            <label>Logo</label>
+            <div style="display:flex;align-items:center;gap:8px">
+              <input type="file" accept="image/*" data-role="wz-camp-logo" class="wz-file-input" style="display:none">
+              <button type="button" class="wz-btn wz-btn-ghost wz-btn-sm wz-upload-btn">Escolher</button>
+              <input type="hidden" name="custom_foto" value="<%= c.foto||'' %>">
+            </div>
+          </div>
           <input type="hidden" name="custom_slug" value="<%= c.slug||'' %>">
           <button type="button" class="wz-btn-remove" onclick="this.closest('.wz-r').remove()">×</button>
         </div>
@@ -176,17 +248,25 @@ var mainSteps=[
 
     <div class="wz-footer">
       <button class="wz-btn wz-btn-ghost wz-btn-sm" type="submit" form="wzFormVoltarDados">← Voltar</button>
-      <button class="wz-btn wz-btn-primary" type="submit">Salvar e ir para modalidades →</button>
+      <button class="wz-btn wz-btn-primary" type="submit">Salvar e continuar</button>
     </div>
   </form>
 </div>
 
 <div id="wzCustomTemplate" style="display:none">
   <div class="wz-mod-row wz-r">
-    <div class="wz-field"><label>Nome</label><input class="wz-input" name="custom_nome" required></div>
-    <div class="wz-field" style="flex:0 1 150px"><label>Cidade</label><input class="wz-input" name="custom_cidade"></div>
-    <div class="wz-field" style="flex:0 1 90px"><label>Cor</label><input class="wz-input" type="color" name="custom_cor" value="#2980b9"></div>
-    <input type="hidden" name="custom_foto" value="">
+    <img class="wz-logo" src="/imagens/avatar.svg" alt="">
+    <div class="wz-field" style="flex:2 1 180px;min-width:150px"><label>Nome</label><input class="wz-input" name="custom_nome" required></div>
+    <div class="wz-field" style="flex:0 1 130px"><label>Cidade</label><input class="wz-input" name="custom_cidade"></div>
+    <div class="wz-field" style="flex:0 1 70px"><label>Cor</label><input class="wz-input" type="color" name="custom_cor" value="#2980b9"></div>
+    <div class="wz-field" style="flex:0 1 160px">
+      <label>Logo</label>
+      <div style="display:flex;align-items:center;gap:8px">
+        <input type="file" accept="image/*" data-role="wz-camp-logo" class="wz-file-input" style="display:none">
+        <button type="button" class="wz-btn wz-btn-ghost wz-btn-sm wz-upload-btn">Escolher</button>
+        <input type="hidden" name="custom_foto" value="">
+      </div>
+    </div>
     <input type="hidden" name="custom_slug" value="">
     <button type="button" class="wz-btn-remove" onclick="this.closest('.wz-r').remove()">×</button>
   </div>
@@ -200,55 +280,40 @@ var mainSteps=[
   <form action="/admin/edicoes/nova/modalidades" method="POST" id="wzFormModalidades">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
-    <div class="wz-chips" id="wzQuickChips">
-      <% ['Futsal','Handebol','Basquete','Vôlei','Vôlei de Praia','Tênis de Mesa'].forEach(function(nome){ %>
-        <button type="button" class="wz-chip" data-nome="<%= nome %>"><%= nome %></button>
-      <% }) %>
-    </div>
-
     <div id="wzModList">
       <% _lc(dados.modalidades).forEach(function(m){ %>
         <div class="wz-mod-row wz-r">
-          <div class="wz-field" style="flex:2 1 200px"><label>Nome</label><input class="wz-input" name="mod_nome" value="<%= m.base||m.nome %>" required></div>
-          <div class="wz-field" style="flex:0 1 130px"><label>Gênero</label><select class="wz-select" name="mod_genero"><% ['Masculino','Feminino','Misto'].forEach(function(g){ %><option value="<%= g %>" <%= m.genero===g?'selected':'' %>><%= g %></option><% }) %></select></div>
-          <div class="wz-field" style="flex:0 1 70px"><label>Ícone</label><input class="wz-input" name="mod_icone" value="<%= m.icone||'' %>"></div>
-          <button type="button" class="wz-btn-remove" onclick="this.closest('.wz-r').remove()">×</button>
+          <div class="wz-field" style="flex:2 1 200px;min-width:170px"><label>Modalidade</label><input class="wz-input" name="mod_nome" value="<%= m.base||m.nome %>" readonly required></div>
+          <div class="wz-field" style="flex:0 1 120px"><label>Gênero</label><select class="wz-select" name="mod_genero"><% ['Masculino','Feminino','Misto'].forEach(function(g){ %><option value="<%= g %>" <%= m.genero===g?'selected':'' %>><%= g %></option><% }) %></select></div>
+          <img class="wz-icone-preview" src="<%= m.icone||'/imagens/atletismo1.svg' %>" alt="Ícone de <%= m.base||m.nome %>">
+          <input type="hidden" name="mod_icone" value="<%= m.icone||'' %>">
         </div>
       <% }) %>
     </div>
 
-    <div style="margin-bottom:18px">
-      <button type="button" class="wz-btn wz-btn-ghost wz-btn-sm" onclick="wzAddMod()">+ Adicionar modalidade</button>
-    </div>
-
     <div class="wz-footer">
       <button class="wz-btn wz-btn-ghost wz-btn-sm" type="submit" form="wzFormVoltarCampi">← Voltar</button>
-      <button class="wz-btn wz-btn-primary" type="submit">Salvar e configurar modalidades →</button>
+      <button class="wz-btn wz-btn-primary" type="submit">Salvar e continuar</button>
     </div>
   </form>
 </div>
 
-<div id="wzModTemplate" style="display:none">
-  <div class="wz-mod-row wz-r">
-    <div class="wz-field" style="flex:2 1 200px"><label>Nome</label><input class="wz-input" name="mod_nome" required></div>
-    <div class="wz-field" style="flex:0 1 130px"><label>Gênero</label><select class="wz-select" name="mod_genero"><option>Masculino</option><option>Feminino</option><option>Misto</option></select></div>
-    <div class="wz-field" style="flex:0 1 70px"><label>Ícone</label><input class="wz-input" name="mod_icone"></div>
-    <button type="button" class="wz-btn-remove" onclick="this.closest('.wz-r').remove()">×</button>
-  </div>
-</div>
 <% } %>
 
 <% /* ============ MODALIDADE (sub-steps) ============ */ %>
-<% if(passo==='modalidade' && mod){ %>
+<% if(passo==='modalidade' && mod){
+  var ehIndividual=/atletismo|xadrez/i.test(mod.nome||'');
+  var ehTenis=/t[êe]nis de mesa/i.test(mod.nome||'');
+%>
 <div class="wz-card">
   <div class="wz-mod-sel">
     <form action="/admin/edicoes/nova/modalidades/ir" method="POST" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <div class="wz-field" style="flex:1 1 320px;min-width:240px">
-        <label style="font-size:.72rem;font-weight:700;color:#4a5568;text-transform:uppercase">Modalidade ativa</label>
+        <label style="font-size:.72rem;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase">Modalidade ativa</label>
         <select class="wz-select" name="modalidadeFoco" onchange="this.form.submit()">
           <% _lc(modalidades).forEach(function(m,i){ %>
-            <option value="<%= i %>" <%= i===modFoco?'selected':'' %>><%= m.nome %> <%= m.finalizada?'✓':'' %></option>
+            <option value="<%= i %>" <%= i===modFoco?'selected':'' %>><%= m.nome %><%= m.finalizada?' (concluída)':'' %></option>
           <% }) %>
         </select>
       </div>
@@ -257,9 +322,18 @@ var mainSteps=[
   </div>
 
   <div class="wz-mod-tabs">
-    <% ['participantes','grupos','confrontos','resultados'].forEach(function(st,i){ var done=mod.finalizada || ['participantes','grupos','confrontos'].indexOf(subPasso)>i; var active=subPasso===st; %>
-      <div class="wz-mod-tab <%= active?'wz-mod-tab--active':(done?'wz-mod-tab--done':'') %>"><%= ['Participantes','Chaves','Confrontos','Resultados'][i] %></div>
+    <% var wzTabs=[{st:'participantes',lb:'Participantes'},{st:'grupos',lb:'Chaves'},{st:'confrontos',lb:'Confrontos'},{st:'resultados',lb:'Resultados'}].concat(ehIndividual?[]:[{st:'eliminatorias',lb:'Eliminatórias'}]).filter(function(t){return !ehIndividual||t.st==='participantes';}); %>
+    <% wzTabs.forEach(function(t,i){ var done=mod.finalizada || ['participantes','grupos','confrontos'].indexOf(subPasso)>i; var active=subPasso===t.st; %>
+      <div class="wz-mod-tab <%= active?'wz-mod-tab--active':(done?'wz-mod-tab--done':'') %>"><%= t.lb %></div>
     <% }) %>
+    <% if(ehTenis){ %>
+      <form action="/admin/edicoes/nova/modalidade/<%= modFoco %>/sub-etapa" method="POST" class="wz-mod-subtap" style="display:flex;gap:6px;align-items:center;margin-left:auto;flex-wrap:wrap">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <span class="wz-sm" style="color:rgba(255,255,255,.6);font-weight:700;text-transform:uppercase;font-size:.68rem">Etapa:</span>
+        <button type="submit" name="subEtapa" value="individual" class="wz-pill <%= (mod.subEtapa||'individual')==='individual'?'wz-pill--gold':'' %>" style="border:1px solid rgba(255,255,255,.18);cursor:pointer;background:transparent;color:inherit">Individual <%= (typeof subEtapaTenis!=='undefined'&&subEtapaTenis.individualConcluida)?'✓':'' %></button>
+        <button type="submit" name="subEtapa" value="dupla" class="wz-pill <%= mod.subEtapa==='dupla'?'wz-pill--gold':'' %>" style="border:1px solid rgba(255,255,255,.18);cursor:pointer;background:transparent;color:inherit">Em dupla <%= (typeof subEtapaTenis!=='undefined'&&subEtapaTenis.duplaConcluida)?'✓':'' %></button>
+      </form>
+    <% } %>
     <% if(mod.finalizada){ %>
       <span class="wz-pill wz-pill--gold">Finalizada</span>
     <% } %>
@@ -269,77 +343,188 @@ var mainSteps=[
   <% if(subPasso==='participantes'){ %>
     <form action="/admin/edicoes/nova/modalidade/<%= modFoco %>/participantes" method="POST" id="wzFormParticipantes">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="wz-checklist--tools">
+        <button type="button" class="wz-btn wz-btn-ghost wz-btn-sm js-toggle-check" data-list="<%= modFoco %>">Selecionar todos</button>
+      </div>
       <div class="wz-checklist">
         <% _lc(dados.campi).forEach(function(c){ var sel=(mod.participantes||[]).some(function(x){return Number(x)===Number(c.id)}); %>
           <label class="wz-check <%= sel?'wz-check--on':'' %>">
             <input type="checkbox" name="participantes" value="<%= c.id %>" <%= sel?'checked':'' %>>
+            <img class="wz-logo" src="<%= c.foto||c.fotoPerfil||'/imagens/avatar.svg' %>" alt="">
             <span><%= c.nomeExibicao||c.nome %></span>
           </label>
         <% }) %>
       </div>
+      <% if(ehIndividual){ %>
+        <% if(/xadrez/i.test(mod.nome||'')){ %>
+          <div class="wz-res-grp" style="margin-top:18px">
+            <div class="wz-res-grp__head"><span>Atletas inscritos e resultados</span><span style="font-size:.7rem;color:rgba(255,255,255,.65)">Pontuação calculada automaticamente</span></div>
+            <div id="wzAtletasIndividuais" style="padding:14px">
+              <% var atletasWizard=_lc(mod.atletas); if(!atletasWizard.length){ atletasWizard=[{id:1,nome:'',campusId:''}]; } %>
+              <% atletasWizard.forEach(function(atleta,ai){ %>
+                <div class="wz-mod-row wz-r wz-atleta-individual">
+                  <div class="wz-field" style="flex:1 1 220px"><label>Atleta</label><input class="wz-input" name="atleta_nome" value="<%= atleta.nome||'' %>" placeholder="Nome do atleta"></div>
+                  <div class="wz-field" style="flex:1 1 180px"><label>Campus representado</label><select class="wz-select" name="atleta_campus"><option value="">Selecione</option><% _lc(dados.campi).forEach(function(c){ %><option value="<%= c.id %>" <%= Number(atleta.campusId)===Number(c.id)?'selected':'' %>><%= c.nomeExibicao||c.nome %></option><% }) %></select></div>
+                  <div class="wz-field" style="flex:0 1 90px"><label>Pontos</label><input class="wz-input" type="number" min="0" step="0.5" name="xadrez_pontuacao_<%= ai %>" value="<%= atleta.pontuacao||0 %>"></div>
+                  <div class="wz-field" style="flex:0 1 70px"><label>Vitórias</label><input class="wz-input" type="number" min="0" name="xadrez_vitorias_<%= ai %>" value="<%= atleta.vitorias||0 %>"></div>
+                  <div class="wz-field" style="flex:0 1 70px"><label>Derrotas</label><input class="wz-input" type="number" min="0" name="xadrez_derrotas_<%= ai %>" value="<%= atleta.derrotas||0 %>"></div>
+                  <div class="wz-field" style="flex:0 1 70px"><label>Empates</label><input class="wz-input" type="number" min="0" name="xadrez_empates_<%= ai %>" value="<%= atleta.empates||0 %>"></div>
+                  <button type="button" class="wz-btn-remove" onclick="this.closest('.wz-r').remove()">×</button>
+                </div>
+              <% }) %>
+            </div>
+            <div style="padding:0 14px 14px"><button type="button" class="wz-btn wz-btn-ghost wz-btn-sm" onclick="wzAddAtletaIndividual()">+ Adicionar atleta</button></div>
+          </div>
+        <% } %>
+
+        <% if(/atletismo/i.test(mod.nome||'')){ %>
+          <div class="wz-res-grp" style="margin-top:18px">
+            <div class="wz-res-grp__head"><span>1 · Provas de atletismo da edição</span><span style="font-size:.7rem;color:rgba(255,255,255,.65)">Confirme quais provas foram disputadas</span></div>
+            <div class="wz-checklist--tools" style="padding:14px 14px 0">
+              <button type="button" class="wz-btn wz-btn-ghost wz-btn-sm" onclick="wzToggleProvas(this)">Selecionar todos</button>
+            </div>
+            <div class="wz-checklist" style="padding:14px;margin:0">
+              <% _lc(mod.provas).forEach(function(prova){ %>
+                <label class="wz-check <%= prova.selecionada?'wz-check--on':'' %>">
+                  <input type="checkbox" name="prova_selecionada" value="<%= prova.id %>" <%= prova.selecionada?'checked':'' %>>
+                  <span><%= prova.nome %></span>
+                  <small style="margin-left:auto;color:rgba(255,255,255,.55)"><%= prova.tipo==='tempo'?'Tempo':'Distância / altura' %><%= prova.final?' · final automática (8)':'' %></small>
+                </label>
+              <% }) %>
+            </div>
+          </div>
+
+          <% if(_lc(mod.provas).some(function(p){return p.selecionada;})){ %>
+          <div class="wz-res-grp" style="margin-top:18px">
+            <div class="wz-res-grp__head"><span>2 · Atletas e resultados por prova</span><span style="font-size:.7rem;color:rgba(255,255,255,.65)">Em cada prova informe nome e campus do atleta e o resultado — tempo nas corridas, distância nos saltos e lançamentos</span></div>
+            <div style="padding-top:14px">
+              <% _lc(mod.provas).forEach(function(prova,pi){ if(!prova.selecionada) return; var resultadosProva=_lc(prova.resultados); var temBt=prova.tipo==='tempo'; %>
+                <div class="wz-res-grp" style="margin:0 14px 14px" data-prova-block="<%= pi %>">
+                  <div class="wz-res-grp__head">
+                    <span><%= prova.nome %></span>
+                    <span style="font-size:.7rem;color:rgba(255,255,255,.65)"><%= temBt?'Tempo (corrida)':'Distância / altura' %><%= prova.final?' · final automática com 8 (4 por bateria)':'' %></span>
+                  </div>
+                  <div style="overflow-x:auto">
+                    <table class="wz-table">
+                      <thead><tr><th>Atleta</th><th>Campus</th><% if(temBt){ %><th>Bateria</th><% } %><th><%= temBt?'Tempo':'Resultado' %></th><th>Col.</th><th>Pts</th><th></th></tr></thead>
+                      <tbody data-rows>
+                        <% if(resultadosProva.length){ %>
+                          <% resultadosProva.forEach(function(r){ %>
+                            <tr>
+                              <td><input class="wz-input" name="atl_<%= pi %>_nome[]" value="<%= r.atleta||'' %>" placeholder="Nome do atleta"></td>
+                              <td><select class="wz-select" name="atl_<%= pi %>_campus[]"><option value="">Selecione</option><% _campiParticipantes().forEach(function(c){ %><option value="<%= c.id %>" <%= Number(r.campusId)===Number(c.id)?'selected':'' %>><%= c.nomeExibicao||c.nome %></option><% }) %></select></td>
+                              <% if(temBt){ %><td><input class="wz-input" type="number" min="1" name="atl_<%= pi %>_bateria[]" value="<%= r.bateria||'' %>" style="width:70px"></td><% } %>
+                              <td><input class="wz-input" type="text" inputmode="decimal" name="atl_<%= pi %>_valor[]" value="<%= r.valor!=null?r.valor:'' %>" style="width:120px" placeholder="<%= temBt?'ex.: 12.38':'ex.: 5.62' %>"></td>
+                              <td><%= r.posicao||'—' %></td><td><strong><%= r.pontos||0 %></strong></td>
+                              <td><button type="button" class="wz-btn-remove" onclick="this.closest('tr').remove();wzEmptyProva(this.closest('[data-prova-block]'))">×</button></td>
+                            </tr>
+                          <% }) %>
+                        <% } else { %>
+                          <tr data-empty="1"><td colspan="7" style="color:var(--muted);text-align:center">Nenhum atleta lançado nesta prova. Use “+ Adicionar atleta”.</td></tr>
+                        <% } %>
+                      </tbody>
+                      <template data-prova-template="<%= pi %>">
+                        <tr>
+                          <td><input class="wz-input" name="atl_<%= pi %>_nome[]" placeholder="Nome do atleta"></td>
+                          <td><select class="wz-select" name="atl_<%= pi %>_campus[]"><option value="">Selecione</option><% _campiParticipantes().forEach(function(c){ %><option value="<%= c.id %>"><%= c.nomeExibicao||c.nome %></option><% }) %></select></td>
+                          <% if(temBt){ %><td><input class="wz-input" type="number" min="1" name="atl_<%= pi %>_bateria[]" style="width:70px"></td><% } %>
+                          <td><input class="wz-input" type="text" inputmode="decimal" name="atl_<%= pi %>_valor[]" style="width:120px" placeholder="<%= temBt?'ex.: 12.38':'ex.: 5.62' %>"></td>
+                          <td>—</td><td>0</td>
+                          <td><button type="button" class="wz-btn-remove" onclick="this.closest('tr').remove();wzEmptyProva(this.closest('[data-prova-block]'))">×</button></td>
+                        </tr>
+                      </template>
+                    </table>
+                  </div>
+                  <div style="padding:10px 14px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                    <button type="button" class="wz-btn wz-btn-ghost wz-btn-sm" onclick="wzAddAtletaProva(<%= pi %>)">+ Adicionar atleta</button>
+                    <span class="wz-sm" style="color:rgba(255,255,255,.5)">Colocação e pontuação (13 · 8 · 6 · 5 · 4 · 3 · 2 · 1) calculadas automaticamente.</span>
+                  </div>
+                  <% if(prova.final){ %>
+                    <div style="padding:0 14px 10px;font-weight:700;color:#ece42d">Final automática — 8 vagas (4 por bateria)</div>
+                    <div style="overflow-x:auto;padding:0 14px 14px">
+                      <table class="wz-table">
+                        <thead><tr><th>Atleta</th><th>Campus</th><th>Tempo da final</th><th>Col.</th><th>Pts</th></tr></thead>
+                        <tbody>
+                          <% if(_lc(prova.finalistas).length){ %>
+                            <% _lc(prova.finalistas).forEach(function(finalista){ var campusFinal=dados.campi.find(function(c){return Number(c.id)===Number(finalista.campusId);}); %>
+                              <tr><td><%= finalista.atleta||'Atleta' %></td><td><%= campusFinal?(campusFinal.nomeExibicao||campusFinal.nome):'—' %></td><td><input class="wz-input" type="text" inputmode="decimal" name="atl_<%= pi %>_final[]" value="<%= finalista.valorFinal!=null?finalista.valorFinal:'' %>" style="width:120px" placeholder="ex.: 12.00"></td><td><%= finalista.posicao||'—' %></td><td><strong><%= finalista.pontos||0 %></strong></td></tr>
+                            <% }) %>
+                          <% } else { %>
+                            <tr><td colspan="5" style="color:var(--muted);text-align:center">Salve após lançar até 8 atletas com tempo (4 por bateria) para liberar a final.</td></tr>
+                          <% } %>
+                        </tbody>
+                      </table>
+                    </div>
+                  <% } %>
+                </div>
+              <% }) %>
+            </div>
+          </div>
+
+          <div class="wz-res-grp" style="margin-top:18px">
+            <div class="wz-res-grp__head"><span>Classificação geral do atletismo</span><span style="font-size:.7rem;color:rgba(255,255,255,.65)">Atualizada automaticamente pelos resultados</span></div>
+            <% if(_lc(mod.tabelaAtletismo).length){ %>
+              <div style="overflow-x:auto"><table class="wz-table"><thead><tr><th>#</th><th>Campus</th><th>Provas pontuadas</th><th>Pts</th></tr></thead><tbody>
+                <% _lc(mod.tabelaAtletismo).forEach(function(linha){ %><tr><td><%= linha.posicao %></td><td><%= linha.campus||'Campus' %></td><td><%= linha.provas %></td><td><strong><%= linha.pontos %></strong></td></tr><% }) %>
+              </tbody></table></div>
+            <% } else { %>
+              <div class="wz-empty" style="margin:14px">A classificação será preenchida assim que houver resultados pontuados.</div>
+            <% } %>
+          </div>
+          <% } %>
+        <% } %>
+      <% } %>
       <div class="wz-footer">
         <button class="wz-btn wz-btn-ghost wz-btn-sm" type="submit" form="wzFormVoltarModalidades">← Modalidades</button>
-        <button class="wz-btn wz-btn-primary" type="submit">Definir participantes e ir para chaves →</button>
+        <button class="wz-btn wz-btn-primary" type="submit"><%= ehIndividual?'Salvar resultados':'Salvar e continuar' %></button>
       </div>
     </form>
   <% } %>
 
-  <% /* === Grupos / Chaves === */ %>
-  <% if(subPasso==='grupos'){ %>
+  <% /* === Grupos / Chaves (dinâmicas) === */ %>
+  <% if(subPasso==='grupos'){
+    var chavesData={participantes:(mod.participantes||[]).map(function(id){var c=dados.campi.find(function(x){return Number(x.id)===Number(id);});return {id:Number(id),nome:(c&&(c.nomeExibicao||c.nome))||('Campus '+id),foto:(c&&(c.foto||c.fotoPerfil))||'/imagens/avatar.svg'};}),grupos:(grupos||[]).map(function(g){return {letra:g.letra,participantes:(g.participantes||[]).map(Number)};})};
+  %>
+    <div id="wzData" style="display:none"><%= JSON.stringify(chavesData) %></div>
     <form action="/admin/edicoes/nova/modalidade/<%= modFoco %>/grupos" method="POST" id="wzFormGrupos">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
-      <div style="margin-bottom:14px">
-        <label style="font-size:.76rem;font-weight:700;color:#344054">Chaves definidas</label>
-        <div id="wzGrupoInputs" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">
-          <% if(grupos.length){ %>
-            <% grupos.forEach(function(g){ %>
-              <div class="wz-grp-row wz-r" style="background:#fff;border:1px solid #d0d5dd;padding:6px 10px;margin-bottom:0">
-                <input class="wz-input" name="grupo_nome" value="<%= g.letra %>" style="width:70px;text-align:center;font-weight:700">
-                <span class="wz-sm" style="color:#667085"><%= g.participantes.length %> campi</span>
-                <button type="button" class="wz-btn-remove" onclick="this.closest('.wz-r').remove()">×</button>
-              </div>
-            <% }) %>
-          <% } else { %>
-            <div class="wz-grp-row wz-r" style="background:#fff;border:1px solid #d0d5dd;padding:6px 10px;margin-bottom:0">
-              <input class="wz-input" name="grupo_nome" value="A" style="width:70px;text-align:center;font-weight:700">
-              <button type="button" class="wz-btn-remove" onclick="this.closest('.wz-r').remove()">×</button>
-            </div>
-          <% } %>
+      <div class="wz-row" style="align-items:flex-end;margin-bottom:8px">
+        <div class="wz-field" style="flex:0 1 200px;min-width:160px">
+          <label>Quantidade de chaves</label>
+<select class="wz-select" id="wzChaveQtd">
+  <% var maxQtd=Math.min(8,Math.max(1,Math.floor((mod.participantes||[]).length/2))); %>
+  <% for(var qi=1;qi<=maxQtd;qi++){ %><option value="<%= qi %>" <%= (grupos.length&&grupos.length===qi)||(!grupos.length&&qi===1)?'selected':'' %>><%= qi %></option><% } %>
+</select>
         </div>
-        <button type="button" class="wz-btn wz-btn-ghost wz-btn-sm" style="margin-top:8px" onclick="wzAddGrupo()">+ Adicionar chave</button>
+        <button type="button" class="wz-btn wz-btn-gold" id="wzGerarChaves">Gerar chaves</button>
       </div>
 
-      <div style="margin-bottom:18px">
-        <label style="font-size:.76rem;font-weight:700;color:#344054;display:block;margin-bottom:8px">Atribuir campus às chaves</label>
-        <% _lc(mod.participantes).forEach(function(pid){
-          var grupoIdxPorCampus={};
-          grupos.forEach(function(g){ g.participantes.forEach(function(p){ grupoIdxPorCampus[String(p)]=g.indice; }); });
-          var atual=grupoIdxPorCampus[String(pid)];
-        %>
-          <div class="wz-grp-row" style="background:#fff">
-            <span style="flex:1 1 180px;font-size:.82rem;font-weight:600"><%= _nc(pid) %></span>
-            <select class="wz-select" name="grupo_campus_<%= pid %>" style="max-width:160px">
-              <% if(grupos.length){ %>
-                <% grupos.forEach(function(g,i){ %><option value="<%= g.indice %>" <%= String(atual)===String(g.indice)?'selected':'' %>><%= g.letra %></option><% }) %>
-              <% } else { %>
-                <option value="0" selected>A</option>
-              <% } %>
-            </select>
+      <div class="wz-chave-grid" id="wzChaveGrid"></div>
+      <p class="wz-sm" id="wzChaveStatus" style="color:rgba(255,255,255,.6);margin:0 0 14px"></p>
+      <div id="wzGrupoInputs" style="display:none"></div>
+
+      <div class="wz-modal-backdrop" id="wzChaveModal" style="display:none">
+        <div class="wz-modal">
+          <h3 id="wzModalTitulo">Chave</h3>
+          <div id="wzModalList"></div>
+          <div class="wz-footer" style="margin-top:16px">
+            <button type="button" class="wz-btn wz-btn-ghost wz-btn-sm" id="wzModalCancelar">Cancelar</button>
+            <button type="button" class="wz-btn wz-btn-primary" id="wzModalConfirmar">Confirmar</button>
           </div>
-        <% }) %>
+        </div>
       </div>
 
       <div class="wz-footer">
         <button class="wz-btn wz-btn-ghost wz-btn-sm" type="submit" form="wzFormVoltarPart">← Participantes</button>
-        <button class="wz-btn wz-btn-primary" type="submit">Salvar chaves e ir para confrontos →</button>
+        <button type="submit" class="wz-btn wz-btn-primary" id="wzBtnSalvarChaves" disabled>Salvar e continuar</button>
       </div>
     </form>
   <% } %>
 
   <% /* === Confrontos === */ %>
   <% if(subPasso==='confrontos'){ %>
-    <div id="wzData" style="display:none"><%= JSON.stringify({grupos:grupos, participantes:(mod.participantes||[]).map(function(id){return {id:Number(id),nome:_nc(id)};})}) %></div>
+    <div id="wzData" style="display:none"><%= JSON.stringify({periodo:_datas(),grupos:grupos,participantes:(mod.participantes||[]).map(function(id){return {id:Number(id),nome:_nc(id)};})}) %></div>
     <form action="/admin/edicoes/nova/modalidade/<%= modFoco %>/confrontos" method="POST" id="wzFormConfrontos">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <div id="wzCfrList">
@@ -364,7 +549,9 @@ var mainSteps=[
               </select>
             </div>
             <div class="wz-field" style="flex:0 1 60px;min-width:52px"><label>Rodada</label><input class="wz-input" type="number" name="conf_rodada[]" min="1" value="<%= j.rodada||1 %>"></div>
-            <div class="wz-field" style="flex:0 1 130px;min-width:120px"><label>Data</label><input class="wz-input" type="date" name="conf_data[]" value="<%= j.data||'' %>"></div>
+            <div class="wz-field" style="flex:0 1 130px;min-width:120px"><label>Data</label>
+              <select class="wz-select" name="conf_data[]"><%- _dataOpts(j.data) %></select>
+            </div>
             <div class="wz-field" style="flex:0 1 85px;min-width:80px"><label>Hora</label><input class="wz-input" type="time" name="conf_horario[]" value="<%= j.horario||'' %>"></div>
             <div class="wz-field" style="flex:1 1 110px;min-width:100px"><label>Local</label><input class="wz-input" name="conf_local[]" value="<%= j.local||'' %>"></div>
             <button type="button" class="wz-btn-remove" onclick="this.closest('.wz-r').remove()">×</button>
@@ -372,11 +559,11 @@ var mainSteps=[
         <% }) %>
       </div>
       <div style="margin:12px 0 18px">
-        <button type="button" class="wz-btn wz-btn-ghost wz-btn-sm" onclick="wzAddConfronto()">+ Adicionar confronto</button>
+        <button type="button" class="wz-btn wz-btn-ghost wz-btn-sm" onclick="wzAddConfronto()">+ Adicionar</button>
       </div>
       <div class="wz-footer">
         <button class="wz-btn wz-btn-ghost wz-btn-sm" type="submit" form="wzFormVoltarGrupos">← Chaves</button>
-        <button class="wz-btn wz-btn-primary" type="submit">Salvar confrontos e ir para resultados →</button>
+        <button class="wz-btn wz-btn-primary" type="submit">Salvar e continuar</button>
       </div>
     </form>
   <% } %>
@@ -402,8 +589,8 @@ var mainSteps=[
             <tbody>
               <% bloco.jogos.forEach(function(j){ %>
                 <tr>
-                  <td><%= j.rodada||1 %></td>
-                  <td><input class="wz-input" type="date" name="jogo_<%= j.id %>_data" value="<%= j.data||'' %>" style="min-width:100px"></td>
+                  <td><input class="wz-input" type="number" name="jogo_<%= j.id %>_rodada" min="1" value="<%= j.rodada||1 %>" style="width:46px;text-align:center"></td>
+                  <td><select class="wz-select" name="jogo_<%= j.id %>_data" style="min-width:110px"><%- _dataOpts(j.data) %></select></td>
                   <td><input class="wz-input" type="time" name="jogo_<%= j.id %>_horario" value="<%= j.horario||'' %>" style="min-width:80px"></td>
                   <td><input class="wz-input" name="jogo_<%= j.id %>_local" value="<%= j.local||'' %>" style="min-width:90px"></td>
                   <td style="font-weight:600"><%= bloco.nomeDoParticipante(j.participanteAId) %></td>
@@ -415,15 +602,21 @@ var mainSteps=[
                   <td style="font-weight:600"><%= bloco.nomeDoParticipante(j.participanteBId) %></td>
                   <% if(temSets){ %>
                   <td style="white-space:nowrap">
+                    <% var alvoSet=ehTenis?11:21; %>
                     <% for(var si=0;si<3;si++){ var sa=(j.sets&&j.sets[si])?j.sets[si].pontosA:''; var sb=(j.sets&&j.sets[si])?j.sets[si].pontosB:''; %>
-                      <input class="wz-input" type="number" name="jogo_<%= j.id %>_setA" min="0" value="<%= sa %>" style="width:38px;text-align:center;font-size:.7rem" placeholder="A">
-                      <input class="wz-input" type="number" name="jogo_<%= j.id %>_setB" min="0" value="<%= sb %>" style="width:38px;text-align:center;font-size:.7rem" placeholder="B">
+                      <span style="display:inline-flex;flex-direction:column;align-items:center;margin:0 2px">
+                        <span style="font-size:.55rem;color:rgba(255,255,255,.5);line-height:1">Set <%= si+1 %></span>
+                        <span style="display:inline-flex;gap:1px;margin-top:1px">
+                          <input class="wz-input" type="number" name="jogo_<%= j.id %>_setA" min="0" max="99" value="<%= sa %>" style="width:34px;text-align:center;font-size:.7rem" placeholder="<%= alvoSet %>">
+                          <input class="wz-input" type="number" name="jogo_<%= j.id %>_setB" min="0" max="99" value="<%= sb %>" style="width:34px;text-align:center;font-size:.7rem" placeholder="<%= alvoSet %>">
+                        </span>
+                      </span>
                     <% } %>
                   </td>
                   <% } %>
                   <td><input type="checkbox" name="jogo_<%= j.id %>_wo" value="1" <%= j.wo?'checked':'' %> onchange="wzSyncWo(this)"></td>
                   <td>
-                    <select class="wz-select" name="jogo_<%= j.id %>_vencedor" style="max-width:140px;font-size:.75rem" <%= j.wo?'':'disabled' %>>
+                    <select class="wz-select" name="jogo_<%= j.id %>_vencedor" style="max-width:130px;font-size:.75rem" <%= j.wo?'':'disabled' %>>
                       <option value="">—</option>
                       <option value="<%= j.participanteAId %>" <%= j.vencedorId==j.participanteAId?'selected':'' %>><%= bloco.nomeDoParticipante(j.participanteAId) %></option>
                       <option value="<%= j.participanteBId %>" <%= j.vencedorId==j.participanteBId?'selected':'' %>><%= bloco.nomeDoParticipante(j.participanteBId) %></option>
@@ -445,14 +638,34 @@ var mainSteps=[
         <div class="wz-empty">Nenhum confronto para lançar resultados.</div>
       <% } %>
 
-      <% if(tabela&&tabela.length){ %>
-        <h3 style="font-size:.88rem;margin:22px 0 10px;color:#1a1c3b">Classificação geral</h3>
+      <% var tabelaPorChave={}; (tabela||[]).forEach(function(l){ (tabelaPorChave[String(l.chaveIndice)]=tabelaPorChave[String(l.chaveIndice)]||[]).push(l); }); var chavesKeys=Object.keys(tabelaPorChave).sort(function(a,b){return Number(a)-Number(b);}); %>
+      <% if(chavesKeys.length>1){ %>
+          <div class="wz-pills" style="margin-top:18px"><span class="wz-pill wz-pill--gold">Classificação por chave</span></div>
+          <% chavesKeys.forEach(function(ci){ var chaveIdx=Number(ci); var letraChave=(grupos[chaveIdx]&&grupos[chaveIdx].letra)||('Chave '+(chaveIdx+1)); %>
+            <div class="wz-res-grp" style="margin-top:12px">
+              <div class="wz-res-grp__head"><span>Chave <%= letraChave %></span></div>
+              <div style="overflow-x:auto">
+              <table class="wz-table">
+                <thead><tr><th>#</th><th>Campus</th><th>Pts</th><th>PJ</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><% if(temSets){ %><th>SG s</th><th>SP s</th><% } %></tr></thead>
+                <tbody>
+                  <% tabelaPorChave[ci].forEach(function(l){ %>
+                  <tr><td><%= l.posicao %></td><td><%= l.campus %></td><td><%= l.pontos %></td><td><%= l.jogos_jogados %></td><td><%= l.vitorias %></td><td><%= l.empates %></td><td><%= l.derrotas %></td><td><%= l.pontos_pro %></td><td><%= l.pontos_contra %></td><td><%= l.saldo_pontuacao %></td><% if(temSets){ %><td><%= l.sets_ganhos %></td><td><%= l.sets_perdidos %></td><% } %></tr>
+                  <% }) %>
+                </tbody>
+              </table>
+              </div>
+            </div>
+          <% }) %>
+      <% } %>
+
+      <% if(chavesKeys.length || (classificacaoGeral&&classificacaoGeral.length)){ %>
+        <div class="wz-pills" style="margin-top:18px"><span class="wz-pill wz-pill--gold">Classificação geral</span></div>
         <div style="overflow-x:auto">
         <table class="wz-table">
-          <thead><tr><th>#</th><th>Campus</th><th>Pts</th><th>PJ</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th></tr></thead>
+          <thead><tr><th>#</th><th>Campus</th><th>Pts</th><th>PJ</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><% if(temSets){ %><th>SG s</th><th>SP s</th><% } %></tr></thead>
           <tbody>
-            <% tabela.forEach(function(l){ %>
-            <tr><td><%= l.posicao %></td><td><%= l.campus %></td><td><%= l.pontos %></td><td><%= l.jogos_jogados %></td><td><%= l.vitorias %></td><td><%= l.empates %></td><td><%= l.derrotas %></td><td><%= l.pontos_pro %></td><td><%= l.pontos_contra %></td><td><%= l.saldo_pontuacao %></td></tr>
+            <% (classificacaoGeral&&classificacaoGeral.length?classificacaoGeral:(tabela||[]).slice()).forEach(function(l){ %>
+            <tr><td><%= l.posicao %></td><td><%= l.campus %></td><td><%= l.pontos %></td><td><%= l.jogos_jogados %></td><td><%= l.vitorias %></td><td><%= l.empates %></td><td><%= l.derrotas %></td><td><%= l.pontos_pro %></td><td><%= l.pontos_contra %></td><td><%= l.saldo_pontuacao %></td><% if(temSets){ %><td><%= l.sets_ganhos %></td><td><%= l.sets_perdidos %></td><% } %></tr>
             <% }) %>
           </tbody>
         </table>
@@ -461,7 +674,7 @@ var mainSteps=[
 
       <% if(mod.campeao){ %>
         <div class="wz-prize">
-          <div class="wz-prize__item" style="border-color:#f7d98c;background:#fcf7e4"><div class="wz-prize__pos">Campeã</div><div class="wz-prize__campus"><%= mod.campeao %></div></div>
+          <div class="wz-prize__item" style="border-color:rgba(236,228,45,.5);background:rgba(236,228,45,.1)"><div class="wz-prize__pos">Campeã</div><div class="wz-prize__campus"><%= mod.campeao %></div></div>
           <% if(mod.vice){ %><div class="wz-prize__item"><div class="wz-prize__pos">Vice</div><div class="wz-prize__campus"><%= mod.vice %></div></div><% } %>
           <% if(mod.terceiro){ %><div class="wz-prize__item"><div class="wz-prize__pos">Terceiro</div><div class="wz-prize__campus"><%= mod.terceiro %></div></div><% } %>
         </div>
@@ -469,9 +682,147 @@ var mainSteps=[
 
       <div class="wz-footer">
         <button class="wz-btn wz-btn-ghost wz-btn-sm" type="submit" form="wzFormVoltarConfr">← Confrontos</button>
-        <button class="wz-btn wz-btn-primary" type="submit">Salvar resultados</button>
+        <button class="wz-btn wz-btn-primary" type="submit">Salvar</button>
       </div>
     </form>
+  <% } %>
+
+  <% /* === Eliminatórias === */ %>
+  <% if(subPasso==='eliminatorias'){ %>
+    <% var elimCtx=eliminatoriaCtx||null; var elim=null; if(elimCtx) elim=elimCtx.eliminatoria; var elimTemSets=!!(regras&&regras.temSets); var alvoElim=elimTemSets?(ehTenis?11:21):null; %>
+    <% if(!elimCtx||!elimCtx.temEliminatoria){ %>
+      <div class="wz-empty">Eliminatória ainda não gerada. Conclua todos os resultados da fase de chaves para gerar o chaveamento.</div>
+      <div class="wz-footer"><button class="wz-btn wz-btn-ghost wz-btn-sm" type="submit" form="wzFormVoltarElim">← Voltar aos resultados</button></div>
+    <% } else { %>
+      <form action="/admin/edicoes/nova/modalidade/<%= modFoco %>/eliminatoria" method="POST" id="wzFormEliminatoria">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+        <% var elimTabelaPorChave={}; (tabela||[]).forEach(function(l){ (elimTabelaPorChave[String(l.chaveIndice)]=elimTabelaPorChave[String(l.chaveIndice)]||[]).push(l); }); var elimChavesKeys=Object.keys(elimTabelaPorChave).sort(function(a,b){return Number(a)-Number(b);}); %>
+        <% if(elimChavesKeys.length){ %>
+          <div class="wz-pills" style="margin-top:18px"><span class="wz-pill wz-pill--gold">Classificação por chave</span></div>
+          <% if(elimChavesKeys.length>1){ %>
+            <% elimChavesKeys.forEach(function(ci){ var chaveIdx=Number(ci); var letraChave=(grupos[chaveIdx]&&grupos[chaveIdx].letra)||('Chave '+(chaveIdx+1)); %>
+              <div class="wz-res-grp" style="margin-top:12px">
+                <div class="wz-res-grp__head"><span>Chave <%= letraChave %></span></div>
+                <div style="overflow-x:auto">
+                <table class="wz-table">
+                  <thead><tr><th>#</th><th>Campus</th><th>Pts</th><th>PJ</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><% if(elimTemSets){ %><th>SG s</th><th>SP s</th><% } %></tr></thead>
+                  <tbody>
+                    <% elimTabelaPorChave[ci].forEach(function(l){ %>
+                    <tr><td><%= l.posicao %></td><td><%= l.campus %></td><td><%= l.pontos %></td><td><%= l.jogos_jogados %></td><td><%= l.vitorias %></td><td><%= l.empates %></td><td><%= l.derrotas %></td><td><%= l.pontos_pro %></td><td><%= l.pontos_contra %></td><td><%= l.saldo_pontuacao %></td><% if(elimTemSets){ %><td><%= l.sets_ganhos %></td><td><%= l.sets_perdidos %></td><% } %></tr>
+                    <% }) %>
+                  </tbody>
+                </table>
+                </div>
+              </div>
+            <% }) %>
+          <% } %>
+
+        <% } %>
+
+        <div class="wz-pills" style="margin-top:18px"><span class="wz-pill wz-pill--gold">Classificados</span></div>
+        <div style="overflow-x:auto;margin:10px 0 4px">
+          <table class="wz-table"><thead><tr><th>#</th><th>Campus</th></tr></thead><tbody>
+            <% (elim.avancantes||[]).forEach(function(cid,pi){ %>
+              <tr><td><%= pi+1 %></td><td><%= elimCtx.nomeElim(cid) %></td></tr>
+            <% }) %>
+          </tbody></table>
+        </div>
+
+        <% (elim.fases||[]).forEach(function(fase,fi){ %>
+          <div class="wz-pills" style="margin-top:22px"><span class="wz-pill wz-pill--gold">Fase <%= fase.rodada %> — <%= fase.nome %></span></div>
+          <div style="overflow-x:auto;margin-top:10px">
+          <table class="wz-table">
+            <thead><tr><th>Jogo</th><th>Data</th><th>Hora</th><th>Local</th><th>Casa</th><th>Placar</th><th>Fora</th><% if(elimTemSets){ %><th>Sets</th><% } %><th>WO</th><th>Vencedor</th><th>St.</th></tr></thead>
+            <tbody>
+              <% (fase.jogos||[]).forEach(function(jj,ji){ var casaId=jj.participanteAId||(jj.origemCasa?'Jogo '+jj.origemCasa.r+'.'+(jj.origemCasa.gi+1)+(jj.origemCasa.perdedor?' (perdedor)':''):''); var foraId=jj.participanteBId||(jj.origemFora?'Jogo '+jj.origemFora.r+'.'+(jj.origemFora.gi+1)+(jj.origemFora.perdedor?' (perdedor)':''):''); %>
+                <tr>
+                  <td style="font-size:.7rem">Jogo <%= ji+1 %></td>
+                  <td><select class="wz-select" name="jogo_<%= jj.id %>_data" style="min-width:110px"><%- _dataOpts(jj.data) %></select></td>
+                  <td><input class="wz-input" type="time" name="jogo_<%= jj.id %>_horario" value="<%= jj.horario||'' %>" style="min-width:80px"></td>
+                  <td><input class="wz-input" name="jogo_<%= jj.id %>_local" value="<%= jj.local||'' %>" style="min-width:90px"></td>
+                  <td style="font-weight:600"><%= jj.participanteAId?elimCtx.nomeElim(jj.participanteAId):(jj.origemCasa?'<span style=color:rgba(255,255,255,.45)>'+casaId+'</span>':'—') %></td>
+                  <td style="white-space:nowrap">
+                    <input class="wz-input" type="number" name="jogo_<%= jj.id %>_placarA" min="0" value="<%= jj.placarA!=null?jj.placarA:'' %>" style="width:52px;text-align:center" <%= jj.participanteAId?'':'disabled' %>>
+                    ×
+                    <input class="wz-input" type="number" name="jogo_<%= jj.id %>_placarB" min="0" value="<%= jj.placarB!=null?jj.placarB:'' %>" style="width:52px;text-align:center" <%= jj.participanteBId?'':'disabled' %>>
+                  </td>
+                  <td style="font-weight:600"><%= jj.participanteBId?elimCtx.nomeElim(jj.participanteBId):(jj.origemFora?'<span style=color:rgba(255,255,255,.45)>'+foraId+'</span>':'—') %></td>
+                  <% if(elimTemSets){ %>
+                  <td style="white-space:nowrap">
+                    <% for(var si=0;si<3;si++){ var sa=(jj.sets&&jj.sets[si])?jj.sets[si].pontosA:''; var sb=(jj.sets&&jj.sets[si])?jj.sets[si].pontosB:''; %>
+                      <span style="display:inline-flex;flex-direction:column;align-items:center;margin:0 2px">
+                        <span style="font-size:.55rem;color:rgba(255,255,255,.5);line-height:1">Set <%= si+1 %></span>
+                        <span style="display:inline-flex;gap:1px;margin-top:1px">
+                          <input class="wz-input" type="number" name="jogo_<%= jj.id %>_setA" min="0" max="99" value="<%= sa %>" style="width:34px;text-align:center;font-size:.7rem" placeholder="<%= alvoElim %>" <%= jj.participanteAId?'':'disabled' %>>
+                          <input class="wz-input" type="number" name="jogo_<%= jj.id %>_setB" min="0" max="99" value="<%= sb %>" style="width:34px;text-align:center;font-size:.7rem" placeholder="<%= alvoElim %>" <%= jj.participanteBId?'':'disabled' %>>
+                        </span>
+                      </span>
+                    <% } %>
+                  </td>
+                  <% } %>
+                  <td><input type="checkbox" name="jogo_<%= jj.id %>_wo" value="1" <%= jj.wo?'checked':'' %> <%= (jj.participanteAId&&jj.participanteBId)?'':'disabled' %> onchange="wzSyncWo(this)"></td>
+                  <td><%= jj.vencedorId?elimCtx.nomeElim(jj.vencedorId):'—' %></td>
+                  <td><select class="wz-select" name="jogo_<%= jj.id %>_status" style="min-width:90px;font-size:.75rem">
+                    <% ['Agendado','Em Andamento','Encerrado'].forEach(function(st){ %><option value="<%= st %>" <%= (jj.status||'Agendado')===st?'selected':'' %>><%= st %></option><% }) %>
+                  </select></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+          </div>
+        <% }) %>
+
+        <% if(elim.jogoTerceiro){ var jt=elim.jogoTerceiro; var casaIdT=jt.participanteAId?'':(jt.origemCasa?'Jogo '+jt.origemCasa.r+'.'+(jt.origemCasa.gi+1)+' (perdedor)':''); var foraIdT=jt.participanteBId?'':(jt.origemFora?'Jogo '+jt.origemFora.r+'.'+(jt.origemFora.gi+1)+' (perdedor)':''); %>
+          <div class="wz-pills" style="margin-top:22px"><span class="wz-pill wz-pill--gold">Terceiro lugar</span></div>
+          <div style="overflow-x:auto;margin-top:10px">
+          <table class="wz-table">
+            <thead><tr><th>Casa</th><th>Placar</th><th>Fora</th><% if(elimTemSets){ %><th>Sets</th><% } %><th>Vencedor</th><th>St.</th></tr></thead>
+            <tbody>
+              <tr>
+                <td style="font-weight:600"><%= jt.participanteAId?elimCtx.nomeElim(jt.participanteAId):'<span style=color:rgba(255,255,255,.45)>'+casaIdT+'</span>' %></td>
+                <td style="white-space:nowrap">
+                  <input class="wz-input" type="number" name="jogo_<%= jt.id %>_placarA" min="0" value="<%= jt.placarA!=null?jt.placarA:'' %>" style="width:52px;text-align:center" <%= jt.participanteAId?'':'disabled' %>>
+                  ×
+                  <input class="wz-input" type="number" name="jogo_<%= jt.id %>_placarB" min="0" value="<%= jt.placarB!=null?jt.placarB:'' %>" style="width:52px;text-align:center" <%= jt.participanteBId?'':'disabled' %>>
+                </td>
+                <td style="font-weight:600"><%= jt.participanteBId?elimCtx.nomeElim(jt.participanteBId):'<span style=color:rgba(255,255,255,.45)>'+foraIdT+'</span>' %></td>
+                <% if(elimTemSets){ %>
+                <td style="white-space:nowrap">
+                  <% for(var si=0;si<3;si++){ var sa=(jt.sets&&jt.sets[si])?jt.sets[si].pontosA:''; var sb=(jt.sets&&jt.sets[si])?jt.sets[si].pontosB:''; %>
+                    <span style="display:inline-flex;flex-direction:column;align-items:center;margin:0 2px">
+                      <span style="font-size:.55rem;color:rgba(255,255,255,.5);line-height:1">Set <%= si+1 %></span>
+                      <span style="display:inline-flex;gap:1px;margin-top:1px">
+                        <input class="wz-input" type="number" name="jogo_<%= jt.id %>_setA" min="0" max="99" value="<%= sa %>" style="width:34px;text-align:center;font-size:.7rem" placeholder="<%= alvoElim %>" <%= jt.participanteAId?'':'disabled' %>>
+                        <input class="wz-input" type="number" name="jogo_<%= jt.id %>_setB" min="0" max="99" value="<%= sb %>" style="width:34px;text-align:center;font-size:.7rem" placeholder="<%= alvoElim %>" <%= jt.participanteBId?'':'disabled' %>>
+                      </span>
+                    </span>
+                  <% } %>
+                </td>
+                <% } %>
+                <td><%= jt.vencedorId?elimCtx.nomeElim(jt.vencedorId):'—' %></td>
+                <td><select class="wz-select" name="jogo_<%= jt.id %>_status" style="min-width:90px;font-size:.75rem">
+                  <% ['Agendado','Em Andamento','Encerrado'].forEach(function(st){ %><option value="<%= st %>" <%= (jt.status||'Agendado')===st?'selected':'' %>><%= st %></option><% }) %>
+                </select></td>
+              </tr>
+            </tbody>
+          </table>
+          </div>
+        <% } %>
+
+        <div class="wz-pills" style="margin-top:22px"><span class="wz-pill wz-pill--gold">Pódio</span></div>
+        <div class="wz-prize" style="margin-top:8px;margin-bottom:22px">
+          <div class="wz-prize__item" style="border-color:rgba(236,228,45,.5);background:rgba(236,228,45,.1)"><div class="wz-prize__pos">Campeã</div><div class="wz-prize__campus"><%= elimCtx.elimPodio.campeao?elimCtx.nomeElim(elimCtx.elimPodio.campeao):'—' %></div></div>
+          <div class="wz-prize__item"><div class="wz-prize__pos">Vice</div><div class="wz-prize__campus"><%= elimCtx.elimPodio.vice?elimCtx.nomeElim(elimCtx.elimPodio.vice):'—' %></div></div>
+          <div class="wz-prize__item"><div class="wz-prize__pos">Terceiro</div><div class="wz-prize__campus"><%= elimCtx.elimPodio.terceiro?elimCtx.nomeElim(elimCtx.elimPodio.terceiro):'—' %></div></div>
+        </div>
+
+        <div class="wz-footer">
+          <button class="wz-btn wz-btn-ghost wz-btn-sm" type="submit" form="wzFormVoltarElim">← Resultados</button>
+          <button class="wz-btn wz-btn-primary" type="submit">Salvar</button>
+        </div>
+      </form>
+    <% } %>
   <% } %>
 </div>
 <% } %>
@@ -490,31 +841,174 @@ var mainSteps=[
     <span class="wz-pill"><%= (df.campi||[]).length %> campus</span>
     <span class="wz-pill"><%= (df.modalidades||[]).length %> modalidade(s)</span>
     <span class="wz-pill"><%= (df.chaves||[]).length %> chave(s)</span>
-    <span class="wz-pill"><%= (df.grupos||[]).length %> posição(ões) classificada(s)</span>
     <span class="wz-pill"><%= (df.jogos||[]).length %> jogo(s)</span>
   </div>
 
   <% if((df.modalidades||[]).length){ %>
+    <div class="wz-field" style="flex:0 1 320px;min-width:240px;margin-bottom:12px">
+      <label style="font-size:.72rem;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase">Filtrar modalidade</label>
+      <select class="wz-select" id="wzRevFiltro"><option value="">Todas</option><% (dados.modalidades||[]).forEach(function(m,i){ %><option value="<%= i %>"><%= m.nome %></option><% }) %></select>
+    </div>
     <div style="overflow-x:auto;margin-bottom:22px">
-      <table class="wz-table">
-        <thead><tr><th>Modalidade</th><th>Campeã</th><th>Vice</th></tr></thead>
+      <table class="wz-table" id="wzRevTabela">
+        <thead><tr><th>Modalidade</th><th>Campeã</th><th>Vice</th><th>Terceiro</th><th>Clássificada</th></tr></thead>
         <tbody>
-          <% (df.modalidades||[]).forEach(function(m,i){ %>
-          <tr><td><%= m.nome %></td><td><%= (dados.modalidades[i]&&dados.modalidades[i].campeao)||'—' %></td><td><%= (dados.modalidades[i]&&dados.modalidades[i].vice)||'—' %></td></tr>
+          <% (dados.modalidades||[]).forEach(function(m,i){ %>
+          <tr data-wzmod="<%= i %>"><td><%= m.nome %></td><td><%= m.campeao||'—' %></td><td><%= m.vice||'—' %></td><td><%= m.terceiro||'—' %></td><td><%= m.finalizada?'Sim':'Não' %></td></tr>
           <% }) %>
         </tbody>
       </table>
     </div>
+
+    <% (dados.modalidades||[]).forEach(function(m,mi){
+         var rev=(revisaoModalidades&&revisaoModalidades[mi])||null;
+         var ehTenisCard=rev&&rev.ehTenis; %>
+      <div class="wz-card wz-card--rev" style="margin-top:16px" data-wzmod="<%= mi %>">
+        <div class="wz-rev-sub">
+          <h3><%= m.nome %><% if(m.genero){ %> <span class="wz-rev-sub__gen">· <%= m.genero %></span><% } %></h3>
+          <span class="wz-rev-tag <%= (rev&&rev.finalizada)?'wz-rev-tag--done':'wz-rev-tag--pend' %>"><%= (rev&&rev.finalizada)?'Classificada':'Pendente' %></span>
+        </div>
+        <% if(!ehTenisCard){
+          var pd=[['Campeã','1',rev&&rev.campeao?rev.campeao:null],['Vice','2',rev&&rev.vice?rev.vice:null],['3º','3',rev&&rev.terceiro?rev.terceiro:null]]; %>
+        <div class="wz-rev-podium">
+          <% pd.forEach(function(par){ %>
+          <div class="wz-podium-item wz-podium-item--<%= par[1] %>">
+            <span class="wz-podium__medal"><%= par[1] %></span>
+            <span class="wz-podium__labels">
+              <span class="wz-podium__pos"><%= par[0] %></span>
+              <span class="wz-podium__name"><%= par[2]||'—' %></span>
+            </span>
+          </div>
+          <% }) %>
+        </div>
+        <% } %>
+
+        <% if(rev&&rev.ehAtletismo){ %>
+          <div style="margin-top:8px">
+            <% if(rev.provas&&rev.provas.length){ %>
+              <div class="wz-rev-section__title">Provas</div>
+              <% rev.provas.forEach(function(p){ %>
+                <div style="margin:8px 0">
+                  <div class="wz-res-grp__head"><span><%= p.nome %><% if(p.final){ %> · Final<% } %></span></div>
+                  <div style="overflow-x:auto">
+                  <table class="wz-table">
+                    <thead><tr><th>#</th><th>Atleta</th><th>Campus</th><th>Bateria</th><th>Resultado</th><% if(p.final){ %><th>Final</th><% } %><th>Pontos</th></tr></thead>
+                    <tbody>
+                      <% (p.resultados||[]).forEach(function(r){ %>
+                        <tr>
+                          <td><%= r.posicao||'—' %></td>
+                          <td><%= r.atleta||'—' %></td>
+                          <td><%= r.campus||'—' %></td>
+                          <td><%= r.bateria||'—' %></td>
+                          <td><%= r.valor!=null&&r.valor!==''?r.valor:'—' %></td>
+                          <% if(p.final){ %><td><%= r.valorFinal!=null&&r.valorFinal!==''?r.valorFinal:'—' %></td><% } %>
+                          <td><%= r.pontos||0 %></td>
+                        </tr>
+                      <% }) %>
+                    </tbody>
+                  </table>
+                  </div>
+                </div>
+              <% }) %>
+            <% } %>
+            <% if(rev.tabela&&rev.tabela.length){ %>
+              <div class="wz-rev-section__title">Classificação geral</div>
+              <div style="overflow-x:auto">
+              <table class="wz-table">
+                <thead><tr><th>#</th><th>Campus</th><th>Pontos</th><th>Provas</th></tr></thead>
+                <tbody>
+                  <% rev.tabela.forEach(function(l){ %>
+                  <tr><td><%= l.posicao %></td><td><%= l.campus %></td><td><%= l.pontos %></td><td><%= l.provas %></td></tr>
+                  <% }) %>
+                </tbody>
+              </table>
+              </div>
+            <% } %>
+          </div>
+        <% } else if(rev&&rev.ehXadrez){ %>
+          <div class="wz-rev-section__title">Classificação</div>
+          <div style="overflow-x:auto">
+          <table class="wz-table">
+            <thead><tr><th>#</th><th>Atleta</th><th>Campus</th><th>Vit.</th><th>Emp.</th><th>Der.</th><th>Pontos</th></tr></thead>
+            <tbody>
+              <% (rev.xadrez||[]).forEach(function(x){ %>
+              <tr><td><%= x.posicao %></td><td><%= x.atleta||'—' %></td><td><%= x.campus||'—' %></td><td><%= x.vitorias||0 %></td><td><%= x.empates||0 %></td><td><%= x.derrotas||0 %></td><td><%= x.pontuacao||0 %></td></tr>
+              <% }) %>
+            </tbody>
+          </table>
+          </div>
+        <% } else { (rev&&rev.blocos||[]).forEach(function(bloco,b){ %>
+          <% if(bloco.rotulo){
+            var pdB=[['Campeão','1',bloco.podio.campeao],['Vice','2',bloco.podio.vice],['3º','3',bloco.podio.terceiro]]; %>
+            <div class="wz-rev-section__title">Sub-etapa <%= bloco.rotulo %></div>
+            <div class="wz-rev-podium">
+              <% pdB.forEach(function(par){ %>
+              <div class="wz-podium-item wz-podium-item--<%= par[1] %>">
+                <span class="wz-podium__medal"><%= par[1] %></span>
+                <span class="wz-podium__labels">
+                  <span class="wz-podium__pos"><%= par[0] %></span>
+                  <span class="wz-podium__name"><%= par[2]||'—' %></span>
+                </span>
+              </div>
+              <% }) %>
+            </div>
+          <% } %>
+          <% (bloco.tabelas||[]).forEach(function(tb){ %>
+            <div class="wz-rev-chave" style="margin:10px 0">
+              <div class="wz-res-grp__head"><span><%= tb.rotuloChave %></span></div>
+              <div style="overflow-x:auto">
+              <table class="wz-table">
+                <thead><tr><th>#</th><th>Campus</th><th>Pts</th><th>PJ</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th><% if(bloco.temSets){ %><th>SG s</th><th>SP s</th><% } %></tr></thead>
+                <tbody>
+                  <% tb.linhas.forEach(function(l){ %>
+                  <tr><td><%= l.posicao %></td><td><%= l.campus %></td><td><%= l.pontos %></td><td><%= l.pj %></td><td><%= l.v %></td><td><%= l.e %></td><td><%= l.d %></td><td><%= l.gp %></td><td><%= l.gc %></td><td><%= l.sg %></td><% if(bloco.temSets){ %><td><%= l.setsGanhos %></td><td><%= l.setsPerdidos %></td><% } %></tr>
+                  <% }) %>
+                </tbody>
+              </table>
+              </div>
+            </div>
+          <% }) %>
+          <% if(bloco.jogos.length){ %>
+            <div class="wz-res-grp wz-rev-jogos" style="margin-top:12px">
+              <div class="wz-res-grp__head"><span><%= bloco.jogos.length %> jogo(s)</span></div>
+              <div style="overflow-x:auto">
+              <table class="wz-table">
+                <thead><tr>
+                  <th>Fase</th><th>Rod.</th><th>Data</th><th>Hora</th><th>Local</th><th>Casa</th><th>Resultado</th><th>Fora</th><% if(bloco.temSets){ %><th>Sets</th><% } %><th>Status</th>
+                </tr></thead>
+                <tbody>
+                  <% bloco.jogos.forEach(function(j){ %>
+                  <tr>
+                    <td><%= j.fase||'Grupos' %></td>
+                    <td><%= j.rodada %></td>
+                    <td><%= _fmtData(j.data) %></td>
+                    <td><%= j.horario||'—' %></td>
+                    <td><%= j.local||'—' %></td>
+                    <td style="font-weight:600"><%= j.casa||'—' %></td>
+                    <td style="text-align:center"><%= j.placarA!=null?j.placarA:'—' %> × <%= j.placarB!=null?j.placarB:'—' %></td>
+                    <td style="font-weight:600"><%= j.fora||'—' %></td>
+                    <% if(bloco.temSets){ %>
+                    <td>
+                      <% (j.sets||[]).forEach(function(s){ %><span style="display:inline-block;margin:0 2px;white-space:nowrap"><%= s.pontosA %>×<%= s.pontosB %></span><% }) %>
+                    </td>
+                    <% } %>
+                    <td><%= j.status %><%= j.wo?' (WO)':'' %></td>
+                  </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+              </div>
+            </div>
+          <% } %>
+        <% }) } %>
+      </div>
+    <% }) %>
   <% } %>
 
   <form action="/admin/edicoes/nova/salvar" method="POST" id="wzFormSalvar">
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-    <details style="margin-bottom:18px">
-      <summary style="cursor:pointer;font-size:.78rem;font-weight:700;color:#344054">Ver JSON completo</summary>
-      <pre class="wz-json"><%= JSON.stringify(df,null,2) %></pre>
-    </details>
     <div class="wz-footer">
-      <button class="wz-btn wz-btn-ghost wz-btn-sm" type="submit" form="wzFormVoltarModalidades">← Modalidades</button>
+      <button class="wz-btn wz-btn-ghost wz-btn-sm" type="submit" form="wzFormVoltarRevisao">← Modalidade atual</button>
       <button class="wz-btn wz-btn-gold" type="submit">Salvar edição</button>
     </div>
   </form>
@@ -522,13 +1016,81 @@ var mainSteps=[
 <% } %>
 </div>
 
-<% var ultimoPasso = Array.isArray(mainSteps) ? mainSteps[mainSteps.length-1][0] : ''; %>
 <form action="/admin/edicoes/nova/cancelar" method="POST" id="wzFormCancelar" style="display:none"><input type="hidden" name="_csrf" value="<%= csrfToken %>"></form>
 <form action="/admin/edicoes/nova/voltar/dados" method="POST" id="wzFormVoltarDados" style="display:none"><input type="hidden" name="_csrf" value="<%= csrfToken %>"></form>
 <form action="/admin/edicoes/nova/voltar/campi" method="POST" id="wzFormVoltarCampi" style="display:none"><input type="hidden" name="_csrf" value="<%= csrfToken %>"></form>
 <form action="/admin/edicoes/nova/voltar/modalidades" method="POST" id="wzFormVoltarModalidades" style="display:none"><input type="hidden" name="_csrf" value="<%= csrfToken %>"></form>
+<form action="/admin/edicoes/nova/preencher-exemplo" method="POST" id="wzFormPreencher" style="display:none"><input type="hidden" name="_csrf" value="<%= csrfToken %>"></form>
+<form action="/admin/edicoes/nova/voltar-revisao" method="POST" id="wzFormVoltarRevisao" style="display:none"><input type="hidden" name="_csrf" value="<%= csrfToken %>"></form>
 <form action="/admin/edicoes/nova/modalidade/<%= typeof modFoco!=='undefined'?modFoco:0 %>/voltar-participantes" method="POST" id="wzFormVoltarPart" style="display:none"><input type="hidden" name="_csrf" value="<%= csrfToken %>"></form>
 <form action="/admin/edicoes/nova/modalidade/<%= typeof modFoco!=='undefined'?modFoco:0 %>/voltar-grupos" method="POST" id="wzFormVoltarGrupos" style="display:none"><input type="hidden" name="_csrf" value="<%= csrfToken %>"></form>
 <form action="/admin/edicoes/nova/modalidade/<%= typeof modFoco!=='undefined'?modFoco:0 %>/voltar-confrontos" method="POST" id="wzFormVoltarConfr" style="display:none"><input type="hidden" name="_csrf" value="<%= csrfToken %>"></form>
+<form action="/admin/edicoes/nova/modalidade/<%= typeof modFoco!=='undefined'?modFoco:0 %>/voltar-eliminatoria" method="POST" id="wzFormVoltarElim" style="display:none"><input type="hidden" name="_csrf" value="<%= csrfToken %>"></form>
 
 <script src="/js/edicaoWizard.js"></script>
+<script>
+function wzRevFiltra(){
+  var sel=document.getElementById('wzRevFiltro');
+  var f=(sel&&sel.value)||'';
+  document.querySelectorAll('#wzRevTabela tbody tr[data-wzmod]').forEach(function(tr){
+    tr.style.display=(!f||tr.getAttribute('data-wzmod')===f)?'':'none';
+  });
+  document.querySelectorAll('.wz-card[data-wzmod]').forEach(function(card){
+    card.style.display=(!f||card.getAttribute('data-wzmod')===f)?'':'none';
+  });
+}
+document.addEventListener('DOMContentLoaded', function(){
+  var sel=document.getElementById('wzRevFiltro');
+  if(sel) sel.addEventListener('change', wzRevFiltra);
+});
+</script>
+<script>
+function wzToggleProvas(btn){
+  var boxes=[].slice.call(document.querySelectorAll('input[name="prova_selecionada"]'));
+  if(!boxes.length) return;
+  var marcados=boxes.filter(function(b){return b.checked;});
+  var ligar=marcados.length<boxes.length;
+  boxes.forEach(function(b){
+    b.checked=ligar;
+    var label=b.closest('.wz-check');
+    if(label) label.classList.toggle('wz-check--on',b.checked);
+  });
+  btn.textContent=ligar?'Limpar seleção':'Selecionar todos';
+}
+function wzAddAtletaProva(pi){
+  var block=document.querySelector('[data-prova-block="'+pi+'"]');
+  if(!block) return;
+  var tpl=block.querySelector('template[data-prova-template="'+pi+'"]');
+  var tbody=block.querySelector('tbody[data-rows]');
+  if(!tpl||!tbody) return;
+  var empty=tbody.querySelector('tr[data-empty]');
+  if(empty) empty.remove();
+  var row=tpl.content.firstElementChild.cloneNode(true);
+  tbody.appendChild(row);
+  var inp=row.querySelector('input[name$="_nome[]"]');
+  if(inp) inp.focus();
+}
+function wzEmptyProva(block){
+  if(!block) return;
+  var tbody=block.querySelector('tbody[data-rows]');
+  if(tbody && !tbody.querySelector('tr:not([data-empty])')){
+    tbody.innerHTML='<tr data-empty="1"><td colspan="7" style="color:var(--muted);text-align:center">Nenhum atleta lançado nesta prova. Use “+ Adicionar atleta”.</td></tr>';
+  }
+}
+function wzAddAtletaIndividual(){
+  var lista=document.getElementById('wzAtletasIndividuais');
+  if(!lista)return;
+  var modelo=lista.querySelector('.wz-atleta-individual');
+  if(!modelo)return;
+  var clone=modelo.cloneNode(true);
+  clone.querySelectorAll('input').forEach(function(input){
+    input.value=input.name==='atleta_nome'?'':(input.name.indexOf('xadrez_')===0?'0':'');
+  });
+  clone.querySelectorAll('select').forEach(function(select){ select.selectedIndex=0; });
+  lista.appendChild(clone);
+  var rows=lista.querySelectorAll('.wz-atleta-individual');
+  rows.forEach(function(row,index){
+    row.querySelectorAll('input[name^="xadrez_"]').forEach(function(input){ input.name=input.name.replace(/_\d+$/, '_'+index); });
+  });
+}
+</script>

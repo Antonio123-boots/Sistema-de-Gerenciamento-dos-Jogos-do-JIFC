@@ -7,6 +7,8 @@ const edicaoService = require('../services/edicaoService');
 const db = require('../config/db');
 const { listarCampi, adicionarCampus, atualizarCampus, banCampus, desbanirCampus, removerCampus } = require('../models/campiCatalog');
 const { obterStatusPrazos } = require('../utils/statusPrazos');
+const exemploEdicaoService = require('../services/exemploEdicaoService');
+const edicaoWizardService = require('../services/edicaoWizardService');
 
 async function renderConfigurar(req, res) {
   try {
@@ -1051,6 +1053,36 @@ async function salvarEdicaoAtualAno(req, res) {
   }
 }
 
+const ANOS_EXEMPLO = [2019, 2016, 2013, 2010, 2007, 2004, 2001];
+
+async function gerarEdicaoExemplo(req, res) {
+  try {
+    const edicoes = await adminModel.listarEdicoes();
+    const anosExistentes = new Set((edicoes || []).map((e) => Number(e.ano)));
+    const ano = ANOS_EXEMPLO.find((a) => !anosExistentes.has(a));
+    if (!ano) {
+      throw new Error('Todas as edições de exemplo já foram geradas. Exclua uma delas para gerar outra.');
+    }
+
+    const dados = await exemploEdicaoService.montarExemplo({
+      ano,
+      dataInicio: `${ano}-09-01`,
+      dataFim: `${ano}-09-07`
+    });
+    const dadosFinais = edicaoWizardService.construirDadosEdicao(dados);
+    const resultado = await adminModel.importarEdicao(dadosFinais);
+
+    let mensagem = `Edição demonstrativa JIFC ${resultado.ano} criada em edições anteriores.`;
+    if (Array.isArray(resultado.avisos) && resultado.avisos.length) {
+      mensagem += ' Avisos: ' + resultado.avisos.join(' ');
+    }
+    res.redirect('/admin/edicoes?sucesso=' + encodeURIComponent(mensagem));
+  } catch (error) {
+    console.error('Erro ao gerar edição de exemplo:', error);
+    res.redirect('/admin/edicoes?erro=' + encodeURIComponent('Erro ao gerar a edição de exemplo: ' + (error.message || error)));
+  }
+}
+
 async function importarEdicaoArquivo(req, res) {
   try {
     const texto = String(req.body.edicao_json_texto || '').trim();
@@ -1131,6 +1163,7 @@ module.exports = {
   gerarBoletimFinal,
   renderEdicoesAnteriores,
   salvarEdicaoAtualAno,
+  gerarEdicaoExemplo,
   importarEdicaoArquivo,
   excluirEdicaoAno,
   exportarEdicaoAno

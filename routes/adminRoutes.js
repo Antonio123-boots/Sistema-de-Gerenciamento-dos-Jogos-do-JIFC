@@ -59,7 +59,9 @@ router.get('/boletins/:ano', adminController.renderBoletimAno);
 router.post('/boletins/gerar', adminController.gerarBoletimFinal);
 
 router.get('/edicoes', adminController.renderEdicoesAnteriores);
+
 router.post('/edicoes/salvar-ano-atual', adminController.salvarEdicaoAtualAno);
+router.post('/edicoes/gerar-exemplo', adminController.gerarEdicaoExemplo);
 router.post('/edicoes/importar', adminController.importarEdicaoArquivo);
 router.post('/edicoes/excluir/:ano', adminController.excluirEdicaoAno);
 router.get('/edicoes/exportar/:ano', adminController.exportarEdicaoAno);
@@ -70,6 +72,8 @@ router.post('/edicoes/nova/campi', edicaoWizardController.salvarCampi);
 router.post('/edicoes/nova/modalidades', edicaoWizardController.salvarModalidades);
 router.post('/edicoes/nova/modalidades/ir', edicaoWizardController.irParaModalidade);
 router.post('/edicoes/nova/voltar/:etapa', edicaoWizardController.voltarEtapa);
+router.post('/edicoes/nova/voltar-revisao', edicaoWizardController.voltarRevisao);
+router.post('/edicoes/nova/preencher-exemplo', edicaoWizardController.preencherExemplo);
 router.post('/edicoes/nova/modalidade/:idx/participantes', edicaoWizardController.salvarParticipantes);
 router.post('/edicoes/nova/modalidade/:idx/voltar-participantes', edicaoWizardController.voltarParticipantes);
 router.post('/edicoes/nova/modalidade/:idx/grupos', edicaoWizardController.salvarGrupos);
@@ -77,6 +81,9 @@ router.post('/edicoes/nova/modalidade/:idx/voltar-grupos', edicaoWizardControlle
 router.post('/edicoes/nova/modalidade/:idx/confrontos', edicaoWizardController.salvarConfrontos);
 router.post('/edicoes/nova/modalidade/:idx/voltar-confrontos', edicaoWizardController.voltarConfrontos);
 router.post('/edicoes/nova/modalidade/:idx/resultados', edicaoWizardController.salvarResultados);
+  router.post('/edicoes/nova/modalidade/:idx/eliminatoria', edicaoWizardController.salvarEliminatoria);
+  router.post('/edicoes/nova/modalidade/:idx/voltar-eliminatoria', edicaoWizardController.voltarEliminatoria);
+router.post('/edicoes/nova/modalidade/:idx/sub-etapa', edicaoWizardController.alternarSubEtapa);
 router.post('/edicoes/nova/salvar', edicaoWizardController.salvarFinal);
 router.post('/edicoes/nova/cancelar', edicaoWizardController.cancelar);
 

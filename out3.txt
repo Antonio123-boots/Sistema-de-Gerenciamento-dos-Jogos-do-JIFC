@@ -1,0 +1,4 @@
+backup do rascunho atual -> C:\Users\ACERTR~1\AppData\Local\Temp\opencode\rascunho-admin-backup.json
+rascunho atual: etapa=modalidade ano=2025
+salvo: {"id":9,"etapa":"revisao","ano":2025}
+conferido: {"etapa":"revisao","ano":2025,"titulo":"JIFC 2025","periodo":"2025-06-26 a 2025-06-28","campi":8,"modalidades":16,"jogosFinal":156,"etapaFinal":"revisao"}
