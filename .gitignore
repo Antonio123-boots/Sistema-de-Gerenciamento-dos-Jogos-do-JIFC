@@ -5,6 +5,10 @@
 scripts/debug_*.js
 tests/debug_*.js
 
+# Saidas de debug na raiz do projeto
+/err*.txt
+/out*.txt
+
 # Dados sensíveis e estado de runtime
 cookies.txt
 data/jifc-state.json

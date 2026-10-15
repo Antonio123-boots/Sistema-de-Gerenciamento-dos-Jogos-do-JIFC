@@ -6,6 +6,7 @@ const expressLayouts = require('express-ejs-layouts');
 const cookieParser = require('cookie-parser');
 const csurf = require('csurf');
 const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
 
 const userRoutes   = require('./routes/userRoutes');
 const authRoutes    = require('./routes/authRoutes');
@@ -26,7 +27,12 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(expressLayouts);
 app.set('layout', 'layout');
 
-app.use(express.static(path.join(__dirname, 'public')));
+// CSP desabilitada de propósito: as views usam <script> inline extensivamente.
+// HSTS só em produção (COOKIE_SECURE=true), para não forçar HTTPS em desenvolvimento.
+const usandoHttps = String(process.env.COOKIE_SECURE || '').trim().toLowerCase() === 'true';
+app.use(helmet({ contentSecurityPolicy: false, hsts: usandoHttps }));
+
+app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1h', etag: true }));
 
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
@@ -44,6 +50,14 @@ const loginLimiter = rateLimit({
     legacyHeaders: false
 });
 
+const publicLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 120,
+    message: 'Muitas requisições. Aguarde um instante e tente novamente.',
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
 // Middleware global: decodifica JWT do cookie e popula req.user + res.locals
 app.use((req, res, next) => {
     const payload = decodificarToken(req);
@@ -56,8 +70,9 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use('/', userRoutes);
-app.use('/auth', loginLimiter, authRoutes);
+app.use('/', publicLimiter, userRoutes);
+app.use('/auth/login', loginLimiter);
+app.use('/auth', authRoutes);
 app.use('/campus', campusRoutes);
 app.use('/admin', adminRoutes);
 app.use('/juiz', juizRoutes);

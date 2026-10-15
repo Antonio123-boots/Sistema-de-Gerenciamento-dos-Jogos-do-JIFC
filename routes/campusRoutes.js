@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { body } = require('express-validator');
+const { body, param } = require('express-validator');
 const campusController = require('../controllers/campusController');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { handleValidationForm } = require('../middleware/validation');
 
 router.use(requireAuth, requireRole('campus'));
 
@@ -13,14 +14,28 @@ const atletaValidation = [
     body('dataNascimento').trim().notEmpty().withMessage('Data de nascimento é obrigatória.')
 ];
 
+const modalidadesValidation = [
+    body('modalidades')
+        .customSanitizer((valor) => {
+            if (valor === undefined || valor === null || valor === '') return [];
+            return Array.isArray(valor) ? valor : [valor];
+        })
+        .custom((lista) => Array.isArray(lista) && lista.length <= 3)
+        .withMessage('Selecione no máximo 3 modalidades.')
+];
+
+const atletaIdParam = [
+    param('id').isInt({ min: 1 }).withMessage('Atleta inválido.')
+];
+
 router.get('/inscricoes', campusController.renderInscricoes);
-router.post('/inscricoes/salvar', campusController.salvarInscricoes);
+router.post('/inscricoes/salvar', modalidadesValidation, handleValidationForm, campusController.salvarInscricoes);
 
 router.get('/atletas', campusController.renderAtletas);
 router.post('/atletas/cadastrar', atletaValidation, campusController.cadastrarAtleta);
-router.get('/atletas/editar/:id', campusController.editarAtleta);
-router.post('/atletas/atualizar/:id', atletaValidation, campusController.atualizarAtleta);
-router.post('/atletas/excluir/:id', campusController.excluirAtleta);
+router.get('/atletas/editar/:id', atletaIdParam, handleValidationForm, campusController.editarAtleta);
+router.post('/atletas/atualizar/:id', atletaIdParam, atletaValidation, campusController.atualizarAtleta);
+router.post('/atletas/excluir/:id', atletaIdParam, handleValidationForm, campusController.excluirAtleta);
 router.post('/atletas/substituir', atletaValidation, campusController.substituirAtleta);
 router.get('/jogos', campusController.renderJogos);
 
