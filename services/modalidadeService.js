@@ -36,10 +36,10 @@ async function getModalidadesBanco() {
   try {
     const temIcone = await verificarColunaIconeModalidades();
     const query = temIcone
-      ? `SELECT id, nome, genero, tipo_confronto, formato_disputa, icone
+      ? `SELECT id, nome, genero, tipo_confronto, formato_disputa, icone, limite_inscritos
          FROM modalidades
          ORDER BY CASE genero WHEN 'Masculino' THEN 1 WHEN 'Feminino' THEN 2 ELSE 3 END, nome ASC`
-      : `SELECT id, nome, genero, tipo_confronto, formato_disputa
+      : `SELECT id, nome, genero, tipo_confronto, formato_disputa, limite_inscritos
          FROM modalidades
          ORDER BY CASE genero WHEN 'Masculino' THEN 1 WHEN 'Feminino' THEN 2 ELSE 3 END, nome ASC`;
 
@@ -47,7 +47,8 @@ async function getModalidadesBanco() {
     return linhas.map((item) => ({
       ...item,
       icone: item.icone || null,
-      imagem: item.icone || obterImagemPadraoModalidade(item.nome)
+      imagem: item.icone || obterImagemPadraoModalidade(item.nome),
+      limite_inscritos: item.limite_inscritos === null || item.limite_inscritos === undefined ? null : Number(item.limite_inscritos)
     }));
   } catch (error) {
     throw error;
@@ -58,10 +59,10 @@ async function listarModalidadesConfiguracao() {
   try {
     const temIcone = await verificarColunaIconeModalidades();
     const query = temIcone
-      ? `SELECT id, nome, genero, tipo_confronto, formato_disputa, icone
+      ? `SELECT id, nome, genero, tipo_confronto, formato_disputa, icone, limite_inscritos
          FROM modalidades
          ORDER BY CASE genero WHEN 'Masculino' THEN 1 WHEN 'Feminino' THEN 2 ELSE 3 END, nome ASC`
-      : `SELECT id, nome, genero, tipo_confronto, formato_disputa
+      : `SELECT id, nome, genero, tipo_confronto, formato_disputa, limite_inscritos
          FROM modalidades
          ORDER BY CASE genero WHEN 'Masculino' THEN 1 WHEN 'Feminino' THEN 2 ELSE 3 END, nome ASC`;
 
@@ -69,14 +70,15 @@ async function listarModalidadesConfiguracao() {
     return linhas.map((item) => ({
       ...item,
       icone: item.icone || null,
-      imagem: item.icone || obterImagemPadraoModalidade(item.nome)
+      imagem: item.icone || obterImagemPadraoModalidade(item.nome),
+      limite_inscritos: item.limite_inscritos === null || item.limite_inscritos === undefined ? null : Number(item.limite_inscritos)
     }));
   } catch (error) {
     throw error;
   }
 }
 
-async function adicionarModalidade({ nome, tipoConfronto = '', formatoDisputa = '', genero = '', icone = null }) {
+async function adicionarModalidade({ nome, tipoConfronto = '', formatoDisputa = '', genero = '', icone = null, limiteInscritos = null }) {
   const nomeLimpo = String(nome || '').trim();
   if (!nomeLimpo) {
     throw new Error('Informe o nome da modalidade esportiva.');
@@ -100,13 +102,22 @@ async function adicionarModalidade({ nome, tipoConfronto = '', formatoDisputa = 
   const [existente] = await db.query('SELECT id FROM modalidades WHERE nome = ? AND genero = ?', [nomeNormalizado, generoFinal]);
   if (!existente.length) {
     const temIcone = await verificarColunaIconeModalidades();
+    let limite = null;
+    if (limiteInscritos !== null && limiteInscritos !== undefined && limiteInscritos !== '') {
+      const num = Number(limiteInscritos);
+      if (Number.isFinite(num) && num > 0) {
+        limite = Math.floor(num);
+      } else if (Number.isFinite(num) && num <= 0) {
+        limite = null;
+      }
+    }
     const [resultado] = await db.query(
       temIcone
-        ? 'INSERT INTO modalidades (nome, genero, tipo_confronto, formato_disputa, icone) VALUES (?, ?, ?, ?, ?)'
-        : 'INSERT INTO modalidades (nome, genero, tipo_confronto, formato_disputa) VALUES (?, ?, ?, ?)',
+        ? 'INSERT INTO modalidades (nome, genero, tipo_confronto, formato_disputa, icone, limite_inscritos) VALUES (?, ?, ?, ?, ?, ?)'
+        : 'INSERT INTO modalidades (nome, genero, tipo_confronto, formato_disputa, limite_inscritos) VALUES (?, ?, ?, ?, ?)',
       temIcone
-        ? [nomeNormalizado, generoFinal, tipo, formato, icone || null]
-        : [nomeNormalizado, generoFinal, tipo, formato]
+        ? [nomeNormalizado, generoFinal, tipo, formato, icone || null, limite]
+        : [nomeNormalizado, generoFinal, tipo, formato, limite]
     );
 
     return [resultado.insertId];

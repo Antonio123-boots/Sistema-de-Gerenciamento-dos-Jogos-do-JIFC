@@ -149,6 +149,16 @@ async function ensureMataMataColumns() {
   mataMataGarantido = true;
 }
 
+async function ensureModalidadeLimiteColumn() {
+  try {
+    await pool.query('ALTER TABLE modalidades ADD COLUMN limite_inscritos INT DEFAULT NULL');
+  } catch (error) {
+    if (!/Duplicate column|already exists/i.test(error.message || '')) {
+      throw error;
+    }
+  }
+}
+
 let subCategoriaGarantida = false;
 
 async function garantirSubCategoriaChavesJogos() {
@@ -717,6 +727,7 @@ async function ensureSchema() {
   await ensureConfiguracoesEventoTable();
   await ensureJogoPublicadoColumn();
   await ensureJogoWoColumn();
+  await ensureModalidadeLimiteColumn();
   await garantirSubCategoriaChavesJogos();
   await ensureJuizModalidadeTable();
   await ensureCartoesTable();
