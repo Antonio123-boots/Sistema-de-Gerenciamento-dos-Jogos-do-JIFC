@@ -16,7 +16,7 @@ Sistema web para gerenciar os Jogos Internos entre Campus do IFC: inscrições d
 - MySQL (mysql2/promise) com pool preguiçoso
 - Argon2 para hash de senhas (campi, juízes e admin)
 - JWT em cookie HttpOnly para sessão
-- express-validator + csurf + express-rate-limit
+- express-validator + csurf + express-rate-limit + helmet
 
 ## Requisitos
 

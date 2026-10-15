@@ -1,12 +1,12 @@
 # Análise do Sistema de Gerenciamento dos Jogos do JIFC
 
-Memória técnica consolidada (análise completa em 13/09/2026). Serve de referência para futuras tarefas.
+Memória técnica consolidada (análise completa em 13/09/2026; revisada e corrigida em 15/10/2026). Serve de referência para futuras tarefas.
 
 ## 1. Visão geral
 
 - **Aplicação:** portal do JIFC (Jogos Internos entre Campi do IFC) — inscrição de atletas, chaveamento, classificação, placares em tempo real, boletim final e "Edições Anteriores" (histórico importável/exportável em JSON).
 - **Projeto:** `C:\Users\Acer Travel\Documents\TCC\Sistema-de-Gerenciamento-dos-Jogos-do-JIFC`
-- **Stack:** Node.js + Express; views EJS + `express-ejs-layouts`; MySQL via `mysql2/promise`; `argon2` p/ senhas; JWT em cookie; `express-validator`, `csurf` (cookie), `express-rate-limit`, `method-override`.
+- **Stack:** Node.js + Express; views EJS + `express-ejs-layouts`; MySQL via `mysql2/promise`; `argon2` p/ senhas; JWT em cookie; `express-validator`, `csurf` (cookie), `express-rate-limit`, `method-override`, `helmet` (headers de segurança; CSP desabilitado por causa de `<script>` inline).
 - `package.json` diz `5.7.2`; git HEAD `3fdf333 "6.8"` (branch `main`).
 - Porta `3000`; `npm run dev` = nodemon; `npm run seed:full` = `scripts/seed_full.js`; `npm test` = `node tests/run-all.js`.
 - Único servidor (sem front separado). Alta acoplagem: controllers/servos/modelos/init/`forcage` de dados vivos em memória + MySQL como store persistente.
@@ -14,7 +14,7 @@ Memória técnica consolidada (análise completa em 13/09/2026). Serve de refer�
 ## 2. Autenticação e papéis
 
 - `middleware/auth.js`: `requireAuth`, `requireRole('admin'|'campus'|'juiz')`, `gerarToken`, `decodificarToken`. Cookie `token` (Path=/, HttpOnly, SameSite=Lax, Secure opcional), JWT_SECRET ≥ 32 chars, expiração default `12h`.
-- Login: `POST /auth/login` (rate limit 5/min, CSRF, express-validator). Logout: `POST /auth/logout`.
+- Login: `POST /auth/login` (rate limit 5/min, CSRF, express-validator). Logout: `POST /auth/logout`. O `loginLimiter` (5/min) é aplicado **somente** em `/auth/login` (`app.js`); um `publicLimiter` (120/min) cobre as rotas públicas. `helmet` aplica headers de segurança; HSTS só quando `COOKIE_SECURE=true`.
 - Contas built-in (`models/authUsers.js` `initHashes`): senhas default via `.env` (`DEFAULT_ADMIN_PASSWORD`, `DEFAULT_JUIZ_PASSWORD`, `DEFAULT_CAMPUS_PASSWORD`). `verificarSenha`/`obterUsuarioPorEmail`/`construirPayloadJWT`/`salvarFotoPerfilUsuario`.
 - Papéis: `admin`, `campus`, `juiz`, público (sem login). Fotos de perfil via `models/profileImageStore.js`.
 
@@ -62,6 +62,12 @@ Helpers: `normalizarNomeBase`, `gerarSlugBase`, `obterBaseEsporte` (usam listas 
 | `/juiz/:esporte/resultados/criar-prova`, `/excluir-prova/:provaId`, `/prova/:provaId` (GET), `/salvar-prova/:provaId` (POST), `/salvar-xadrez` | Provas de atletismo e pontuação de xadrez |
 
 Validação de placar: `placar1`/`placar2` inteiros ≥ 0; `status` ∈ {Agendado, Em Andamento, Encerrado, Cancelado}; validação de sets.
+
+### Validação de entrada (`middleware/validation.js`)
+- `handleValidationForm(req,res,next)`: usa `validationResult`; em erro, redireciona para o `Referer` (path relativo — sem open redirect) com `?erro=<mensagem>`, já lido pelos controllers via `req.query.erro`. Usado nas rotas de form de campus e admin.
+- Rotas de atleta (`cadastrar`/`atualizar`/`substituir`) mantêm validação no controller (`validarRequisicaoAtleta`) para **preservar o rascunho** (`atletaFormDrafts`); os rules do `express-validator` continuam no router.
+- Rotas de juiz (`cadastrar`/`editar`) mantêm o re-render próprio do controller (`extrairErros`), por isso não usam `handleValidationForm`.
+- Validações adicionadas: `modalidades` (array, máx. 3) na inscrição do campus; params inteiros (`:id`, `:atletaId`, `:modalidadeId`, `:jogoId`, `:ano`, `:idx`) com `isInt`; enum de `status`, de `tipoPunicao` e de `:etapa` do wizard; datas ISO no `/configurar/salvar`; `limite_atletas_total_campus` ≥ 0; `senha` opcional ≥ 6 na edição de juiz.
 
 ## 4. Controllers
 
@@ -152,20 +158,29 @@ Validação de placar: `placar1`/`placar2` inteiros ≥ 0; `status` ∈ {Agendad
 - `tests/run-all.js` (runner), `tests/edicaoWizard.test.js` (635), `tests/statusPrazos.test.js` (+ outros). `npm test`. `scripts/seed_full.js`.
 - **IMPORTANTE:** rodar `npm test` e conferir que nada quebrou antes de entregar mudanças.
 
-## 11. Bugs e riscos conhecidos (levantados na análise)
+## 11. Bugs e riscos conhecidos
 
-1. **`construirLinhaCsv` inexistente** — exportação CSV de classificações quebra (ReferenceError).
-2. **Sorteio fora do prazo** gera `ReferenceError` (variável não definida no erro) em vez de mensagem amigável no `adminController`.
-3. **Boletim final** calcula campeão por pontos de grupo, não pelo vencedor da final.
-4. **`obterRegras`** cai silenciosamente nas regras de futsal p/ esporte não catalogado.
-5. **express-validator** em rotas declara regras mas `adminRoutes` **nunca chama `validationResult`/`handleValidation`** — validações não aplicadas.
-6. **`atualizarJuiz`** pode apagar esportes atribuídos se o payload vier sem esse campo.
-7. **`resolverEliminatoriaDoJogo`** engole exceções (só loga).
-8. Estado do git tem alterações staged+unstaged do wizard (edição histórica) e arquivos untracked de debug (`err*.txt`, `out*.txt`) que podem ser removidos — **exceto `services/exemploEdicaoService.js`, que é usado em runtime.**
+Todos os bugs da análise de 13/09/2026 foram corrigidos (batch registrado em `RELATORIO_CORRECOES.md`):
 
-## 12. Estado do repositório (13/09/2026)
+1. **`construirLinhaCsv` inexistente** — corrigido: a função existe em `controllers/adminController.js:600`.
+2. **Sorteio fora do prazo** — corrigido: retorna 403 com mensagem amigável (`adminController.js:675`).
+3. **Boletim final** — corrigido: usa o vencedor/vice da final (e classificação geral p/ atletismo/xadrez).
+4. **`obterRegras`** — corrigido: lança erro identificável em vez de herdar regras de futsal.
+5. **express-validator sem `validationResult`** — corrigido: `handleValidationForm`/regras aplicadas (ver §3).
+6. **`atualizarJuiz`** — corrigido: só substitui esportes quando `Array.isArray(dados.esportes)`.
+7. **`resolverEliminatoriaDoJogo`** — corrigido: propaga exceções em vez de só logar.
 
-- Branch `main`, HEAD `3fdf333 "6.8"`.
-- Staged: `controllers/edicaoWizardController.js`, `models/profileImageStore.js`, `public/js/edicaoWizard.js`, `services/edicaoService.js`, `services/edicaoWizardService.js`, `services/resultadosIndividuaisService.js`, `tests/edicaoWizard.test.js`, `views/adm/edicaoWizard.ejs`, `views/adm/edicoesAnteriores.ejs`.
-- Unstaged: `controllers/adminController.js`, `controllers/edicaoWizardController.js`, `routes/adminRoutes.js`, `services/edicaoWizardService.js`, `tests/edicaoWizard.test.js`, `views/adm/edicaoWizard.ejs`, `views/adm/edicoesAnteriores.ejs`, `views/layout.ejs`.
-- Untracked: `err.txt`, `err2..4.txt`, `out.txt`, `out2..4.txt`, `services/exemploEdicaoService.js`, `ANALISE_SISTEMA.md` (este arquivo).
+### Riscos/pontos em aberto (não bloqueantes)
+
+- **CSRF:** `csurf` está descontinuado (arquivado upstream). Mantido por compatibilidade; migração futura recomendada.
+- **CSP:** desabilitada para permitir `<script>` inline; habilitar exigiria remover os scripts inline das views.
+- **Arquitetura:** `adminController.js` segue monolítico (~1.200 linhas) e o `stateStore` (arquivo JSON) convive com o MySQL; refatoração adiada por risco.
+- **Rate-limit:** em memória (não distribuído) — ok para instância única.
+- **Senhas em `.env`:** valores de dev precisam ser trocados antes de qualquer deploy.
+
+## 12. Estado do repositório (15/10/2026)
+
+- Branch `main`, HEAD `e3a67a8 "6.8.5"`.
+- Correções de robustez/segurança aplicadas: transações de placar, validações de entrada (`middleware/validation.js`), rate-limit por escopo, `helmet`, cache estático, limpeza dos arquivos de debug.
+- Arquivos de debug (`err*.txt`, `out*.txt`) removidos do índice e cobertos pelo `.gitignore`.
+- `services/exemploEdicaoService.js` é usado em runtime — **não apagar**.
