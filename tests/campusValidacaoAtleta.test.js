@@ -35,6 +35,16 @@ function esperaErro(exec, code) {
 esperaErro(() => validar({ matriculaDuplicada: true }), 'MATRICULA_DUPLICADA');
 esperaErro(() => validar({ campos: { dataNascimento: 'inválida' } }), 'DATA_INVALIDA');
 esperaErro(() => validar({ campos: { nome: 'João' } }), 'NOME_INCOMPLETO');
+assert.throws(
+  () => campusModel.validarCamposObrigatoriosAtleta({ ...camposValidos, cpf: '12345' }),
+  (erro) => erro && erro.code === 'CPF_INVALIDO',
+  'CPF fora do formato deve ser rejeitado no modelo'
+);
+assert.throws(
+  () => campusModel.validarCamposObrigatoriosAtleta({ ...camposValidos, cpf: '123456789012' }),
+  (erro) => erro && erro.code === 'CPF_INVALIDO',
+  'CPF com dígitos excedentes deve ser rejeitado no modelo'
+);
 esperaErro(() => validar({ campos: { dataNascimento: '2005-01-01' } }), 'IDADE_LIMITE_EXCEDIDO');
 esperaErro(() => validar({ campos: { modalidades: [] } }), 'MODALIDADES_OBRIGATORIAS');
 esperaErro(() => validar({ campos: { modalidades: ['A', 'B', 'C', 'D'] } }), 'MODALIDADES_EXCEDIDAS');

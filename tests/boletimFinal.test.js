@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const { detectarEncerramentoJifc, montarResumoBoletim } = require('../services/boletimService');
+const { detectarEncerramentoJifc, montarResumoBoletim, aplicarFinaisAoBoletim, aplicarPodiosIndividuais } = require('../services/boletimService');
 
 const encerrado = detectarEncerramentoJifc({
   totalJogos: 12,
@@ -35,5 +35,55 @@ assert.equal(resumo.ano, 2025);
 assert.equal(resumo.ranking[0].campi, 'Campus A');
 assert.equal(resumo.modalidades[0].nome, 'Basquete');
 assert.ok(resumo.dataGeracao);
+
+const modalidadesComFaseDeGrupo = [
+  { modalidade_id: 1, modalidade: 'Futsal', campeao: 'Campus A', vice: 'Campus B' },
+  { modalidade_id: 2, modalidade: 'Xadrez', campeao: 'Campus C', vice: 'Campus D' }
+];
+const podiosAtualizados = aplicarFinaisAoBoletim(modalidadesComFaseDeGrupo, [{
+  modalidade_id: 1,
+  status: 'Encerrado',
+  campus_1_id: 10,
+  campus_2_id: 20,
+  campus_1: 'Campus A',
+  campus_2: 'Campus B',
+  placar_1: 1,
+  placar_2: 3
+}]);
+assert.deepEqual(podiosAtualizados, [
+  { modalidade_id: 2, modalidade: 'Xadrez', campeao: 'Campus C', vice: 'Campus D' },
+  { modalidade_id: 1, modalidade: 'Futsal', nome: 'Futsal', campeao: 'Campus B', vice: 'Campus A' }
+]);
+
+const finaisComMaisDeUmaSubcategoria = aplicarFinaisAoBoletim([], [
+  { modalidade_id: 3, modalidade: 'Tênis de Mesa', sub_categoria: 'individual', status: 'Encerrado', campus_1_id: 10, campus_2_id: 20, campus_1: 'Campus A', campus_2: 'Campus B', placar_1: 3, placar_2: 1 },
+  { modalidade_id: 3, modalidade: 'Tênis de Mesa', sub_categoria: 'dupla', status: 'Encerrado', campus_1_id: 20, campus_2_id: 10, campus_1: 'Campus B', campus_2: 'Campus A', placar_1: 3, placar_2: 2 }
+]);
+assert.deepEqual(finaisComMaisDeUmaSubcategoria.map((item) => item.nome), [
+  'Tênis de Mesa (individual)',
+  'Tênis de Mesa (dupla)'
+]);
+
+const podiosIndividualizados = aplicarPodiosIndividuais([
+  { modalidade_id: 4, modalidade: 'Atletismo', genero: 'Masculino', campeao: '—', vice: '—' },
+  { modalidade_id: 5, modalidade: 'Xadrez', genero: 'Misto', campeao: '—', vice: '—' }
+], {
+  atletismoPorGenero: {
+    masculino: [
+      { campus_nome: 'Campus E', pontos: 26 },
+      { campus_nome: 'Campus F', pontos: 18 }
+    ]
+  },
+  xadrezPorModalidade: {
+    5: [
+      { campus_nome: 'Campus G', pontos: 12 },
+      { campus_nome: 'Campus H', pontos: 9 }
+    ]
+  }
+});
+assert.deepEqual(podiosIndividualizados.map((item) => [item.campeao, item.vice]), [
+  ['Campus E', 'Campus F'],
+  ['Campus G', 'Campus H']
+]);
 
 console.log('Teste de boletim final concluído com sucesso.');

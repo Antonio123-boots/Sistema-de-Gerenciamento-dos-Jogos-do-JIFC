@@ -542,7 +542,7 @@ async function efetuarChaveamentoMatematico(modalidadeId, subCategoria = '') {
   }
 
   try {
-    await garantirSubCategoriaChavesJogos();
+  await garantirSubCategoriaChavesJogos();
 
     try {
       await db.query(`
@@ -796,8 +796,7 @@ async function getChavesModalidade(modalidadeId, subCategoria = '') {
     return [];
   }
 
-  try {
-    await garantirSubCategoriaChavesJogos();
+  await garantirSubCategoriaChavesJogos();
 
     try {
       await db.query(`
@@ -874,35 +873,28 @@ async function getChavesModalidade(modalidadeId, subCategoria = '') {
       });
     }
 
-    try {
-      const classificacaoService = require('./classificacaoService');
-      const classificacao = await classificacaoService.getClassificacaoModalidade(id, null, {});
-      const mapaPontos = new Map();
-      classificacao.forEach((linha) => {
-        const participanteId = Number(linha.atleta_id || linha.campus_id || 0);
-        if (!participanteId) return;
-        mapaPontos.set(`${Number(linha.chave_id)}:${participanteId}`, Number(linha.pontos) || 0);
-      });
-      grupos.forEach((grupo) => {
-        grupo.integrantes.forEach((integrante) => {
-          const pontos = mapaPontos.get(`${Number(grupo.id)}:${Number(integrante.id)}`);
-          if (typeof pontos === 'number') {
-            integrante.pontosFaseDeGrupos = pontos;
-          }
-        });
-        grupo.integrantes.sort((a, b) =>
-          (b.pontosFaseDeGrupos - a.pontosFaseDeGrupos)
-          || String(a.nomeCampus || '').localeCompare(String(b.nomeCampus || ''), 'pt-BR')
-        );
-      });
-    } catch (_) {
-      console.warn('Aviso: Falha ao ordenar integrantes do grupo em chaveamentoService:', _.message || _);
-    }
+  const classificacaoService = require('./classificacaoService');
+  const classificacao = await classificacaoService.getClassificacaoModalidade(id, null, {});
+  const mapaPontos = new Map();
+  classificacao.forEach((linha) => {
+    const participanteId = Number(linha.atleta_id || linha.campus_id || 0);
+    if (!participanteId) return;
+    mapaPontos.set(`${Number(linha.chave_id)}:${participanteId}`, Number(linha.pontos) || 0);
+  });
+  grupos.forEach((grupo) => {
+    grupo.integrantes.forEach((integrante) => {
+      const pontos = mapaPontos.get(`${Number(grupo.id)}:${Number(integrante.id)}`);
+      if (typeof pontos === 'number') {
+        integrante.pontosFaseDeGrupos = pontos;
+      }
+    });
+    grupo.integrantes.sort((a, b) =>
+      (b.pontosFaseDeGrupos - a.pontosFaseDeGrupos)
+      || String(a.nomeCampus || '').localeCompare(String(b.nomeCampus || ''), 'pt-BR')
+    );
+  });
 
-    return grupos;
-  } catch (error) {
-    return [];
-  }
+  return grupos;
 }
 
 async function getJogosModalidade(modalidadeId, subCategoria = '') {

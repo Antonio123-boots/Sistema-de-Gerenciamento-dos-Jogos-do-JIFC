@@ -33,6 +33,7 @@ npm install
 2. Copie `.env.example` para `.env` e preencha:
    - `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
    - `JWT_SECRET` (mínimo 32 caracteres — gere com `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`)
+   - `DEFAULT_ADMIN_PASSWORD`, `DEFAULT_JUIZ_PASSWORD`, `DEFAULT_CAMPUS_PASSWORD` (substitua os valores de exemplo por senhas fortes)
    - `COOKIE_SECURE=true` somente em produção com HTTPS
 
 ## Execução
@@ -46,11 +47,13 @@ npm run seed:full  # popula campi, modalidades e dados de exemplo
 
 O servidor sobe em http://localhost:3000.
 
-## Acessos padrão
+## Contas iniciais
 
-- Admin: `admin@ifc.edu.br` / `admin123`
-- Campi: `<campus>@ifc.edu.br` / `jifc2026` (ex.: `araquari@ifc.edu.br`)
+- Admin: `admin@ifc.edu.br` — senha definida em `DEFAULT_ADMIN_PASSWORD`
+- Campi: `<campus>@ifc.edu.br` (ex.: `araquari@ifc.edu.br`) — senha definida em `DEFAULT_CAMPUS_PASSWORD`
 - Juízes: cadastrados pelo admin em `/admin/juizes`
+
+Não use valores de exemplo em produção e altere as senhas iniciais antes de disponibilizar o sistema.
 
 ## Estrutura
 

@@ -305,7 +305,9 @@ async function capturarBoletim(ano) {
   `);
 
   const [modalidadesRows] = await db.query(`
-    SELECT m.nome AS modalidade,
+    SELECT m.id AS modalidade_id,
+           m.nome AS modalidade,
+           m.genero,
            c.nome_exibicao AS campeao,
            c2.nome_exibicao AS vice
     FROM modalidades m
@@ -320,6 +322,15 @@ async function capturarBoletim(ano) {
     GROUP BY m.id, m.nome, c.nome_exibicao, c2.nome_exibicao
     ORDER BY m.nome ASC
   `);
+  const finaisRows = await boletimService.obterResultadosFinaisModalidades();
+  const podiosComFinais = boletimService.aplicarFinaisAoBoletim(modalidadesRows || [], finaisRows);
+  const podiosIndividuais = await boletimService.aplicarClassificacoesIndividuaisAoBoletim(podiosComFinais);
+  const modalidades = podiosIndividuais
+    .map((row) => ({
+      nome: row.nome || row.modalidade || 'Modalidade',
+      campeao: row.campeao || '—',
+      vice: row.vice || '—'
+    }));
 
   return {
     ranking: (rankingRows || []).map((row, index) => ({
@@ -327,11 +338,7 @@ async function capturarBoletim(ano) {
       campus: row.campus || 'Campus sem nome',
       pontos: Number(row.pontos || 0)
     })),
-    modalidades: (modalidadesRows || []).map((row) => ({
-      nome: row.modalidade || 'Modalidade',
-      campeao: row.campeao || '—',
-      vice: row.vice || '—'
-    })),
+    modalidades,
     dataGeracao: new Date().toISOString().slice(0, 10)
   };
 }

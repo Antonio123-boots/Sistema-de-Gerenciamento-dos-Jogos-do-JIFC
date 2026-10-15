@@ -597,6 +597,18 @@ async function renderChaveamento(req, res) {
     }
   }
 
+function construirLinhaCsv(linhas, campos = []) {
+  const valores = campos.map((campo) => {
+    if (campo === null || campo === undefined) return '';
+    const str = String(campo);
+    if (str.includes('"') || str.includes(',') || str.includes('\r') || str.includes('\n')) {
+      return '"' + str.replace(/"/g, '""') + '"';
+    }
+    return str;
+  });
+  linhas.push(valores.join(','));
+}
+
 async function exportResumoInscricoes(req, res) {
   try {
     const resumo = await adminModel.getResumoInscricoes();
@@ -661,8 +673,8 @@ async function gerarChaveamento(req, res) {
     const permitirGerarSorteio = forcarSorteio || prazoSorteioAberto;
 
     if (!permitirGerarSorteio) {
-      const mensagem = inicioSorteio
-        ? `Sorteio ainda não liberado. Somente a partir de ${inicioSorteio}.`
+    const mensagem = configuracoes && configuracoes.inicio_sorteio_chaves
+        ? `Sorteio ainda não liberado. Somente a partir de ${configuracoes.inicio_sorteio_chaves}.`
         : 'Sorteio ainda não liberado. Aguarde o fim das inscrições.';
       return res.status(403).send(mensagem);
     }
@@ -717,7 +729,8 @@ async function gerarChaveamento(req, res) {
     res.redirect(`/admin/chaveamento?${montarDestinoChaveamento(modalidadeIdNum, subCategoria)}sucesso=${encodeURIComponent(`Sorteio realizado somente para ${modalidade.nome}.`)}`);
   } catch (error) {
     console.error(error);
-    res.status(500).send("Erro ao processar sorteio automático.");
+    const mensagem = error && error.message ? error.message : String(error);
+    res.status(400).send(mensagem);
   }
 }
 

@@ -26,6 +26,7 @@ assert.equal(regrasFutsal.temSets, false);
 assert.equal(regrasFutsal.temCartoes, true);
 assert.equal(regrasFutsal.pontuacaoVitoria, 3);
 assert.deepEqual(regrasFutsal.colunasTabela, ['Pts', 'PJ', 'V', 'E', 'D', 'GP', 'GC', 'SG', 'CF']);
+assert.throws(() => obterRegras('Esporte sem regra'), (erro) => erro.code === 'MODALIDADE_SEM_REGRAS');
 
 const regrasVoleibol = obterRegras('Voleibol Feminino');
 assert.equal(regrasVoleibol.tipo, 'sets');

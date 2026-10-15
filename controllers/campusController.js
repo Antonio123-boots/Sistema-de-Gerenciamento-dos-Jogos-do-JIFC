@@ -1,8 +1,18 @@
 const campusModel = require('../models/campusModel');
 const adminModel = require('../models/adminModel');
 const jogoService = require('../services/jogoService');
+const { validationResult } = require('express-validator');
 
 const atletaFormDrafts = new Map();
+
+function validarRequisicaoAtleta(req) {
+  const erros = validationResult(req);
+  if (erros.isEmpty()) return null;
+
+  const erro = new Error(erros.array().map((item) => item.msg).join(' '));
+  erro.code = 'VALIDATION_ERROR';
+  return erro;
+}
 
 function obterDataAtual() {
   const hoje = new Date();
@@ -143,6 +153,9 @@ async function cadastrarAtleta(req, res) {
 
   const nomeCampus = req.user.nome;
   try {
+    const erroValidacao = validarRequisicaoAtleta(req);
+    if (erroValidacao) throw erroValidacao;
+
     const atleta = await campusModel.cadastrarAtleta(nomeCampus, {
       nome: req.body.nome,
       matricula: req.body.matricula,
@@ -173,7 +186,7 @@ async function cadastrarAtleta(req, res) {
       cpf: req.body.cpf || '',
       status: 'Analise'
     });
-    const mensagensConhecidas = ['MATRICULA_DUPLICADA', 'MATRICULA_INVALIDA', 'LIMITE_REGULAR_EXCEDIDO', 'DATA_INVALIDA', 'IDADE_LIMITE_EXCEDIDO', 'MODALIDADES_OBRIGATORIAS', 'MODALIDADES_EXCEDIDAS', 'PROVAS_ATLETISMO_OBRIGATORIAS', 'PARTICIPACOES_TENIS_MESA_OBRIGATORIAS', 'NOME_INCOMPLETO', 'CAMPOS_OBRIGATORIOS'];
+    const mensagensConhecidas = ['VALIDATION_ERROR', 'CPF_INVALIDO', 'MATRICULA_DUPLICADA', 'MATRICULA_INVALIDA', 'LIMITE_REGULAR_EXCEDIDO', 'DATA_INVALIDA', 'IDADE_LIMITE_EXCEDIDO', 'MODALIDADES_OBRIGATORIAS', 'MODALIDADES_EXCEDIDAS', 'PROVAS_ATLETISMO_OBRIGATORIAS', 'PARTICIPACOES_TENIS_MESA_OBRIGATORIAS', 'NOME_INCOMPLETO', 'CAMPOS_OBRIGATORIOS'];
     const mensagem = mensagensConhecidas.includes(error.code)
       ? error.message
       : 'Não foi possível cadastrar o atleta.';
@@ -228,6 +241,9 @@ async function atualizarAtleta(req, res) {
   const config = adminModel.getConfiguracoes();
 
   try {
+    const erroValidacao = validarRequisicaoAtleta(req);
+    if (erroValidacao) throw erroValidacao;
+
     const atleta = await campusModel.atualizarAtleta(req.params.id, nomeCampus, {
       nome: req.body.nome,
       matricula: req.body.matricula,
@@ -261,7 +277,7 @@ async function atualizarAtleta(req, res) {
       cpf: req.body.cpf || '',
       status: 'Analise'
     });
-    const mensagensConhecidas = ['MATRICULA_DUPLICADA', 'MATRICULA_INVALIDA', 'IDADE_LIMITE_EXCEDIDO', 'DATA_INVALIDA', 'MODALIDADES_OBRIGATORIAS', 'MODALIDADES_EXCEDIDAS', 'PROVAS_ATLETISMO_OBRIGATORIAS', 'PARTICIPACOES_TENIS_MESA_OBRIGATORIAS', 'LIMITE_REGULAR_EXCEDIDO', 'NOME_INCOMPLETO', 'CAMPOS_OBRIGATORIOS'];
+    const mensagensConhecidas = ['VALIDATION_ERROR', 'CPF_INVALIDO', 'MATRICULA_DUPLICADA', 'MATRICULA_INVALIDA', 'IDADE_LIMITE_EXCEDIDO', 'DATA_INVALIDA', 'MODALIDADES_OBRIGATORIAS', 'MODALIDADES_EXCEDIDAS', 'PROVAS_ATLETISMO_OBRIGATORIAS', 'PARTICIPACOES_TENIS_MESA_OBRIGATORIAS', 'LIMITE_REGULAR_EXCEDIDO', 'NOME_INCOMPLETO', 'CAMPOS_OBRIGATORIOS'];
     const mensagem = mensagensConhecidas.includes(error.code) ? error.message : 'Não foi possível atualizar o atleta.';
     res.redirect('/campus/inscricoes?aba=atletas&erro=' + encodeURIComponent(mensagem) + '#atletas');
   }
@@ -297,6 +313,9 @@ async function substituirAtleta(req, res) {
   const nomeCampus = req.user.nome;
 
   try {
+    const erroValidacao = validarRequisicaoAtleta(req);
+    if (erroValidacao) throw erroValidacao;
+
     await campusModel.substituirAtleta(nomeCampus, {
       nome: req.body.nome,
       matricula: req.body.matricula,
@@ -309,7 +328,9 @@ async function substituirAtleta(req, res) {
     });
     res.redirect('/campus/inscricoes?aba=atletas#atletas');
   } catch (error) {
-    const mensagem = ['NOME_INCOMPLETO', 'CAMPOS_OBRIGATORIOS'].includes(error.code) ? error.message : 'Não foi possível registrar a substituição.';
+    const mensagem = ['VALIDATION_ERROR', 'CPF_INVALIDO', 'NOME_INCOMPLETO', 'CAMPOS_OBRIGATORIOS'].includes(error.code)
+      ? error.message
+      : 'Não foi possível registrar a substituição.';
     res.redirect('/campus/inscricoes?aba=atletas&erro=' + encodeURIComponent(mensagem) + '#atletas');
   }
 }

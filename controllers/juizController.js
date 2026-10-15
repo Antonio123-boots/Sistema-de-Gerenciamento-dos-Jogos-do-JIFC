@@ -332,17 +332,14 @@ async function handleSalvarPlacar(req, res) {
     : [];
 
   try {
-    if (cartoesValidos.length > 0) {
-      const classificacaoService = require('../services/classificacaoService');
-      await classificacaoService.registrarCartoes(req.params.jogoId, cartoesValidos);
-    }
     await juizService.salvarPlacar(req.params.jogoId, {
       placar1,
       placar2,
       status,
       sets: setsParsed,
       disputa1: req.body.disputa1,
-      disputa2: req.body.disputa2
+      disputa2: req.body.disputa2,
+      cartoes: cartoesValidos
     });
   } catch (e) {
     return res.render('juiz/placar', {

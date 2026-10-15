@@ -1,2 +1,0 @@
-render revisao OK, 358403 chars
-botao voltar-revisao + salvar presentes: true

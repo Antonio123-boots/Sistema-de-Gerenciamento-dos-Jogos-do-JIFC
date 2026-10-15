@@ -7,21 +7,29 @@ function cloneState(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
-function readState() {
+function parseState(raw, origem = stateFilePath) {
   try {
-    if (!fs.existsSync(stateFilePath)) {
-      return {};
+    const state = JSON.parse(raw);
+    if (!state || typeof state !== 'object' || Array.isArray(state)) {
+      throw new Error('O conteúdo precisa ser um objeto JSON.');
     }
-
-    const raw = fs.readFileSync(stateFilePath, 'utf8');
-    if (!raw.trim()) {
-      return {};
-    }
-
-    return JSON.parse(raw);
+    return state;
   } catch (error) {
-    return {};
+    throw new Error(`O estado local está inválido (${origem}): ${error.message}`, { cause: error });
   }
+}
+
+function readState() {
+  let raw;
+  try {
+    raw = fs.readFileSync(stateFilePath, 'utf8');
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return {};
+    }
+    throw new Error(`Não foi possível ler o estado local (${stateFilePath}): ${error.message}`, { cause: error });
+  }
+  return parseState(raw);
 }
 
 function writeState(nextState) {
@@ -32,6 +40,7 @@ function writeState(nextState) {
 
 module.exports = {
   stateFilePath,
+  parseState,
   readState,
   writeState,
   cloneState

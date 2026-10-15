@@ -28,16 +28,24 @@ const jogoValidation = [
 
 router.get('/configurar', adminController.renderConfigurar);
 router.post('/configurar/salvar', adminController.salvarConfiguracoes);
-router.post('/modalidades/cadastrar', modalidadeValidation, adminController.cadastrarModalidade);
+const handleValidation = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array().map((e) => e.msg) });
+  }
+  next();
+};
+
+router.post('/modalidades/cadastrar', modalidadeValidation, handleValidation, adminController.cadastrarModalidade);
 router.post('/modalidades/excluir/:modalidadeId', adminController.excluirModalidade);
 
 router.get('/cadastroCampus', adminController.renderCadastroCampus);
-router.post('/cadastroCampus/salvar', campusValidation, adminController.salvarCadastroCampus);
-router.post('/cadastroCampus/excluir/:slug', slugParam, adminController.excluirCampusCadastro);
+router.post('/cadastroCampus/salvar', campusValidation, handleValidation, adminController.salvarCadastroCampus);
+router.post('/cadastroCampus/excluir/:slug', slugParam, handleValidation, adminController.excluirCampusCadastro);
 router.get('/banirCampus', adminController.renderBanirCampus);
 router.post('/banirCampus/salvar', adminController.salvarBanirCampus);
-router.post('/banirCampus/desbanir/:slug', slugParam, adminController.handleDesbanirCampus);
-router.post('/banirCampus/excluir/:slug', slugParam, adminController.excluirCampus);
+router.post('/banirCampus/desbanir/:slug', slugParam, handleValidation, adminController.handleDesbanirCampus);
+router.post('/banirCampus/excluir/:slug', slugParam, handleValidation, adminController.excluirCampus);
 
 router.get('/laudos', adminController.renderAnalise);
 router.post('/laudos/validar/:atletaId', adminController.validarAtleta);
@@ -53,7 +61,7 @@ router.post('/chaveamento/excluir-publicacao', adminController.excluirPublicacao
 router.post('/chaveamento/eliminatoria/gerar', adminController.gerarEliminatoria);
 router.post('/chaveamento/cancelar', adminController.cancelarSorteio);
 router.get('/chaveamento/exportar', adminController.exportResumoInscricoes);
-router.post('/chaveamento/jogo/:jogoId/salvar', jogoValidation, adminController.salvarJogoChaveamento);
+router.post('/chaveamento/jogo/:jogoId/salvar', jogoValidation, handleValidation, adminController.salvarJogoChaveamento);
 router.get('/boletins', adminController.renderBoletins);
 router.get('/boletins/:ano', adminController.renderBoletimAno);
 router.post('/boletins/gerar', adminController.gerarBoletimFinal);
@@ -93,12 +101,12 @@ router.post('/juizes/cadastrar', [
     body('nome').trim().notEmpty().withMessage('Nome é obrigatório.').isLength({ max: 100 }),
     body('email').isEmail().withMessage('E-mail inválido.').normalizeEmail(),
     body('senha').isLength({ min: 6 }).withMessage('Senha deve ter no mínimo 6 caracteres.')
-], juizController.handleCadastrar);
+  ], handleValidation, juizController.handleCadastrar);
 router.get('/juizes/editar/:id', juizController.renderEditar);
 router.post('/juizes/editar/:id', [
     body('nome').trim().notEmpty().withMessage('Nome é obrigatório.').isLength({ max: 100 }),
     body('email').isEmail().withMessage('E-mail inválido.').normalizeEmail()
-], juizController.handleEditar);
+  ], handleValidation, juizController.handleEditar);
 router.post('/juizes/excluir/:id', juizController.handleExcluir);
 
 module.exports = router;

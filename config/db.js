@@ -1,6 +1,7 @@
 const mysql = require('mysql2/promise');
 const dotenv = require('dotenv');
 const path = require('path');
+const { AsyncLocalStorage } = require('async_hooks');
 
 // Força o dotenv a buscar o arquivo .env explicitamente na raiz do projeto
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
@@ -12,6 +13,7 @@ if (dbPassword === '""' || dbPassword === "''" || !dbPassword) {
 }
 
 let poolReal = null;
+const transacaoAtiva = new AsyncLocalStorage();
 
 function obterPool() {
     if (!poolReal) {
@@ -28,12 +30,42 @@ function obterPool() {
     return poolReal;
 }
 
+async function withTransaction(callback) {
+    const conexaoAtiva = transacaoAtiva.getStore();
+    if (conexaoAtiva) {
+        return callback();
+    }
+
+    const conexao = await obterPool().getConnection();
+    try {
+        await conexao.beginTransaction();
+        const resultado = await transacaoAtiva.run(conexao, callback);
+        await conexao.commit();
+        return resultado;
+    } catch (error) {
+        try {
+            await conexao.rollback();
+        } catch (rollbackError) {
+            throw new AggregateError(
+                [error, rollbackError],
+                'A operação e o rollback da transação falharam.'
+            );
+        }
+        throw error;
+    } finally {
+        conexao.release();
+    }
+}
+
 // Pool preguiçoso: só conecta na primeira query, permitindo usar módulos
 // isolados (regras, validadores) em testes sem depender do banco.
 module.exports = new Proxy({}, {
     get(_alvo, propriedade) {
-        const pool = obterPool();
-        const valor = pool[propriedade];
-        return typeof valor === 'function' ? valor.bind(pool) : valor;
+        if (propriedade === 'withTransaction') {
+            return withTransaction;
+        }
+        const executor = transacaoAtiva.getStore() || obterPool();
+        const valor = executor[propriedade];
+        return typeof valor === 'function' ? valor.bind(executor) : valor;
     }
 });

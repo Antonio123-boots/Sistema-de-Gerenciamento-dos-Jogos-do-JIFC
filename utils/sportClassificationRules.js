@@ -248,7 +248,9 @@ function obterRegras(nomeModalidade) {
       return regras;
     }
   }
-  return RULES.futsal;
+  const erro = new Error(`Não há regras esportivas cadastradas para a modalidade "${String(nomeModalidade || '').trim()}".`);
+  erro.code = 'MODALIDADE_SEM_REGRAS';
+  throw erro;
 }
 
 function obterPadraoEliminatoria(nomeModalidade, subCategoria) {

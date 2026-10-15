@@ -448,7 +448,6 @@ async function atualizarContadoresCartoes(modalidadeId, chaveId, jogoId) {
 }
 
 async function getClassificacaoModalidade(modalidadeId, chaveId = null, opcoes = {}) {
-  try {
     const [modalidadeRows] = await db.query('SELECT nome FROM modalidades WHERE id = ?', [modalidadeId]);
     const nomeModalidade = modalidadeRows[0]?.nome || '';
     const regras = obterRegras(nomeModalidade);
@@ -511,9 +510,6 @@ async function getClassificacaoModalidade(modalidadeId, chaveId = null, opcoes =
     }
 
     return resultadoOrdenado;
-  } catch (error) {
-    return [];
-  }
 }
 
 async function _aplicarClassificacaoJogo(jogoId) {

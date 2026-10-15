@@ -1210,8 +1210,7 @@ router.get('/chaveamento', async function(req, res, next) {
         let chavesGeradas = [];
         let jogosProgramados = [];
 
-        try {
-            if (modalidadeAtiva.categoria === 'atletismo') {
+        if (modalidadeAtiva.categoria === 'atletismo') {
                 const [atletismoPub] = await db.query('SELECT 1 FROM provas WHERE modalidade_id = ? AND publicado = 1 LIMIT 1', [modalidadeAtiva.id]);
                 if (atletismoPub.length === 0) {
                     chavesGeradas = [];
@@ -1253,7 +1252,7 @@ router.get('/chaveamento', async function(req, res, next) {
                     });
                 }
                 }
-            } else if (modalidadeAtiva.categoria === 'xadrez') {
+        } else if (modalidadeAtiva.categoria === 'xadrez') {
                 const [xadrezPub] = await db.query('SELECT 1 FROM resultados_xadrez WHERE modalidade_id = ? AND publicado = 1 LIMIT 1', [modalidadeAtiva.id]);
                 if (xadrezPub.length > 0) {
                 const resultadosIndividuaisService = require('../services/resultadosIndividuaisService');
@@ -1273,7 +1272,7 @@ router.get('/chaveamento', async function(req, res, next) {
                     };
                 });
                 }
-            } else {
+        } else {
                 const chaves = await adminModel.getChavesModalidade(modalidadeAtiva.id, subCategoria);
                 const jogos = await adminModel.getJogosModalidade(modalidadeAtiva.id, subCategoria);
                 const jogosPublicados = jogos.filter((jogo) => Number(jogo.publicado) === 1);
@@ -1282,35 +1281,24 @@ router.get('/chaveamento', async function(req, res, next) {
                     jogosProgramados = jogosPublicados;
                     chavesGeradas = chaves;
 
-                    try {
-                        const classificacao = await adminModel.getClassificacaoModalidade(modalidadeAtiva.id, null, { subCategoria });
-                        const mapaPontos = new Map();
-                        classificacao.forEach((linha) => {
-                            const participanteId = Number(linha.atleta_id || linha.campus_id || 0);
-                            if (!participanteId) return;
-                            mapaPontos.set(`${Number(linha.chave_id)}:${participanteId}`, Number(linha.pontos) || 0);
-                        });
+                    const classificacao = await adminModel.getClassificacaoModalidade(modalidadeAtiva.id, null, { subCategoria });
+                    const mapaPontos = new Map();
+                    classificacao.forEach((linha) => {
+                        const participanteId = Number(linha.atleta_id || linha.campus_id || 0);
+                        if (!participanteId) return;
+                        mapaPontos.set(`${Number(linha.chave_id)}:${participanteId}`, Number(linha.pontos) || 0);
+                    });
 
-                        chavesGeradas = chaves.map((chave) => ({
-                            ...chave,
-                            integrantes: chave.integrantes
-                                .map((integrante) => ({
-                                    ...integrante,
-                                    pontosFaseDeGrupos: mapaPontos.get(`${Number(chave.id)}:${Number(integrante.id)}`) || 0
-                                }))
-                                .sort((a, b) => b.pontosFaseDeGrupos - a.pontosFaseDeGrupos)
-                        }));
-                    } catch (error) {
-                        console.error('Erro ao aplicar pontos na chave pública:', error);
-                    }
+                    chavesGeradas = chaves.map((chave) => ({
+                        ...chave,
+                        integrantes: chave.integrantes
+                            .map((integrante) => ({
+                                ...integrante,
+                                pontosFaseDeGrupos: mapaPontos.get(`${Number(chave.id)}:${Number(integrante.id)}`) || 0
+                            }))
+                            .sort((a, b) => b.pontosFaseDeGrupos - a.pontosFaseDeGrupos)
+                    }));
                 }
-            }
-        } catch (error) {
-            console.error('Erro ao carregar dados do chaveamento público:', error);
-            provasAtletismo = [];
-            classificadosXadrez = [];
-            chavesGeradas = [];
-            jogosProgramados = [];
         }
 
         let fasesEliminatoria = [];

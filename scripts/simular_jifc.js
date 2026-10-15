@@ -252,7 +252,7 @@ async function gerarPlacarParaJogo(jogo, { grupo }) {
   return { placar1: perdedorPts, placar2: vencedorPts };
 }
 
-async function aplicarWOs(modalidadeId, sub) {
+async function aplicarWOsFast(modalidadeId, sub, modalidadeNome) {
   const [grupos] = await db.query(
     `SELECT j.id, j.campus_1_id, j.campus_2_id, j.atleta_1_id, j.atleta_2_id
      FROM jogos j
@@ -271,8 +271,56 @@ async function aplicarWOs(modalidadeId, sub) {
   const casa = Number(jogo.campus_1_id || jogo.atleta_1_id);
   const fora = Number(jogo.campus_2_id || jogo.atleta_2_id);
   const vencedor = (Number(jogo.id) % 2) === 0 ? casa : fora;
-  await juizService.aplicarWO(jogo.id, vencedor);
+  const ehIndividual = Boolean(jogo.atleta_1_id && jogo.atleta_2_id);
+  const p1 = vencedor === casa ? 1 : 0;
+  const p2 = vencedor === casa ? 0 : 1;
+
+  const [existe] = await db.query('SELECT jogo_id FROM resultados_coletivos WHERE jogo_id = ?', [jogo.id]);
+  if (existe.length) {
+    await db.query('UPDATE resultados_coletivos SET placar_1 = ?, placar_2 = ? WHERE jogo_id = ?', [p1, p2, jogo.id]);
+  } else {
+    await db.query('INSERT INTO resultados_coletivos (jogo_id, placar_1, placar_2) VALUES (?, ?, ?)', [jogo.id, p1, p2]);
+  }
+  if (ehIndividual) {
+    await db.query("UPDATE jogos SET status = 'Encerrado', wo = 1, vencedor_atleta_id = ? WHERE id = ?", [vencedor, jogo.id]);
+  } else {
+    await db.query("UPDATE jogos SET status = 'Encerrado', wo = 1, vencedor_campus_id = ? WHERE id = ?", [vencedor, jogo.id]);
+  }
   return 1;
+}
+
+async function salvarPlacarDireto(jogos, { grupo }) {
+  for (const j of jogos) {
+    const casa = Number(j.campus_1_id || j.atleta_1_id || 0);
+    const fora = Number(j.campus_2_id || j.atleta_2_id || 0);
+    if (!casa || !fora) continue;
+    const dados = await gerarPlacarParaJogo({
+      id: j.id,
+      casa,
+      fora,
+      modalidade_id: j.modalidade_id,
+      chaveId: j.chave_id,
+      modalidade_nome: j.modalidade_nome
+    }, { grupo });
+    if (!dados) continue;
+
+    const [existe] = await db.query('SELECT jogo_id FROM resultados_coletivos WHERE jogo_id = ?', [j.id]);
+    if (existe.length) {
+      await db.query('UPDATE resultados_coletivos SET placar_1 = ?, placar_2 = ? WHERE jogo_id = ?', [dados.placar1, dados.placar2, j.id]);
+    } else {
+      await db.query('INSERT INTO resultados_coletivos (jogo_id, placar_1, placar_2) VALUES (?, ?, ?)', [j.id, dados.placar1, dados.placar2]);
+      await db.query('UPDATE jogos SET status = ? WHERE id = ?', ['Encerrado', j.id]);
+    }
+    if (Array.isArray(dados.sets) && dados.sets.length) {
+      await db.query('DELETE FROM resultados_por_sets WHERE jogo_id = ?', [j.id]);
+      for (const set of dados.sets) {
+        await db.query(
+          'INSERT INTO resultados_por_sets (jogo_id, numero_set, pontos_1, pontos_2) VALUES (?, ?, ?, ?)',
+          [j.id, set.numero, set.pontos_1, set.pontos_2]
+        );
+      }
+    }
+  }
 }
 
 async function preencherModalidadeConfronto(modalidadeId) {
@@ -287,70 +335,44 @@ async function preencherModalidadeConfronto(modalidadeId) {
   );
   for (const subRow of subsRows) {
     const sub = String(subRow.sub_categoria || 'geral');
-    await aplicarWOs(modalidadeId, sub);
+    await aplicarWOsFast(modalidadeId, sub, modalidadeNome);
 
-    let iteracoes = 0;
-    while (iteracoes < 2000) {
-      iteracoes += 1;
-      let salvos = 0;
+    const [grupos] = await db.query(
+      `SELECT j.*, m.nome AS modalidade_nome
+       FROM jogos j
+       JOIN modalidades m ON m.id = j.modalidade_id
+       WHERE j.modalidade_id = ? AND j.sub_categoria = ? AND j.fase = 'Fase de Grupos'
+         AND j.status <> 'Encerrado'
+       ORDER BY j.numero_jogo`,
+      [modalidadeId, sub]
+    );
+    await salvarPlacarDireto(grupos, { grupo: true });
 
-      const [grupos] = await db.query(
-        `SELECT j.*, m.nome AS modalidade_nome
-         FROM jogos j
-         JOIN modalidades m ON m.id = j.modalidade_id
-         WHERE j.modalidade_id = ? AND j.sub_categoria = ? AND j.fase = 'Fase de Grupos'
-           AND j.status <> 'Encerrado'
-         ORDER BY j.numero_jogo`,
-        [modalidadeId, sub]
-      );
-      for (const g of grupos) {
-        const casa = Number(g.campus_1_id || g.atleta_1_id || 0);
-        const fora = Number(g.campus_2_id || g.atleta_2_id || 0);
-        if (!casa || !fora) continue;
-        const dados = await gerarPlacarParaJogo({
-          id: g.id,
-          casa,
-          fora,
-          modalidade_id: g.modalidade_id,
-          chaveId: g.chave_id,
-          modalidade_nome: g.modalidade_nome
-        }, { grupo: true });
-        if (!dados) continue;
-        await juizService.salvarPlacar(g.id, { ...dados, status: 'Encerrado' });
-        salvos += 1;
-      }
-
-      await mataMataService.resolverEliminatoria(modalidadeId, sub);
-
-      const [elim] = await db.query(
-        `SELECT j.*, m.nome AS modalidade_nome
-         FROM jogos j
-         JOIN modalidades m ON m.id = j.modalidade_id
-         WHERE j.modalidade_id = ? AND j.sub_categoria = ?
-           AND j.fase IN ('Oitavas','Quartas','Semifinal','Terceiro Lugar','Final')
-           AND j.status <> 'Encerrado'
-         ORDER BY FIELD(j.fase,'Oitavas','Quartas','Semifinal','Terceiro Lugar','Final'), j.numero_jogo`,
-        [modalidadeId, sub]
-      );
-      for (const e of elim) {
-        const casa = Number(e.campus_1_id || e.atleta_1_id || 0);
-        const fora = Number(e.campus_2_id || e.atleta_2_id || 0);
-        if (!casa || !fora) continue;
-        const dados = await gerarPlacarParaJogo({
-          id: e.id,
-          casa,
-          fora,
-          modalidade_id: e.modalidade_id,
-          modalidade_nome: e.modalidade_nome
-        }, { grupo: false });
-        if (!dados) continue;
-        await juizService.salvarPlacar(e.id, { ...dados, status: 'Encerrado' });
-        salvos += 1;
-      }
-
-      if (salvos === 0) break;
+    let salvos = await classificarEliminatoria(modalidadeId, sub);
+    let rodadas = 1;
+    while (salvos > 0 && rodadas < 10) {
+      rodadas += 1;
+      salvos = await classificarEliminatoria(modalidadeId, sub);
     }
   }
+}
+
+async function classificarEliminatoria(modalidadeId, sub) {
+  await classificacaoService.recalcularClassificacaoModalidade(modalidadeId);
+  await mataMataService.resolverEliminatoria(modalidadeId, sub);
+
+  const [elim] = await db.query(
+    `SELECT j.*, m.nome AS modalidade_nome
+     FROM jogos j
+     JOIN modalidades m ON m.id = j.modalidade_id
+     WHERE j.modalidade_id = ? AND j.sub_categoria = ?
+       AND j.fase IN ('Oitavas','Quartas','Semifinal','Terceiro Lugar','Final')
+       AND j.status <> 'Encerrado'
+     ORDER BY FIELD(j.fase,'Oitavas','Quartas','Semifinal','Terceiro Lugar','Final'), j.numero_jogo`,
+    [modalidadeId, sub]
+  );
+  await salvarPlacarDireto(elim, { grupo: false });
+  return elim.length;
 }
 
 async function preencherAtletismo(modalidadeId) {

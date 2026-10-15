@@ -220,6 +220,11 @@ function validarCamposObrigatoriosAtleta(dados) {
     erro.code = 'CAMPOS_OBRIGATORIOS';
     throw erro;
   }
+  if (!/^\d{11}$/.test(String(dados.cpf || '').replace(/\D/g, ''))) {
+    const erro = new Error('CPF deve conter 11 dígitos.');
+    erro.code = 'CPF_INVALIDO';
+    throw erro;
+  }
 
   return { nome, matricula, genero, dataNascimento, cpf, status, modalidades, ...detalhesAtleta };
 }

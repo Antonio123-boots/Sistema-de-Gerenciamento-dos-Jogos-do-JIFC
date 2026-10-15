@@ -52,6 +52,141 @@ function montarResumoBoletim({ ano, ranking = [], modalidades = [], dataGeracao 
   };
 }
 
+function resolverVencedorFinal(final) {
+  const campus1 = Number(final.campus_1_id || final.atleta_1_campus_id || 0);
+  const campus2 = Number(final.campus_2_id || final.atleta_2_campus_id || 0);
+  if (!campus1 || !campus2) return null;
+
+  let vencedor = Number(final.vencedor_campus_id || 0);
+  if (!vencedor && Number(final.vencedor_atleta_id || 0)) {
+    if (Number(final.vencedor_atleta_id) === Number(final.atleta_1_id)) vencedor = Number(final.atleta_1_campus_id || 0);
+    if (Number(final.vencedor_atleta_id) === Number(final.atleta_2_id)) vencedor = Number(final.atleta_2_campus_id || 0);
+  }
+  if (vencedor === campus1) return { campeao: final.campus_1, vice: final.campus_2 };
+  if (vencedor === campus2) return { campeao: final.campus_2, vice: final.campus_1 };
+
+  const placar1 = Number(final.placar_1);
+  const placar2 = Number(final.placar_2);
+  if (Number.isFinite(placar1) && Number.isFinite(placar2) && placar1 !== placar2) {
+    return placar1 > placar2
+      ? { campeao: final.campus_1, vice: final.campus_2 }
+      : { campeao: final.campus_2, vice: final.campus_1 };
+  }
+
+  const disputa1 = Number(final.disputa_pontos_1);
+  const disputa2 = Number(final.disputa_pontos_2);
+  if (Number.isFinite(disputa1) && Number.isFinite(disputa2) && disputa1 !== disputa2) {
+    return disputa1 > disputa2
+      ? { campeao: final.campus_1, vice: final.campus_2 }
+      : { campeao: final.campus_2, vice: final.campus_1 };
+  }
+  return null;
+}
+
+function aplicarFinaisAoBoletim(modalidades = [], finais = []) {
+  const finaisPorModalidade = new Map();
+  for (const final of finais) {
+    if (String(final.status || '') !== 'Encerrado') continue;
+    const podio = resolverVencedorFinal(final);
+    if (!podio) continue;
+    const modalidadeId = Number(final.modalidade_id);
+    if (!finaisPorModalidade.has(modalidadeId)) finaisPorModalidade.set(modalidadeId, []);
+    finaisPorModalidade.get(modalidadeId).push({ ...final, ...podio });
+  }
+
+  const modalidadesComFinal = new Set(finaisPorModalidade.keys());
+  const resultado = modalidades
+    .filter((modalidade) => !modalidadesComFinal.has(Number(modalidade.modalidade_id)))
+    .map((modalidade) => ({ ...modalidade }));
+
+  for (const [modalidadeId, podios] of finaisPorModalidade) {
+    for (const podio of podios) {
+      const base = modalidades.find((modalidade) => Number(modalidade.modalidade_id) === modalidadeId);
+      const subCategoria = String(podio.sub_categoria || '').trim();
+      const multiplasFinais = podios.length > 1;
+      resultado.push({
+        modalidade_id: modalidadeId,
+        modalidade: base?.modalidade || podio.modalidade,
+        nome: (base?.modalidade || podio.modalidade || 'Modalidade')
+          + (multiplasFinais && subCategoria ? ` (${subCategoria})` : ''),
+        campeao: podio.campeao || '—',
+        vice: podio.vice || '—'
+      });
+    }
+  }
+  return resultado;
+}
+
+function aplicarPodiosIndividuais(modalidades = [], classificacoes = {}) {
+  return modalidades.map((modalidade) => {
+    const nome = String(modalidade.modalidade || modalidade.nome || '').toLowerCase();
+    let ranking = [];
+    if (nome.includes('atletismo')) {
+      ranking = classificacoes.atletismoPorGenero?.[String(modalidade.genero || '').toLowerCase()] || [];
+    } else if (nome.includes('xadrez')) {
+      ranking = classificacoes.xadrezPorModalidade?.[Number(modalidade.modalidade_id)] || [];
+    } else {
+      return modalidade;
+    }
+
+    const classificados = ranking.filter((item) => Number(item.pontos || 0) > 0);
+    if (!classificados.length) return modalidade;
+    return {
+      ...modalidade,
+      campeao: classificados[0].campus_nome || classificados[0].campus || modalidade.campeao || '—',
+      vice: classificados[1]?.campus_nome || classificados[1]?.campus || modalidade.vice || '—'
+    };
+  });
+}
+
+async function aplicarClassificacoesIndividuaisAoBoletim(modalidades = []) {
+  const resultadosIndividuais = require('./resultadosIndividuaisService');
+  const atletismoPorGenero = new Map();
+  const xadrezPorModalidade = new Map();
+
+  for (const modalidade of modalidades) {
+    const nome = String(modalidade.modalidade || modalidade.nome || '').toLowerCase();
+    if (nome.includes('atletismo')) {
+      const genero = String(modalidade.genero || '').trim();
+      const chaveGenero = genero.toLowerCase();
+      if (!atletismoPorGenero.has(chaveGenero)) {
+        atletismoPorGenero.set(chaveGenero, await resultadosIndividuais.obterClassificacaoGeralCampi(genero));
+      }
+    } else if (nome.includes('xadrez')) {
+      const modalidadeId = Number(modalidade.modalidade_id);
+      xadrezPorModalidade.set(modalidadeId, await resultadosIndividuais.obterClassificacaoGeralXadrez(modalidadeId));
+    }
+  }
+
+  return aplicarPodiosIndividuais(modalidades, {
+    atletismoPorGenero: Object.fromEntries(atletismoPorGenero),
+    xadrezPorModalidade: Object.fromEntries(xadrezPorModalidade)
+  });
+}
+
+async function obterResultadosFinaisModalidades() {
+  const [rows] = await db.query(`
+    SELECT j.modalidade_id, j.sub_categoria, j.status,
+           j.campus_1_id, j.campus_2_id, j.atleta_1_id, j.atleta_2_id,
+           j.vencedor_campus_id, j.vencedor_atleta_id,
+           j.disputa_pontos_1, j.disputa_pontos_2,
+           rc.placar_1, rc.placar_2,
+           c1.nome_exibicao AS campus_1, c2.nome_exibicao AS campus_2,
+           a1.campus_id AS atleta_1_campus_id, a2.campus_id AS atleta_2_campus_id,
+           m.nome AS modalidade
+    FROM jogos j
+    JOIN modalidades m ON m.id = j.modalidade_id
+    LEFT JOIN resultados_coletivos rc ON rc.jogo_id = j.id
+    LEFT JOIN atletas a1 ON a1.id = j.atleta_1_id
+    LEFT JOIN atletas a2 ON a2.id = j.atleta_2_id
+    LEFT JOIN campus c1 ON c1.id = COALESCE(j.campus_1_id, a1.campus_id)
+    LEFT JOIN campus c2 ON c2.id = COALESCE(j.campus_2_id, a2.campus_id)
+    WHERE j.fase = 'Final' AND j.status = 'Encerrado'
+    ORDER BY j.modalidade_id, j.sub_categoria, j.numero_jogo
+  `);
+  return rows || [];
+}
+
 async function listarBoletins() {
   const [linhas] = await db.query(`
     SELECT *
@@ -96,7 +231,9 @@ async function gerarBoletimFinal(anoJifc) {
   `);
 
   const [modalidadesRows] = await db.query(`
-    SELECT m.nome AS modalidade,
+    SELECT m.id AS modalidade_id,
+           m.nome AS modalidade,
+           m.genero,
            c.nome_exibicao AS campeao,
            c2.nome_exibicao AS vice
     FROM modalidades m
@@ -118,6 +255,10 @@ async function gerarBoletimFinal(anoJifc) {
     ORDER BY m.nome ASC
   `);
 
+  const finaisRows = await obterResultadosFinaisModalidades();
+
+  const podiosComFinais = aplicarFinaisAoBoletim(modalidadesRows || [], finaisRows);
+  const podiosFinais = await aplicarClassificacoesIndividuaisAoBoletim(podiosComFinais);
   const resumo = montarResumoBoletim({
     ano,
     ranking: (rankingRows || []).map((row, index) => ({
@@ -125,8 +266,8 @@ async function gerarBoletimFinal(anoJifc) {
       campi: row.campus || 'Campus sem nome',
       pontos: Number(row.pontos || 0)
     })),
-    modalidades: (modalidadesRows || []).map((row) => ({
-      nome: row.modalidade || 'Modalidade',
+    modalidades: podiosFinais.map((row) => ({
+      nome: row.nome || row.modalidade || 'Modalidade',
       campeao: row.campeao || '—',
       vice: row.vice || '—'
     })),
@@ -158,6 +299,10 @@ module.exports = {
   detectarEncerramentoJifc,
   obterStatusJifc,
   montarResumoBoletim,
+  aplicarFinaisAoBoletim,
+  aplicarPodiosIndividuais,
+  aplicarClassificacoesIndividuaisAoBoletim,
+  obterResultadosFinaisModalidades,
   listarBoletins,
   obterBoletimPorAno,
   gerarBoletimFinal
