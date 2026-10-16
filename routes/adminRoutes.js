@@ -20,7 +20,8 @@ const slugParam = [
 ];
 
 const modalidadeValidation = [
-    body('nome_modalidade').trim().notEmpty().withMessage('Nome da modalidade é obrigatório.')
+    body('nome_modalidade').trim().notEmpty().withMessage('Nome da modalidade é obrigatório.'),
+    body('limite_inscritos').optional({ checkFalsy: true }).isInt({ min: 0 }).withMessage('Limite de inscritos deve ser um número maior ou igual a zero.')
 ];
 
 const jogoValidation = [
@@ -74,7 +75,8 @@ const banirCampusValidation = [
 ];
 
 const salvarAnoAtualValidation = [
-    body('ano').isInt({ min: 2000, max: 2100 }).withMessage('Ano inválido.')
+    body('ano').optional({ checkFalsy: true }).isInt({ min: 2000, max: 2100 }).withMessage('Ano inválido.'),
+    body('ano_jifc').optional({ checkFalsy: true }).isInt({ min: 2000, max: 2100 }).withMessage('Ano inválido.')
 ];
 
 router.get('/configurar', adminController.renderConfigurar);

@@ -1,0 +1,134 @@
+/* Temas visuais do JIFC — selecionados via data-theme no <html> (ver layout.ejs) */
+:root,
+[data-theme="navy"] {
+  --bg: #1c1d3b;
+  --bg-menu: linear-gradient(135deg, #1d1e3e 0%, #1a1b3d 100%);
+  --surface-2: #1f2144;
+  --panel: rgba(26, 27, 58, 0.95);
+  --panel-grad: linear-gradient(145deg, rgba(23, 28, 49, 0.97), rgba(11, 13, 24, 0.97));
+  --panel-soft: rgba(12, 14, 34, 0.42);
+  --fg-rgb: 255, 255, 255;
+  --text: #ffffff;
+  --text-muted: rgba(255, 255, 255, 0.72);
+  --accent: #ece42d;
+  --accent-hover: #fff56b;
+  --accent-rgb: 236, 228, 45;
+  --accent-ink: #17192f;
+}
+
+[data-theme="dark"] {
+  --bg: #000000;
+  --bg-menu: linear-gradient(135deg, #050505 0%, #0a0a0a 100%);
+  --surface-2: #121212;
+  --panel: rgba(18, 18, 18, 0.95);
+  --panel-grad: linear-gradient(145deg, rgba(16, 16, 16, 0.97), rgba(4, 4, 4, 0.97));
+  --panel-soft: rgba(255, 255, 255, 0.05);
+  --fg-rgb: 255, 255, 255;
+  --text: #ffffff;
+  --text-muted: rgba(255, 255, 255, 0.72);
+  --accent: #21f8f6;
+  --accent-hover: #7dfcfa;
+  --accent-rgb: 33, 248, 246;
+  --accent-ink: #04211f;
+}
+
+[data-theme="light"] {
+  --bg: #ffffff;
+  --bg-menu: linear-gradient(135deg, #f7f7f9 0%, #ececf0 100%);
+  --surface-2: #f2f2f5;
+  --panel: rgba(255, 255, 255, 0.95);
+  --panel-grad: linear-gradient(145deg, rgba(255, 255, 255, 0.97), rgba(244, 244, 247, 0.97));
+  --panel-soft: rgba(0, 0, 0, 0.04);
+  --fg-rgb: 0, 0, 0;
+  --text: #141414;
+  --text-muted: rgba(0, 0, 0, 0.62);
+  --accent: #000000;
+  --accent-hover: #333333;
+  --accent-rgb: 0, 0, 0;
+  --accent-ink: #ffffff;
+}
+
+/* Botão da paleta + dropdown de temas (menu superior) */
+.theme-switcher {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.theme-palette-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.55rem;
+  line-height: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.theme-palette-btn svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.theme-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  background: var(--bg);
+  border: 1px solid rgba(var(--fg-rgb), 0.15);
+  border-radius: 10px;
+  padding: 6px;
+  min-width: 175px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.theme-dropdown[hidden] {
+  display: none;
+}
+
+.theme-option {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: none;
+  border: none;
+  color: varcolor: var(--text);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.45rem 0.5rem;
+  border-radius: 7px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.theme-option:hover {
+  background: rgba(var(--accent-rgb), 0.12);
+  color: var(--accent);
+}
+
+.theme-option[aria-checked="true"] {
+  outline: 1px solid var(--accent);
+}
+
+.theme-swatch {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  flex: none;
+  border: 1px solid rgba(var(--fg-rgb), 0.25);
+  box-sizing: border-box;
+}

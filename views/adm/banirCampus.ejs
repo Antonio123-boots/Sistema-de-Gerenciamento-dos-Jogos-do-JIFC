@@ -7,10 +7,10 @@
 
 
     <% if (mensagemErro) { %>
-      <div class="alert alert-error"><%= mensagemErro %></div>
+      <div class="alert alert-error auto-dismiss"><%= mensagemErro %></div>
     <% } %>
     <% if (mensagemSucesso) { %>
-      <div class="alert alert-success"><%= mensagemSucesso %></div>
+      <div class="alert alert-success auto-dismiss"><%= mensagemSucesso %></div>
     <% } %>
 
     <div class="inner-management-card admin-shell">
@@ -106,7 +106,7 @@
         <section class="management-panel">
           <h2 class="context-title" style="margin-top:0;">Campi banidos</h2>
           <% if ((bannedCampi || []).length === 0) { %>
-            <p style="margin:0; color:rgba(255,255,255,0.72);">Nenhum campus banido no momento.</p>
+            <p style="margin:0; color:rgba(var(--fg-rgb), 0.72);">Nenhum campus banido no momento.</p>
           <% } else { %>
             <div class="management-card-list" style="margin-top:1rem;">
               <% bannedCampi.forEach((campus) => { %>

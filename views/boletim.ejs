@@ -1,0 +1,50 @@
+<section class="panel-card">
+    <div class="profile-header">
+        <div>
+            <h1>Boletins Finais do JIFC</h1>
+            <p class="panel-subtitle" style="margin:0.35rem 0 0;">
+                Consulte o boletim completo de cada edição encerrada, com todos os jogos, resultados, tabelas e chaveamentos.
+            </p>
+        </div>
+        <div>
+            <a href="/" class="btn btn-ghost">Voltar ao início</a>
+        </div>
+    </div>
+
+    <% if (Array.isArray(anos) && anos.length) { %>
+        <div class="chaveamento-layout" style="margin-top: 1.5rem;">
+            <main class="chaveamento-content">
+                <div class="tabela-scroll">
+                    <table style="width:100%; min-width:520px; border-collapse: collapse;">
+                        <thead>
+                            <tr>
+                                <th style="text-align:left; padding:0.7rem 0.8rem;">Edição</th>
+                                <th style="text-align:left; padding:0.7rem 0.8rem;">Publicado em</th>
+                                <th style="text-align:right; padding:0.7rem 0.8rem;">Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% anos.forEach((item) => { %>
+                                <tr>
+                                    <td style="padding:0.7rem 0.8rem; border-top:1px solid rgba(var(--fg-rgb), 0.08);"><strong>JIFC <%= item.ano_jifc %></strong></td>
+                                    <td style="padding:0.7rem 0.8rem; border-top:1px solid rgba(var(--fg-rgb), 0.08);">
+                                        <%= item.criado_em ? new Date(item.criado_em).toLocaleDateString('pt-BR') : '-' %>
+                                    </td>
+                                    <td style="padding:0.7rem 0.8rem; border-top:1px solid rgba(var(--fg-rgb), 0.08); text-align:right;">
+                                        <a href="/boletim/<%= item.ano_jifc %>" class="btn btn-secondary" style="padding:0.55rem 0.8rem;">Abrir boletim</a>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
+            </main>
+        </div>
+    <% } else { %>
+        <section class="panel-card" style="margin-top:1.5rem; border:1px solid rgba(var(--fg-rgb), 0.08); background:rgba(var(--fg-rgb), 0.03);">
+            <div class="welcome-card" style="padding:1rem; background:transparent; border:none;">
+                <p class="panel-subtitle">Ainda não há boletins finais publicados.</p>
+            </div>
+        </section>
+    <% } %>
+</section>

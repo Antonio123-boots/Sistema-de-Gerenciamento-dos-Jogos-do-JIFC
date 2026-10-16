@@ -95,8 +95,10 @@ async function capturarGrupos() {
   }));
 }
 
-async function capturarJogos() {
-  const jogosBrutos = await jogoService.getJogosPublicados({});
+async function capturarJogos(incluirNaoPublicados = false) {
+  const jogosBrutos = incluirNaoPublicados
+    ? await jogoService.getJogos()
+    : await jogoService.getJogosPublicados({});
   if (!Array.isArray(jogosBrutos) || !jogosBrutos.length) return [];
 
   const ids = jogosBrutos.map((j) => j.id);
@@ -133,7 +135,7 @@ async function capturarJogos() {
       horario: String(j.horario || '').trim(),
       local: String(j.local_jogo || '').trim(),
       status: String(j.status || '').trim(),
-      publicado: 1,
+      publicado: Number(j.publicado) === 1 ? 1 : 0,
       wo: Boolean(j.wo),
       numeroJogo: ex.numero_jogo || null,
       casaId: j.campus_1_id || null,
@@ -343,8 +345,9 @@ async function capturarBoletim(ano) {
   };
 }
 
-async function capturarEdicaoAtual(anoJifc) {
+async function capturarEdicaoAtual(anoJifc, opcoes = {}) {
   const ano = Number(anoJifc || new Date().getFullYear());
+  const incluirNaoPublicados = Boolean(opcoes && opcoes.incluirNaoPublicados);
   const statusJifc = await boletimService.obterStatusJifc();
   if (!statusJifc.encerrado) {
     throw new Error('Não é possível salvar a edição enquanto o JIFC não estiver encerrado.');
@@ -355,7 +358,7 @@ async function capturarEdicaoAtual(anoJifc) {
     capturarModalidades(),
     capturarChaves(),
     capturarGrupos(),
-    capturarJogos(),
+    capturarJogos(incluirNaoPublicados),
     capturarBoletim(ano)
   ]);
 

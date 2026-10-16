@@ -74,6 +74,8 @@ module.exports = {
   gerarBoletimFinal: boletimService.gerarBoletimFinal,
   listarBoletins: boletimService.listarBoletins,
   obterBoletimPorAno: boletimService.obterBoletimPorAno,
+  obterBoletimCompleto: boletimService.obterBoletimCompleto,
+  listarAnosComBoletim: boletimService.listarAnosComBoletim,
   montarResumoBoletim: boletimService.montarResumoBoletim,
 
   listarEdicoes: edicaoService.listarEdicoes,

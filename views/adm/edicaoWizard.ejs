@@ -24,127 +24,127 @@ var mainSteps=[
 ];
 %>
 <style>
-.wz-page{--acc:#ece42d;--acc-ink:#101124;--line:rgba(255,255,255,.1);--muted:rgba(255,255,255,.58);font-family:inherit;margin:0 0 40px;color:#fff}
+.wz-page{--acc:var(--accent);--acc-ink:var(--accent-ink);--line:rgba(var(--fg-rgb), .1);--muted:rgba(var(--fg-rgb), .58);font-family:inherit;margin:0 0 40px;color: var(--text)}
 .wz-page *,.wz-page *::before,.wz-page *::after{box-sizing:border-box}
-.wz-hero{position:relative;overflow:hidden;border-radius:18px;background:linear-gradient(135deg,#232451 0%,#101124 100%);border:1px solid rgba(255,255,255,.1);padding:26px 30px 24px;margin:0 0 24px}
-.wz-hero::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,#ece42d,#f7e85a)}
-.wz-hero::after{content:'';position:absolute;right:-40px;top:-40px;width:200px;height:200px;background:radial-gradient(circle,rgba(236,228,45,.16),transparent 70%);pointer-events:none}
-.wz-hero h1{margin:0 0 6px;font-size:1.35rem;font-weight:800;letter-spacing:-.3px;line-height:1.25;color:#fff}
+.wz-hero{position:relative;overflow:hidden;border-radius:18px;background:linear-gradient(135deg,var(--surface-2) 0%,var(--accent-ink) 100%);border:1px solid rgba(var(--fg-rgb), .1);padding:26px 30px 24px;margin:0 0 24px}
+.wz-hero::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,var(--accent),var(--accent-hover))}
+.wz-hero::after{content:'';position:absolute;right:-40px;top:-40px;width:200px;height:200px;background:radial-gradient(circle,rgba(var(--accent-rgb), .16),transparent 70%);pointer-events:none}
+.wz-hero h1{margin:0 0 6px;font-size:1.35rem;font-weight:800;letter-spacing:-.3px;line-height:1.25;color: var(--text)}
 .wz-hero p{margin:0;font-size:.8rem;color:var(--muted)}
 .wz-stepper{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 24px}
-.wz-step{display:inline-flex;align-items:center;gap:8px;padding:7px 14px 7px 8px;border-radius:999px;font-size:.76rem;font-weight:700;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid transparent;transition:all .22s;pointer-events:none}
-.wz-step>span:first-child{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.1);font-size:.68rem;color:inherit}
-.wz-step--active{background:var(--acc);color:var(--acc-ink);border-color:var(--acc);box-shadow:0 6px 18px rgba(236,228,45,.35)}
+.wz-step{display:inline-flex;align-items:center;gap:8px;padding:7px 14px 7px 8px;border-radius:999px;font-size:.76rem;font-weight:700;background:rgba(var(--fg-rgb), .06);color:var(--muted);border:1px solid transparent;transition:all .22s;pointer-events:none}
+.wz-step>span:first-child{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:rgba(var(--fg-rgb), .1);font-size:.68rem;color:inherit}
+.wz-step--active{background:var(--acc);color:var(--acc-ink);border-color:var(--acc);box-shadow:0 6px 18px rgba(var(--accent-rgb), .35)}
 .wz-step--active>span:first-child{background:rgba(16,17,36,.16);color:var(--acc-ink)}
-.wz-step--done{color:#f7f8ff;border-color:rgba(236,228,45,.4);background:rgba(236,228,45,.12)}
+.wz-step--done{color:varcolor: var(--text);border-color:rgba(var(--accent-rgb), .4);background:rgba(var(--accent-rgb), .12)}
 .wz-step--done>span:first-child{background:var(--acc);color:var(--acc-ink)}
-.wz-card{background:rgba(255,255,255,.045);border:1px solid var(--line);border-radius:18px;padding:26px 28px;box-shadow:0 16px 36px rgba(0,0,0,.18);margin:0 0 24px}
-.wz-card h2{margin:0 0 20px;font-size:1.04rem;font-weight:800;color:#fff;border-bottom:1px solid var(--line);padding-bottom:12px}
+.wz-card{background:rgba(var(--fg-rgb), .045);border:1px solid var(--line);border-radius:18px;padding:26px 28px;box-shadow:0 16px 36px rgba(0,0,0,.18);margin:0 0 24px}
+.wz-card h2{margin:0 0 20px;font-size:1.04rem;font-weight:800;color: var(--text);border-bottom:1px solid var(--line);padding-bottom:12px}
 .wz-alert{padding:12px 16px;border-radius:10px;font-size:.8rem;margin-bottom:10px;display:flex;align-items:flex-start;gap:8px;border:1px solid transparent}
 .wz-alert-err{background:rgba(255,75,75,.12);color:#ff9d9d;border-color:rgba(255,75,75,.3)}
 .wz-alert-ok{background:rgba(0,255,136,.1);color:#8fffc9;border-color:rgba(0,255,136,.3)}
 .wz-row{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:18px}
 .wz-field{display:flex;flex-direction:column;flex:1 1 220px;min-width:180px;gap:5px}
 .wz-field label{font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
-.wz-input,.wz-select{padding:10px 12px;border:1px solid rgba(255,255,255,.16);border-radius:10px;font-size:.85rem;background:rgba(10,11,28,.55);color:#eef0ff;transition:border-color .2s,box-shadow .2s;outline:none;width:100%}
+.wz-input,.wz-select{padding:10px 12px;border:1px solid rgba(var(--fg-rgb), .16);border-radius:10px;font-size:.85rem;background:var(--panel-soft);color:varcolor: var(--text);transition:border-color .2s,box-shadow .2s;outline:none;width:100%}
 .wz-select{appearance:none;background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23aab2c2' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:30px}
 .wz-select option{color:#1c1d3b;background:#fff}
-.wz-input:focus,.wz-select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(236,228,45,.18)}
-.wz-input[readonly]{background:rgba(255,255,255,.04);color:var(--muted)}
+.wz-input:focus,.wz-select:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(var(--accent-rgb), .18)}
+.wz-input[readonly]{background:rgba(var(--fg-rgb), .04);color:var(--muted)}
 .wz-sm{font-size:.75rem}
-.wz-nota{font-size:.78rem;color:#ffd08a;background:rgba(236,228,45,.1);border:1px solid rgba(236,228,45,.35);padding:9px 14px;border-radius:10px;margin:0 0 16px}
+.wz-nota{font-size:.78rem;color:#ffd08a;background:rgba(var(--accent-rgb), .1);border:1px solid rgba(var(--accent-rgb), .35);padding:9px 14px;border-radius:10px;margin:0 0 16px}
 .wz-btn{padding:9px 16px;border-radius:10px;border:1px solid transparent;font-weight:700;font-size:.8rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .18s;justify-content:center;line-height:1.2}
 .wz-btn:disabled{opacity:.55;pointer-events:none}
-.wz-btn-primary{background:linear-gradient(135deg,#f7e85a,#ece42d);color:var(--acc-ink)}
-.wz-btn-primary:hover{box-shadow:0 6px 16px rgba(236,228,45,.35);transform:translateY(-1px);filter:brightness(1.06)}
-.wz-btn-ghost{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.2);color:#fff}
-.wz-btn-ghost:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.3)}
-.wz-btn-gold{background:rgba(236,228,45,.08);border:1px solid rgba(236,228,45,.45);color:#ece42d}
-.wz-btn-gold:hover{background:rgba(236,228,45,.16);box-shadow:0 4px 14px rgba(236,228,45,.22)}
+.wz-btn-primary{background:linear-gradient(135deg,var(--accent-hover),var(--accent));color:var(--acc-ink)}
+.wz-btn-primary:hover{box-shadow:0 6px 16px rgba(var(--accent-rgb), .35);transform:translateY(-1px);filter:brightness(1.06)}
+.wz-btn-ghost{background:rgba(var(--fg-rgb), .05);border-color:rgba(var(--fg-rgb), .2);color: var(--text)}
+.wz-btn-ghost:hover{background:rgba(var(--fg-rgb), .1);border-color:rgba(var(--fg-rgb), .3)}
+.wz-btn-gold{background:rgba(var(--accent-rgb), .08);border:1px solid rgba(var(--accent-rgb), .45);color:var(--accent)}
+.wz-btn-gold:hover{background:rgba(var(--accent-rgb), .16);box-shadow:0 4px 14px rgba(var(--accent-rgb), .22)}
 .wz-btn-danger{background:rgba(255,75,75,.12);color:#ff8d8d;border-color:rgba(255,75,75,.3)}
 .wz-btn-danger:hover{background:rgba(255,75,75,.2)}
 .wz-btn-sm{padding:7px 12px;font-size:.74rem;border-radius:8px}
 .wz-pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px}
-.wz-pill{padding:5px 12px;border-radius:999px;font-size:.72rem;font-weight:700;background:rgba(255,255,255,.07);color:#e6e9f4;border:1px solid rgba(255,255,255,.12)}
-.wz-pill--gold{background:rgba(236,228,45,.12);color:#ece42d;border-color:rgba(236,228,45,.4)}
-.wz-logo{width:30px;height:30px;border-radius:50%;object-fit:cover;border:1px solid rgba(255,255,255,.18);background:#fff;flex:0 0 auto}
+.wz-pill{padding:5px 12px;border-radius:999px;font-size:.72rem;font-weight:700;background:rgba(var(--fg-rgb), .07);color:varcolor: var(--text);border:1px solid rgba(var(--fg-rgb), .12)}
+.wz-pill--gold{background:rgba(var(--accent-rgb), .12);color:var(--accent);border-color:rgba(var(--accent-rgb), .4)}
+.wz-logo{width:30px;height:30px;border-radius:50%;object-fit:cover;border:1px solid rgba(var(--fg-rgb), .18);background:#fff;flex:0 0 auto}
 .wz-checklist{display:grid;grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:9px;margin-bottom:14px}
 .wz-checklist--tools{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin:0 0 12px}
-.wz-check{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:11px;border:1px solid rgba(255,255,255,.1);cursor:pointer;transition:all .18s;background:rgba(255,255,255,.05)}
-.wz-check:hover{border-color:rgba(255,255,255,.22);background:rgba(255,255,255,.08)}
-.wz-check--on{border-color:var(--acc);background:rgba(236,228,45,.1)}
+.wz-check{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:11px;border:1px solid rgba(var(--fg-rgb), .1);cursor:pointer;transition:all .18s;background:rgba(var(--fg-rgb), .05)}
+.wz-check:hover{border-color:rgba(var(--fg-rgb), .22);background:rgba(var(--fg-rgb), .08)}
+.wz-check--on{border-color:var(--acc);background:rgba(var(--accent-rgb), .1)}
 .wz-check input{accent-color:var(--acc);flex:0 0 auto}
 .wz-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
-.wz-chip{padding:6px 13px;border-radius:999px;border:1px solid rgba(255,255,255,.2);background:transparent;font-size:.75rem;font-weight:600;cursor:pointer;transition:all .18s;color:#fff}
-.wz-chip:hover{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.06)}
+.wz-chip{padding:6px 13px;border-radius:999px;border:1px solid rgba(var(--fg-rgb), .2);background:transparent;font-size:.75rem;font-weight:600;cursor:pointer;transition:all .18s;color: var(--text)}
+.wz-chip:hover{border-color:rgba(var(--fg-rgb), .35);background:rgba(var(--fg-rgb), .06)}
 .wz-chip--sel{border-color:var(--acc);background:var(--acc);color:var(--acc-ink)}
 .wz-r{position:relative}
 .wz-r .wz-btn-remove{background:rgba(255,75,75,.12);border:1px solid rgba(255,75,75,.3);cursor:pointer;color:#ff8d8d;font-size:1rem;padding:4px 9px;border-radius:8px;flex:0 0 auto}
 .wz-r .wz-btn-remove:hover{background:rgba(255,75,75,.22)}
-.wz-mod-row{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:11px;background:rgba(10,11,28,.35);border:1px solid var(--line);margin-bottom:8px;flex-wrap:wrap}
+.wz-mod-row{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:11px;background:var(--panel-soft);border:1px solid var(--line);margin-bottom:8px;flex-wrap:wrap}
 .wz-mod-row .wz-field{flex:1}
-.wz-icone-preview{width:34px;height:34px;border-radius:10px;object-fit:cover;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);flex:0 0 auto}
+.wz-icone-preview{width:34px;height:34px;border-radius:10px;object-fit:cover;background:rgba(var(--fg-rgb), .08);border:1px solid rgba(var(--fg-rgb), .14);flex:0 0 auto}
 .wz-upload-btn{cursor:pointer}
 .wz-mod-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:24px;align-items:center}
-.wz-mod-tab{padding:9px 18px;border-radius:999px;font-size:.76rem;font-weight:700;background:rgba(255,255,255,.06);color:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.1);pointer-events:none}
+.wz-mod-tab{padding:9px 18px;border-radius:999px;font-size:.76rem;font-weight:700;background:rgba(var(--fg-rgb), .06);color:rgba(var(--fg-rgb), .55);border:1px solid rgba(var(--fg-rgb), .1);pointer-events:none}
 .wz-mod-tab--active{background:var(--acc);color:var(--acc-ink);border-color:var(--acc)}
-.wz-mod-tab--done{background:rgba(236,228,45,.12);color:#ece42d;border-color:rgba(236,228,45,.4)}
+.wz-mod-tab--done{background:rgba(var(--accent-rgb), .12);color:var(--accent);border-color:rgba(var(--accent-rgb), .4)}
 .wz-mod-sel{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
 .wz-chave-grid{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 14px}
-.wz-chave-card{flex:1 1 150px;max-width:220px;padding:14px;border:1px solid rgba(255,255,255,.14);border-radius:14px;background:rgba(255,255,255,.05);cursor:pointer;transition:all .18s;text-align:center}
-.wz-chave-card:hover{border-color:var(--acc);background:rgba(236,228,45,.1);transform:translateY(-2px)}
+.wz-chave-card{flex:1 1 150px;max-width:220px;padding:14px;border:1px solid rgba(var(--fg-rgb), .14);border-radius:14px;background:rgba(var(--fg-rgb), .05);cursor:pointer;transition:all .18s;text-align:center}
+.wz-chave-card:hover{border-color:var(--acc);background:rgba(var(--accent-rgb), .1);transform:translateY(-2px)}
 .wz-chave-card__letra{font-size:1.35rem;font-weight:800;color:var(--acc)}
 .wz-chave-card__qtd{font-size:.72rem;color:var(--muted)}
-.wz-chave-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.08);font-size:.7rem;margin:2px}
+.wz-chave-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;background:rgba(var(--fg-rgb), .08);font-size:.7rem;margin:2px}
 .wz-chave-chip img{width:16px;height:16px;border-radius:50%;object-fit:cover;background:#fff}
-.wz-cfr{display:flex;align-items:flex-end;gap:8px;padding:10px 12px;border-radius:11px;background:rgba(10,11,28,.35);border:1px solid var(--line);margin-bottom:8px;flex-wrap:wrap}
+.wz-cfr{display:flex;align-items:flex-end;gap:8px;padding:10px 12px;border-radius:11px;background:var(--panel-soft);border:1px solid var(--line);margin-bottom:8px;flex-wrap:wrap}
 .wz-cfr .wz-input,.wz-cfr .wz-select{padding:8px 10px;font-size:.78rem}
 .wz-cfr label{font-size:.64rem;color:var(--muted)}
-.wz-res-grp{border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:24px;background:rgba(255,255,255,.03)}
-.wz-res-grp__head{background:#232451;padding:14px 18px;font-weight:700;font-size:.85rem;color:#fff;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;border-bottom:1px solid rgba(236,228,45,.3)}
+.wz-res-grp{border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:24px;background:rgba(var(--fg-rgb), .03)}
+.wz-res-grp__head{background:var(--surface-2);padding:14px 18px;font-weight:700;font-size:.85rem;color: var(--text);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;border-bottom:1px solid rgba(var(--accent-rgb), .3)}
 .wz-table{width:100%;border-collapse:collapse;font-size:.78rem}
-.wz-table thead th{background:#1f2144;color:#ece42d;padding:10px 12px;text-align:left;white-space:nowrap;border-bottom:1px solid rgba(236,228,45,.3)}
-.wz-table tbody td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle;color:#eef0ff}
-.wz-table tbody tr:nth-child(even){background:rgba(255,255,255,.025)}
-.wz-table tbody tr:hover{background:rgba(236,228,45,.05)}
+.wz-table thead th{background:var(--surface-2);color:var(--accent);padding:10px 12px;text-align:left;white-space:nowrap;border-bottom:1px solid rgba(var(--accent-rgb), .3)}
+.wz-table tbody td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle;color:varcolor: var(--text)}
+.wz-table tbody tr:nth-child(even){background:rgba(var(--fg-rgb), .025)}
+.wz-table tbody tr:hover{background:rgba(var(--accent-rgb), .05)}
 .wz-prize{display:flex;flex-wrap:wrap;gap:14px;margin:18px 0 8px}
-.wz-prize__item{padding:14px 18px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);text-align:center;flex:1 1 160px}
+.wz-prize__item{padding:14px 18px;border-radius:12px;background:rgba(var(--fg-rgb), .05);border:1px solid rgba(var(--fg-rgb), .12);text-align:center;flex:1 1 160px}
 .wz-prize__pos{font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:4px}
-.wz-prize__campus{font-size:.95rem;font-weight:700;color:#fff}
+.wz-prize__campus{font-size:.95rem;font-weight:700;color: var(--text)}
 .wz-footer{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-top:24px}
-.wz-empty{padding:18px;text-align:center;color:var(--muted);font-size:.82rem;border:1px dashed rgba(255,255,255,.28);border-radius:12px;margin-bottom:18px}
+.wz-empty{padding:18px;text-align:center;color:var(--muted);font-size:.82rem;border:1px dashed rgba(var(--fg-rgb), .28);border-radius:12px;margin-bottom:18px}
 .wz-modal-backdrop{position:fixed;inset:0;background:rgba(8,9,20,.72);backdrop-filter:blur(4px);z-index:1200;display:flex;align-items:center;justify-content:center;padding:16px}
-.wz-modal{background:#232451;border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:22px;width:min(480px,94vw);max-height:82vh;overflow:auto;box-shadow:0 18px 60px rgba(0,0,0,.5)}
-.wz-modal h3{margin:0 0 14px;font-size:1.02rem;color:#fff}
-.wz-modal-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid rgba(255,255,255,.12);border-radius:10px;margin-bottom:7px;cursor:pointer;background:rgba(255,255,255,.05);transition:all .18s}
-.wz-modal-item:hover{background:rgba(255,255,255,.09)}
-.wz-modal-item.sel{border-color:var(--acc);background:rgba(236,228,45,.13)}
+.wz-modal{background:var(--surface-2);border:1px solid rgba(var(--fg-rgb), .14);border-radius:16px;padding:22px;width:min(480px,94vw);max-height:82vh;overflow:auto;box-shadow:0 18px 60px rgba(0,0,0,.5)}
+.wz-modal h3{margin:0 0 14px;font-size:1.02rem;color: var(--text)}
+.wz-modal-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid rgba(var(--fg-rgb), .12);border-radius:10px;margin-bottom:7px;cursor:pointer;background:rgba(var(--fg-rgb), .05);transition:all .18s}
+.wz-modal-item:hover{background:rgba(var(--fg-rgb), .09)}
+.wz-modal-item.sel{border-color:var(--acc);background:rgba(var(--accent-rgb), .13)}
 .wz-modal-item input{accent-color:var(--acc);flex:0 0 auto}
 summary{cursor:pointer;font-size:.78rem;font-weight:700;color:var(--muted)}
 /* ===== Revisão ===== */
 .wz-card--rev{padding:20px 22px}
 .wz-rev-sub{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--line)}
-.wz-rev-sub h3{margin:0;font-size:1.02rem;font-weight:800;color:#fff}
+.wz-rev-sub h3{margin:0;font-size:1.02rem;font-weight:800;color: var(--text)}
 .wz-rev-sub__gen{color:var(--muted);font-weight:600}
 .wz-rev-tag{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;font-size:.68rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
 .wz-rev-tag--done{background:rgba(0,255,136,.12);color:#8fffc9;border:1px solid rgba(0,255,136,.35)}
 .wz-rev-tag--pend{background:rgba(255,190,80,.12);color:#ffcf85;border:1px solid rgba(255,190,80,.35)}
 .wz-rev-podium{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0 6px}
-.wz-podium-item{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.04)}
-.wz-podium-item--1{border-color:rgba(236,228,45,.55);background:rgba(236,228,45,.1)}
+.wz-podium-item{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:12px;border:1px solid var(--line);background:rgba(var(--fg-rgb), .04)}
+.wz-podium-item--1{border-color:rgba(var(--accent-rgb), .55);background:rgba(var(--accent-rgb), .1)}
 .wz-podium-item--2{border-color:rgba(205,215,235,.4);background:rgba(205,215,235,.07)}
 .wz-podium-item--3{border-color:rgba(226,160,94,.45);background:rgba(226,160,94,.09)}
-.wz-podium__medal{width:30px;height:30px;flex:0 0 auto;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.82rem;color:#101124}
-.wz-podium-item--1 .wz-podium__medal{background:linear-gradient(135deg,#f7e85a,#e6d71f)}
-.wz-podium-item--2 .wz-podium__medal{background:linear-gradient(135deg,#e8edf6,#b3bdd2);color:#2a2c44}
+.wz-podium__medal{width:30px;height:30px;flex:0 0 auto;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.82rem;color:var(--accent-ink)}
+.wz-podium-item--1 .wz-podium__medal{background:linear-gradient(135deg,var(--accent-hover),var(--accent-hover))}
+.wz-podium-item--2 .wz-podium__medal{background:linear-gradient(135deg,varcolor: var(--text),#b3bdd2);color:var(--surface-2)}
 .wz-podium-item--3 .wz-podium__medal{background:linear-gradient(135deg,#e8a860,#ce7f2e)}
 .wz-podium__labels{display:flex;flex-direction:column;min-width:0}
 .wz-podium__pos{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
-.wz-podium__name{font-size:.92rem;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wz-podium__name{font-size:.92rem;font-weight:700;color: var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .wz-rev-section__title{display:flex;align-items:center;gap:8px;font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--acc);margin:18px 0 8px}
 .wz-rev-section__title::before{content:'';width:18px;height:3px;border-radius:99px;background:var(--acc);flex:0 0 auto}
 .wz-rev-chave .wz-table tbody td:first-child{color:var(--acc);font-weight:700}
-.wz-table tbody tr:hover{background:rgba(236,228,45,.045)}
+.wz-table tbody tr:hover{background:rgba(var(--accent-rgb), .045)}
 .wz-rev-jogos .wz-res-grp{margin-bottom:14px}
 @media(max-width:640px){.wz-hero{padding:20px 18px}.wz-hero h1{font-size:1.12rem}.wz-card{padding:20px 18px}.wz-cfr{flex-direction:column;align-items:stretch}.wz-cfr .wz-field{flex:1 1 100%}}
 </style>
@@ -193,7 +193,7 @@ summary{cursor:pointer;font-size:.78rem;font-weight:700;color:var(--muted)}
         <input class="wz-input" type="date" name="dataFim" required value="<%= dados.dataFim||'' %>">
       </div>
     </div>
-    <p class="wz-sm" style="color:rgba(255,255,255,.55);margin:-6px 0 0">O período define os dias disponíveis nos confrontos.</p>
+    <p class="wz-sm" style="color:rgba(var(--fg-rgb), .55);margin:-6px 0 0">O período define os dias disponíveis nos confrontos.</p>
     <div class="wz-footer" style="margin-top:30px">
       <button class="wz-btn wz-btn-danger wz-btn-sm" type="submit" form="wzFormCancelar">Cancelar</button>
       <button class="wz-btn wz-btn-gold" type="submit" form="wzFormPreencher">Preencher com exemplo</button>
@@ -310,7 +310,7 @@ summary{cursor:pointer;font-size:.78rem;font-weight:700;color:var(--muted)}
     <form action="/admin/edicoes/nova/modalidades/ir" method="POST" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <div class="wz-field" style="flex:1 1 320px;min-width:240px">
-        <label style="font-size:.72rem;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase">Modalidade ativa</label>
+        <label style="font-size:.72rem;font-weight:700;color:rgba(var(--fg-rgb), .7);text-transform:uppercase">Modalidade ativa</label>
         <select class="wz-select" name="modalidadeFoco" onchange="this.form.submit()">
           <% _lc(modalidades).forEach(function(m,i){ %>
             <option value="<%= i %>" <%= i===modFoco?'selected':'' %>><%= m.nome %><%= m.finalizada?' (concluída)':'' %></option>
@@ -329,9 +329,9 @@ summary{cursor:pointer;font-size:.78rem;font-weight:700;color:var(--muted)}
     <% if(ehTenis){ %>
       <form action="/admin/edicoes/nova/modalidade/<%= modFoco %>/sub-etapa" method="POST" class="wz-mod-subtap" style="display:flex;gap:6px;align-items:center;margin-left:auto;flex-wrap:wrap">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        <span class="wz-sm" style="color:rgba(255,255,255,.6);font-weight:700;text-transform:uppercase;font-size:.68rem">Etapa:</span>
-        <button type="submit" name="subEtapa" value="individual" class="wz-pill <%= (mod.subEtapa||'individual')==='individual'?'wz-pill--gold':'' %>" style="border:1px solid rgba(255,255,255,.18);cursor:pointer;background:transparent;color:inherit">Individual <%= (typeof subEtapaTenis!=='undefined'&&subEtapaTenis.individualConcluida)?'✓':'' %></button>
-        <button type="submit" name="subEtapa" value="dupla" class="wz-pill <%= mod.subEtapa==='dupla'?'wz-pill--gold':'' %>" style="border:1px solid rgba(255,255,255,.18);cursor:pointer;background:transparent;color:inherit">Em dupla <%= (typeof subEtapaTenis!=='undefined'&&subEtapaTenis.duplaConcluida)?'✓':'' %></button>
+        <span class="wz-sm" style="color:rgba(var(--fg-rgb), .6);font-weight:700;text-transform:uppercase;font-size:.68rem">Etapa:</span>
+        <button type="submit" name="subEtapa" value="individual" class="wz-pill <%= (mod.subEtapa||'individual')==='individual'?'wz-pill--gold':'' %>" style="border:1px solid rgba(var(--fg-rgb), .18);cursor:pointer;background:transparent;color:inherit">Individual <%= (typeof subEtapaTenis!=='undefined'&&subEtapaTenis.individualConcluida)?'✓':'' %></button>
+        <button type="submit" name="subEtapa" value="dupla" class="wz-pill <%= mod.subEtapa==='dupla'?'wz-pill--gold':'' %>" style="border:1px solid rgba(var(--fg-rgb), .18);cursor:pointer;background:transparent;color:inherit">Em dupla <%= (typeof subEtapaTenis!=='undefined'&&subEtapaTenis.duplaConcluida)?'✓':'' %></button>
       </form>
     <% } %>
     <% if(mod.finalizada){ %>
@@ -358,7 +358,7 @@ summary{cursor:pointer;font-size:.78rem;font-weight:700;color:var(--muted)}
       <% if(ehIndividual){ %>
         <% if(/xadrez/i.test(mod.nome||'')){ %>
           <div class="wz-res-grp" style="margin-top:18px">
-            <div class="wz-res-grp__head"><span>Atletas inscritos e resultados</span><span style="font-size:.7rem;color:rgba(255,255,255,.65)">Pontuação calculada automaticamente</span></div>
+            <div class="wz-res-grp__head"><span>Atletas inscritos e resultados</span><span style="font-size:.7rem;color:rgba(var(--fg-rgb), .65)">Pontuação calculada automaticamente</span></div>
             <div id="wzAtletasIndividuais" style="padding:14px">
               <% var atletasWizard=_lc(mod.atletas); if(!atletasWizard.length){ atletasWizard=[{id:1,nome:'',campusId:''}]; } %>
               <% atletasWizard.forEach(function(atleta,ai){ %>
@@ -379,7 +379,7 @@ summary{cursor:pointer;font-size:.78rem;font-weight:700;color:var(--muted)}
 
         <% if(/atletismo/i.test(mod.nome||'')){ %>
           <div class="wz-res-grp" style="margin-top:18px">
-            <div class="wz-res-grp__head"><span>1 · Provas de atletismo da edição</span><span style="font-size:.7rem;color:rgba(255,255,255,.65)">Confirme quais provas foram disputadas</span></div>
+            <div class="wz-res-grp__head"><span>1 · Provas de atletismo da edição</span><span style="font-size:.7rem;color:rgba(var(--fg-rgb), .65)">Confirme quais provas foram disputadas</span></div>
             <div class="wz-checklist--tools" style="padding:14px 14px 0">
               <button type="button" class="wz-btn wz-btn-ghost wz-btn-sm" onclick="wzToggleProvas(this)">Selecionar todos</button>
             </div>
@@ -388,7 +388,7 @@ summary{cursor:pointer;font-size:.78rem;font-weight:700;color:var(--muted)}
                 <label class="wz-check <%= prova.selecionada?'wz-check--on':'' %>">
                   <input type="checkbox" name="prova_selecionada" value="<%= prova.id %>" <%= prova.selecionada?'checked':'' %>>
                   <span><%= prova.nome %></span>
-                  <small style="margin-left:auto;color:rgba(255,255,255,.55)"><%= prova.tipo==='tempo'?'Tempo':'Distância / altura' %><%= prova.final?' · final automática (8)':'' %></small>
+                  <small style="margin-left:auto;color:rgba(var(--fg-rgb), .55)"><%= prova.tipo==='tempo'?'Tempo':'Distância / altura' %><%= prova.final?' · final automática (8)':'' %></small>
                 </label>
               <% }) %>
             </div>
@@ -396,13 +396,13 @@ summary{cursor:pointer;font-size:.78rem;font-weight:700;color:var(--muted)}
 
           <% if(_lc(mod.provas).some(function(p){return p.selecionada;})){ %>
           <div class="wz-res-grp" style="margin-top:18px">
-            <div class="wz-res-grp__head"><span>2 · Atletas e resultados por prova</span><span style="font-size:.7rem;color:rgba(255,255,255,.65)">Em cada prova informe nome e campus do atleta e o resultado — tempo nas corridas, distância nos saltos e lançamentos</span></div>
+            <div class="wz-res-grp__head"><span>2 · Atletas e resultados por prova</span><span style="font-size:.7rem;color:rgba(var(--fg-rgb), .65)">Em cada prova informe nome e campus do atleta e o resultado — tempo nas corridas, distância nos saltos e lançamentos</span></div>
             <div style="padding-top:14px">
               <% _lc(mod.provas).forEach(function(prova,pi){ if(!prova.selecionada) return; var resultadosProva=_lc(prova.resultados); var temBt=prova.tipo==='tempo'; %>
                 <div class="wz-res-grp" style="margin:0 14px 14px" data-prova-block="<%= pi %>">
                   <div class="wz-res-grp__head">
                     <span><%= prova.nome %></span>
-                    <span style="font-size:.7rem;color:rgba(255,255,255,.65)"><%= temBt?'Tempo (corrida)':'Distância / altura' %><%= prova.final?' · final automática com 8 (4 por bateria)':'' %></span>
+                    <span style="font-size:.7rem;color:rgba(var(--fg-rgb), .65)"><%= temBt?'Tempo (corrida)':'Distância / altura' %><%= prova.final?' · final automática com 8 (4 por bateria)':'' %></span>
                   </div>
                   <div style="overflow-x:auto">
                     <table class="wz-table">
@@ -437,10 +437,10 @@ summary{cursor:pointer;font-size:.78rem;font-weight:700;color:var(--muted)}
                   </div>
                   <div style="padding:10px 14px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
                     <button type="button" class="wz-btn wz-btn-ghost wz-btn-sm" onclick="wzAddAtletaProva(<%= pi %>)">+ Adicionar atleta</button>
-                    <span class="wz-sm" style="color:rgba(255,255,255,.5)">Colocação e pontuação (13 · 8 · 6 · 5 · 4 · 3 · 2 · 1) calculadas automaticamente.</span>
+                    <span class="wz-sm" style="color:rgba(var(--fg-rgb), .5)">Colocação e pontuação (13 · 8 · 6 · 5 · 4 · 3 · 2 · 1) calculadas automaticamente.</span>
                   </div>
                   <% if(prova.final){ %>
-                    <div style="padding:0 14px 10px;font-weight:700;color:#ece42d">Final automática — 8 vagas (4 por bateria)</div>
+                    <div style="padding:0 14px 10px;font-weight:700;color:var(--accent)">Final automática — 8 vagas (4 por bateria)</div>
                     <div style="overflow-x:auto;padding:0 14px 14px">
                       <table class="wz-table">
                         <thead><tr><th>Atleta</th><th>Campus</th><th>Tempo da final</th><th>Col.</th><th>Pts</th></tr></thead>
@@ -462,7 +462,7 @@ summary{cursor:pointer;font-size:.78rem;font-weight:700;color:var(--muted)}
           </div>
 
           <div class="wz-res-grp" style="margin-top:18px">
-            <div class="wz-res-grp__head"><span>Classificação geral do atletismo</span><span style="font-size:.7rem;color:rgba(255,255,255,.65)">Atualizada automaticamente pelos resultados</span></div>
+            <div class="wz-res-grp__head"><span>Classificação geral do atletismo</span><span style="font-size:.7rem;color:rgba(var(--fg-rgb), .65)">Atualizada automaticamente pelos resultados</span></div>
             <% if(_lc(mod.tabelaAtletismo).length){ %>
               <div style="overflow-x:auto"><table class="wz-table"><thead><tr><th>#</th><th>Campus</th><th>Provas pontuadas</th><th>Pts</th></tr></thead><tbody>
                 <% _lc(mod.tabelaAtletismo).forEach(function(linha){ %><tr><td><%= linha.posicao %></td><td><%= linha.campus||'Campus' %></td><td><%= linha.provas %></td><td><strong><%= linha.pontos %></strong></td></tr><% }) %>
@@ -501,7 +501,7 @@ summary{cursor:pointer;font-size:.78rem;font-weight:700;color:var(--muted)}
       </div>
 
       <div class="wz-chave-grid" id="wzChaveGrid"></div>
-      <p class="wz-sm" id="wzChaveStatus" style="color:rgba(255,255,255,.6);margin:0 0 14px"></p>
+      <p class="wz-sm" id="wzChaveStatus" style="color:rgba(var(--fg-rgb), .6);margin:0 0 14px"></p>
       <div id="wzGrupoInputs" style="display:none"></div>
 
       <div class="wz-modal-backdrop" id="wzChaveModal" style="display:none">
@@ -605,7 +605,7 @@ summary{cursor:pointer;font-size:.78rem;font-weight:700;color:var(--muted)}
                     <% var alvoSet=ehTenis?11:21; %>
                     <% for(var si=0;si<3;si++){ var sa=(j.sets&&j.sets[si])?j.sets[si].pontosA:''; var sb=(j.sets&&j.sets[si])?j.sets[si].pontosB:''; %>
                       <span style="display:inline-flex;flex-direction:column;align-items:center;margin:0 2px">
-                        <span style="font-size:.55rem;color:rgba(255,255,255,.5);line-height:1">Set <%= si+1 %></span>
+                        <span style="font-size:.55rem;color:rgba(var(--fg-rgb), .5);line-height:1">Set <%= si+1 %></span>
                         <span style="display:inline-flex;gap:1px;margin-top:1px">
                           <input class="wz-input" type="number" name="jogo_<%= j.id %>_setA" min="0" max="99" value="<%= sa %>" style="width:34px;text-align:center;font-size:.7rem" placeholder="<%= alvoSet %>">
                           <input class="wz-input" type="number" name="jogo_<%= j.id %>_setB" min="0" max="99" value="<%= sb %>" style="width:34px;text-align:center;font-size:.7rem" placeholder="<%= alvoSet %>">
@@ -674,7 +674,7 @@ summary{cursor:pointer;font-size:.78rem;font-weight:700;color:var(--muted)}
 
       <% if(mod.campeao){ %>
         <div class="wz-prize">
-          <div class="wz-prize__item" style="border-color:rgba(236,228,45,.5);background:rgba(236,228,45,.1)"><div class="wz-prize__pos">Campeã</div><div class="wz-prize__campus"><%= mod.campeao %></div></div>
+          <div class="wz-prize__item" style="border-color:rgba(var(--accent-rgb), .5);background:rgba(var(--accent-rgb), .1)"><div class="wz-prize__pos">Campeã</div><div class="wz-prize__campus"><%= mod.campeao %></div></div>
           <% if(mod.vice){ %><div class="wz-prize__item"><div class="wz-prize__pos">Vice</div><div class="wz-prize__campus"><%= mod.vice %></div></div><% } %>
           <% if(mod.terceiro){ %><div class="wz-prize__item"><div class="wz-prize__pos">Terceiro</div><div class="wz-prize__campus"><%= mod.terceiro %></div></div><% } %>
         </div>
@@ -741,18 +741,18 @@ summary{cursor:pointer;font-size:.78rem;font-weight:700;color:var(--muted)}
                   <td><select class="wz-select" name="jogo_<%= jj.id %>_data" style="min-width:110px"><%- _dataOpts(jj.data) %></select></td>
                   <td><input class="wz-input" type="time" name="jogo_<%= jj.id %>_horario" value="<%= jj.horario||'' %>" style="min-width:80px"></td>
                   <td><input class="wz-input" name="jogo_<%= jj.id %>_local" value="<%= jj.local||'' %>" style="min-width:90px"></td>
-                  <td style="font-weight:600"><%= jj.participanteAId?elimCtx.nomeElim(jj.participanteAId):(jj.origemCasa?'<span style=color:rgba(255,255,255,.45)>'+casaId+'</span>':'—') %></td>
+                  <td style="font-weight:600"><%= jj.participanteAId?elimCtx.nomeElim(jj.participanteAId):(jj.origemCasa?'<span style=color:rgba(var(--fg-rgb), .45)>'+casaId+'</span>':'—') %></td>
                   <td style="white-space:nowrap">
                     <input class="wz-input" type="number" name="jogo_<%= jj.id %>_placarA" min="0" value="<%= jj.placarA!=null?jj.placarA:'' %>" style="width:52px;text-align:center" <%= jj.participanteAId?'':'disabled' %>>
                     ×
                     <input class="wz-input" type="number" name="jogo_<%= jj.id %>_placarB" min="0" value="<%= jj.placarB!=null?jj.placarB:'' %>" style="width:52px;text-align:center" <%= jj.participanteBId?'':'disabled' %>>
                   </td>
-                  <td style="font-weight:600"><%= jj.participanteBId?elimCtx.nomeElim(jj.participanteBId):(jj.origemFora?'<span style=color:rgba(255,255,255,.45)>'+foraId+'</span>':'—') %></td>
+                  <td style="font-weight:600"><%= jj.participanteBId?elimCtx.nomeElim(jj.participanteBId):(jj.origemFora?'<span style=color:rgba(var(--fg-rgb), .45)>'+foraId+'</span>':'—') %></td>
                   <% if(elimTemSets){ %>
                   <td style="white-space:nowrap">
                     <% for(var si=0;si<3;si++){ var sa=(jj.sets&&jj.sets[si])?jj.sets[si].pontosA:''; var sb=(jj.sets&&jj.sets[si])?jj.sets[si].pontosB:''; %>
                       <span style="display:inline-flex;flex-direction:column;align-items:center;margin:0 2px">
-                        <span style="font-size:.55rem;color:rgba(255,255,255,.5);line-height:1">Set <%= si+1 %></span>
+                        <span style="font-size:.55rem;color:rgba(var(--fg-rgb), .5);line-height:1">Set <%= si+1 %></span>
                         <span style="display:inline-flex;gap:1px;margin-top:1px">
                           <input class="wz-input" type="number" name="jogo_<%= jj.id %>_setA" min="0" max="99" value="<%= sa %>" style="width:34px;text-align:center;font-size:.7rem" placeholder="<%= alvoElim %>" <%= jj.participanteAId?'':'disabled' %>>
                           <input class="wz-input" type="number" name="jogo_<%= jj.id %>_setB" min="0" max="99" value="<%= sb %>" style="width:34px;text-align:center;font-size:.7rem" placeholder="<%= alvoElim %>" <%= jj.participanteBId?'':'disabled' %>>
@@ -780,18 +780,18 @@ summary{cursor:pointer;font-size:.78rem;font-weight:700;color:var(--muted)}
             <thead><tr><th>Casa</th><th>Placar</th><th>Fora</th><% if(elimTemSets){ %><th>Sets</th><% } %><th>Vencedor</th><th>St.</th></tr></thead>
             <tbody>
               <tr>
-                <td style="font-weight:600"><%= jt.participanteAId?elimCtx.nomeElim(jt.participanteAId):'<span style=color:rgba(255,255,255,.45)>'+casaIdT+'</span>' %></td>
+                <td style="font-weight:600"><%= jt.participanteAId?elimCtx.nomeElim(jt.participanteAId):'<span style=color:rgba(var(--fg-rgb), .45)>'+casaIdT+'</span>' %></td>
                 <td style="white-space:nowrap">
                   <input class="wz-input" type="number" name="jogo_<%= jt.id %>_placarA" min="0" value="<%= jt.placarA!=null?jt.placarA:'' %>" style="width:52px;text-align:center" <%= jt.participanteAId?'':'disabled' %>>
                   ×
                   <input class="wz-input" type="number" name="jogo_<%= jt.id %>_placarB" min="0" value="<%= jt.placarB!=null?jt.placarB:'' %>" style="width:52px;text-align:center" <%= jt.participanteBId?'':'disabled' %>>
                 </td>
-                <td style="font-weight:600"><%= jt.participanteBId?elimCtx.nomeElim(jt.participanteBId):'<span style=color:rgba(255,255,255,.45)>'+foraIdT+'</span>' %></td>
+                <td style="font-weight:600"><%= jt.participanteBId?elimCtx.nomeElim(jt.participanteBId):'<span style=color:rgba(var(--fg-rgb), .45)>'+foraIdT+'</span>' %></td>
                 <% if(elimTemSets){ %>
                 <td style="white-space:nowrap">
                   <% for(var si=0;si<3;si++){ var sa=(jt.sets&&jt.sets[si])?jt.sets[si].pontosA:''; var sb=(jt.sets&&jt.sets[si])?jt.sets[si].pontosB:''; %>
                     <span style="display:inline-flex;flex-direction:column;align-items:center;margin:0 2px">
-                      <span style="font-size:.55rem;color:rgba(255,255,255,.5);line-height:1">Set <%= si+1 %></span>
+                      <span style="font-size:.55rem;color:rgba(var(--fg-rgb), .5);line-height:1">Set <%= si+1 %></span>
                       <span style="display:inline-flex;gap:1px;margin-top:1px">
                         <input class="wz-input" type="number" name="jogo_<%= jt.id %>_setA" min="0" max="99" value="<%= sa %>" style="width:34px;text-align:center;font-size:.7rem" placeholder="<%= alvoElim %>" <%= jt.participanteAId?'':'disabled' %>>
                         <input class="wz-input" type="number" name="jogo_<%= jt.id %>_setB" min="0" max="99" value="<%= sb %>" style="width:34px;text-align:center;font-size:.7rem" placeholder="<%= alvoElim %>" <%= jt.participanteBId?'':'disabled' %>>
@@ -812,7 +812,7 @@ summary{cursor:pointer;font-size:.78rem;font-weight:700;color:var(--muted)}
 
         <div class="wz-pills" style="margin-top:22px"><span class="wz-pill wz-pill--gold">Pódio</span></div>
         <div class="wz-prize" style="margin-top:8px;margin-bottom:22px">
-          <div class="wz-prize__item" style="border-color:rgba(236,228,45,.5);background:rgba(236,228,45,.1)"><div class="wz-prize__pos">Campeã</div><div class="wz-prize__campus"><%= elimCtx.elimPodio.campeao?elimCtx.nomeElim(elimCtx.elimPodio.campeao):'—' %></div></div>
+          <div class="wz-prize__item" style="border-color:rgba(var(--accent-rgb), .5);background:rgba(var(--accent-rgb), .1)"><div class="wz-prize__pos">Campeã</div><div class="wz-prize__campus"><%= elimCtx.elimPodio.campeao?elimCtx.nomeElim(elimCtx.elimPodio.campeao):'—' %></div></div>
           <div class="wz-prize__item"><div class="wz-prize__pos">Vice</div><div class="wz-prize__campus"><%= elimCtx.elimPodio.vice?elimCtx.nomeElim(elimCtx.elimPodio.vice):'—' %></div></div>
           <div class="wz-prize__item"><div class="wz-prize__pos">Terceiro</div><div class="wz-prize__campus"><%= elimCtx.elimPodio.terceiro?elimCtx.nomeElim(elimCtx.elimPodio.terceiro):'—' %></div></div>
         </div>
@@ -846,7 +846,7 @@ summary{cursor:pointer;font-size:.78rem;font-weight:700;color:var(--muted)}
 
   <% if((df.modalidades||[]).length){ %>
     <div class="wz-field" style="flex:0 1 320px;min-width:240px;margin-bottom:12px">
-      <label style="font-size:.72rem;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase">Filtrar modalidade</label>
+      <label style="font-size:.72rem;font-weight:700;color:rgba(var(--fg-rgb), .7);text-transform:uppercase">Filtrar modalidade</label>
       <select class="wz-select" id="wzRevFiltro"><option value="">Todas</option><% (dados.modalidades||[]).forEach(function(m,i){ %><option value="<%= i %>"><%= m.nome %></option><% }) %></select>
     </div>
     <div style="overflow-x:auto;margin-bottom:22px">

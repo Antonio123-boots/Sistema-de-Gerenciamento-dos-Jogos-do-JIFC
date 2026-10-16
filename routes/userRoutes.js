@@ -971,7 +971,14 @@ router.get('/', async function(req, res, next) {
         const { obterRegras: obterRegrasClassificacao } = require('../utils/sportClassificationRules');
         const nomeModalidadeFiltro = modalidadeSelecionadaValida || modalidadeSelecionada || '';
         const regrasClassificacao = obterRegrasClassificacao(nomeModalidadeFiltro);
-        
+
+        let boletimDisponivel = null;
+        try {
+            boletimDisponivel = await adminModel.obterBoletimPorAno(anoJifcAtual);
+        } catch (erroBoletimHome) {
+            console.error('Erro ao verificar boletim final disponível (home):', erroBoletimHome);
+        }
+
         res.render('user', {
             title: 'JIFC - Início',
             usuarioLogado: req.user,
@@ -996,7 +1003,9 @@ router.get('/', async function(req, res, next) {
             esporteAtivo: Boolean(modalidadeSelecionadaValida || modalidadeSelecionada),
             subCategoriaAtiva: subCategoriaSelecionada,
             mostrarSubFiltroTenis: ehTenisMesaAtivo,
-            regrasClassificacao
+            regrasClassificacao,
+            boletimDisponivel,
+            anoJifcAtual
         });
     } catch (error) {
         console.error('Erro ao carregar home pública:', error);
@@ -1149,27 +1158,50 @@ router.get('/perfil', async function(req, res, next) {
     });
     const diaJogosSelecionado = diasJogosCampus.includes(req.query.dia) ? req.query.dia : (diasJogosCampus[0] || '');
 
+    let statusJifcEncerrado = false;
+    let edicaoAnoAtualJaSalva = false;
+    const anoJifcAtual = Number(adminModel.getAnoJifc() || 0);
+    if (req.user.tipo === 'admin') {
+      try {
+        const statusJifc = await adminModel.obterStatusJifc();
+        statusJifcEncerrado = Boolean(statusJifc && statusJifc.encerrado);
+        if (statusJifcEncerrado) {
+          try {
+            const edicaoDoAno = await adminModel.obterEdicaoPorAno(anoJifcAtual);
+            edicaoAnoAtualJaSalva = Boolean(edicaoDoAno);
+          } catch (erroEdicao) {
+            console.error('Erro ao verificar edição do ano atual (perfil):', erroEdicao);
+          }
+        }
+      } catch (erroStatus) {
+        console.error('Erro ao verificar status do JIFC (perfil):', erroStatus);
+      }
+    }
+
     res.render('perfil', {
-        title: 'JIFC - Perfil',
-        usuarioLogado: req.user,
-        mostrarFiltros: false,
-        configuracoes,
-        mensagemErro: req.query.erro || '',
-        mensagemSucesso: req.query.sucesso || '',
-        statusInscricao,
-        prazoModalidadesAberto,
-        prazoAtletasAberto,
-        textoModalidades,
-        textoAtletas,
-        mostrarAcoesInscricao,
-        atletasCampus,
-        modalidadesCampus,
-        jogosCampus,
-        jogosCampusPorDia,
-        diasEvento,
-        diasJogosCampus,
-        diaJogosSelecionado,
-        anoJifc: adminModel.getAnoJifc()
+      title: 'JIFC - Perfil',
+      usuarioLogado: req.user,
+      mostrarFiltros: false,
+      configuracoes,
+      mensagemErro: req.query.erro || '',
+      mensagemSucesso: req.query.sucesso || '',
+      statusInscricao,
+      prazoModalidadesAberto,
+      prazoAtletasAberto,
+      textoModalidades,
+      textoAtletas,
+      mostrarAcoesInscricao,
+      atletasCampus,
+      modalidadesCampus,
+      jogosCampus,
+      jogosCampusPorDia,
+      diasEvento,
+      diasJogosCampus,
+      diaJogosSelecionado,
+      anoJifc: adminModel.getAnoJifc(),
+      statusJifcEncerrado,
+      edicaoAnoAtualJaSalva,
+      anoJifcAtual
     });
 });
 
@@ -1387,6 +1419,50 @@ router.get('/equipes/:slug', async function(req, res, next) {
         modoPublico: true,
         campusSelecionado: campus
     });
+});
+
+/* GET boletins finais (lista) */
+router.get('/boletim', async function(req, res) {
+    try {
+        const anos = await adminModel.listarAnosComBoletim();
+        res.render('boletim', {
+            title: 'Boletins Finais - JIFC',
+            usuarioLogado: req.user,
+            mostrarFiltros: false,
+            anoAtual: adminModel.getAnoJifc(),
+            anos
+        });
+    } catch (error) {
+        console.error('Erro ao carregar boletins públicos:', error);
+        res.status(500).send('Erro ao carregar os boletins finais.');
+    }
+});
+
+/* GET boletim final de um ano */
+router.get('/boletim/:ano', async function(req, res) {
+    try {
+        const ano = Number(req.params.ano || 0);
+        const dados = await adminModel.obterBoletimCompleto(ano);
+
+        if (!dados) {
+            return res.redirect('/boletim');
+        }
+
+        res.render('boletimDetalhe', {
+            title: `Boletim Final JIFC ${ano}`,
+            usuarioLogado: req.user,
+            mostrarFiltros: false,
+            boletim: dados.boletim,
+            resumo: dados.resumo,
+            ranking: dados.ranking,
+            modalidades: dados.modalidades,
+            completo: dados.completo,
+            temCompleto: dados.temCompleto
+        });
+    } catch (error) {
+        console.error('Erro ao carregar boletim público:', error);
+        res.status(500).send('Erro ao carregar o boletim final.');
+    }
 });
 
 module.exports = router;

@@ -13,17 +13,54 @@
   </div>
 
   <% if (typeof mensagemErro !== 'undefined' && mensagemErro) { %>
-    <section class="panel-card" style="margin-top:1rem; border:1px solid rgba(255,107,107,0.35); background:rgba(255,107,107,0.08);">
-      <div class="welcome-card" style="padding:1rem; background:transparent; border:none; color:#fff;">
+    <section class="panel-card auto-dismiss" style="margin-top:1rem; border:1px solid rgba(255,107,107,0.35); background:rgba(255,107,107,0.08);">
+      <div class="welcome-card" style="padding:1rem; background:transparent; border:none; color: var(--text);">
         <p class="panel-subtitle" style="color:#ffb3b3;"><strong>Erro:</strong> <%= mensagemErro %></p>
       </div>
     </section>
   <% } %>
 
   <% if (typeof mensagemSucesso !== 'undefined' && mensagemSucesso) { %>
-    <section class="panel-card" style="margin-top:1rem; border:1px solid rgba(75,255,135,0.3); background:rgba(75,255,135,0.08);">
-      <div class="welcome-card" style="padding:1rem; background:transparent; border:none; color:#fff;">
+    <section class="panel-card auto-dismiss" style="margin-top:1rem; border:1px solid rgba(75,255,135,0.3); background:rgba(75,255,135,0.08);">
+      <div class="welcome-card" style="padding:1rem; background:transparent; border:none; color: var(--text);">
         <p class="panel-subtitle" style="color:#d4ffd4;"><strong>Sucesso:</strong> <%= mensagemSucesso %></p>
+      </div>
+    </section>
+  <% } %>
+
+  <% if (statusJifc && statusJifc.encerrado && !boletimAtual) { %>
+    <section class="panel-card" style="margin-top:1.5rem; border:1px solid rgba(75,255,135,0.4); background:linear-gradient(135deg, rgba(75,255,135,0.14), rgba(var(--fg-rgb),0.04));">
+      <div style="padding:1.5rem;">
+        <div class="welcome-card" style="padding:0; background:transparent; border:none;">
+          <h2 class="chave-title" style="margin:0 0 0.5rem;">O JIFC de <%= anoAtual %> foi encerrado! 🏆</h2>
+          <p class="panel-subtitle" style="margin:0 0 1rem;">
+            Todos os jogos foram finalizados. Deseja gerar o <strong>boletim final completo</strong> com todos os jogos,
+            resultados, classificações, tabelas, chaveamentos, atletismo e xadrez desta edição?
+          </p>
+          <form action="/admin/boletins/gerar" method="POST" style="display:inline-block;">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="ano_jifc" value="<%= anoAtual %>">
+            <button type="submit" class="btn btn-primary">Gerar Boletim Final Completo</button>
+          </form>
+        </div>
+      </div>
+    </section>
+  <% } else if (statusJifc && statusJifc.encerrado && boletimAtual) { %>
+    <section class="panel-card" style="margin-top:1.5rem; border:1px solid rgba(75,255,135,0.3); background:rgba(75,255,135,0.08);">
+      <div style="padding:1.25rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+        <div class="welcome-card" style="padding:0; background:transparent; border:none;">
+          <p class="panel-subtitle" style="margin:0; color:#d4ffd4;">
+            <strong>Boletim final do JIFC <%= anoAtual %> já foi gerado.</strong>
+          </p>
+        </div>
+        <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+          <a href="/admin/boletins/<%= anoAtual %>" class="btn btn-primary">Visualizar boletim completo</a>
+          <form action="/admin/boletins/gerar" method="POST" style="display:inline-block;">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="ano_jifc" value="<%= anoAtual %>">
+            <button type="submit" class="btn btn-secondary">Regerar boletim</button>
+          </form>
+        </div>
       </div>
     </section>
   <% } %>
@@ -61,11 +98,11 @@
             <tbody>
               <% boletins.forEach((boletim) => { %>
                 <tr>
-                  <td style="padding:0.7rem 0.8rem; border-top:1px solid rgba(255,255,255,0.08);"><%= boletim.ano_jifc %></td>
-                  <td style="padding:0.7rem 0.8rem; border-top:1px solid rgba(255,255,255,0.08);">
+                  <td style="padding:0.7rem 0.8rem; border-top:1px solid rgba(var(--fg-rgb), 0.08);"><%= boletim.ano_jifc %></td>
+                  <td style="padding:0.7rem 0.8rem; border-top:1px solid rgba(var(--fg-rgb), 0.08);">
                     <%= boletim.criado_em ? new Date(boletim.criado_em).toLocaleDateString('pt-BR') : '-' %>
                   </td>
-                  <td style="padding:0.7rem 0.8rem; border-top:1px solid rgba(255,255,255,0.08); text-align:right;">
+                  <td style="padding:0.7rem 0.8rem; border-top:1px solid rgba(var(--fg-rgb), 0.08); text-align:right;">
                     <a href="/admin/boletins/<%= boletim.ano_jifc %>" class="btn btn-secondary" style="padding:0.55rem 0.8rem;">Abrir</a>
                   </td>
                 </tr>
@@ -76,7 +113,7 @@
       </main>
     </div>
   <% } else { %>
-    <section class="panel-card" style="margin-top:1.5rem; border:1px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.03);">
+    <section class="panel-card" style="margin-top:1.5rem; border:1px solid rgba(var(--fg-rgb), 0.08); background:rgba(var(--fg-rgb), 0.03);">
       <div class="welcome-card" style="padding:1rem; background:transparent; border:none;">
         <p class="panel-subtitle">Ainda não há boletins finais salvos para este sistema.</p>
       </div>

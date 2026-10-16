@@ -11,7 +11,7 @@
         <% (campi || []).forEach((campus) => { %>
             <a class="team-card" href="/equipes/<%= campus.slug %>">
                 <% const fotoCampus = campus.fotoPerfil || campus.foto_perfil || ''; %>
-                <div class="team-card__media" style="--campus-color: <%= campus.cor || '#ece42d' %>">
+                <div class="team-card__media" style="--campus-color: <%= campus.cor || 'var(--accent)' %>">
                     <% if (fotoCampus) { %>
                         <img src="<%= fotoCampus %>" alt="Foto de <%= campus.nomeExibicao %>" class="campus-photo campus-photo--real">
                     <% } else { %>

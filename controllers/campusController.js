@@ -186,7 +186,7 @@ async function cadastrarAtleta(req, res) {
       cpf: req.body.cpf || '',
       status: 'Analise'
     });
-    const mensagensConhecidas = ['VALIDATION_ERROR', 'CPF_INVALIDO', 'MATRICULA_DUPLICADA', 'MATRICULA_INVALIDA', 'LIMITE_REGULAR_EXCEDIDO', 'DATA_INVALIDA', 'IDADE_LIMITE_EXCEDIDO', 'MODALIDADES_OBRIGATORIAS', 'MODALIDADES_EXCEDIDAS', 'PROVAS_ATLETISMO_OBRIGATORIAS', 'PARTICIPACOES_TENIS_MESA_OBRIGATORIAS', 'NOME_INCOMPLETO', 'CAMPOS_OBRIGATORIOS'];
+    const mensagensConhecidas = ['VALIDATION_ERROR', 'CPF_INVALIDO', 'MATRICULA_DUPLICADA', 'MATRICULA_INVALIDA', 'LIMITE_REGULAR_EXCEDIDO', 'LIMITE_MODALIDADE_EXCEDIDO', 'DATA_INVALIDA', 'IDADE_LIMITE_EXCEDIDO', 'MODALIDADES_OBRIGATORIAS', 'MODALIDADES_EXCEDIDAS', 'PROVAS_ATLETISMO_OBRIGATORIAS', 'PARTICIPACOES_TENIS_MESA_OBRIGATORIAS', 'NOME_INCOMPLETO', 'CAMPOS_OBRIGATORIOS'];
     const mensagem = mensagensConhecidas.includes(error.code)
       ? error.message
       : 'Não foi possível cadastrar o atleta.';
@@ -277,7 +277,7 @@ async function atualizarAtleta(req, res) {
       cpf: req.body.cpf || '',
       status: 'Analise'
     });
-    const mensagensConhecidas = ['VALIDATION_ERROR', 'CPF_INVALIDO', 'MATRICULA_DUPLICADA', 'MATRICULA_INVALIDA', 'IDADE_LIMITE_EXCEDIDO', 'DATA_INVALIDA', 'MODALIDADES_OBRIGATORIAS', 'MODALIDADES_EXCEDIDAS', 'PROVAS_ATLETISMO_OBRIGATORIAS', 'PARTICIPACOES_TENIS_MESA_OBRIGATORIAS', 'LIMITE_REGULAR_EXCEDIDO', 'NOME_INCOMPLETO', 'CAMPOS_OBRIGATORIOS'];
+    const mensagensConhecidas = ['VALIDATION_ERROR', 'CPF_INVALIDO', 'MATRICULA_DUPLICADA', 'MATRICULA_INVALIDA', 'IDADE_LIMITE_EXCEDIDO', 'DATA_INVALIDA', 'MODALIDADES_OBRIGATORIAS', 'MODALIDADES_EXCEDIDAS', 'PROVAS_ATLETISMO_OBRIGATORIAS', 'PARTICIPACOES_TENIS_MESA_OBRIGATORIAS', 'LIMITE_REGULAR_EXCEDIDO', 'LIMITE_MODALIDADE_EXCEDIDO', 'NOME_INCOMPLETO', 'CAMPOS_OBRIGATORIOS'];
     const mensagem = mensagensConhecidas.includes(error.code) ? error.message : 'Não foi possível atualizar o atleta.';
     res.redirect('/campus/inscricoes?aba=atletas&erro=' + encodeURIComponent(mensagem) + '#atletas');
   }
@@ -328,7 +328,7 @@ async function substituirAtleta(req, res) {
     });
     res.redirect('/campus/inscricoes?aba=atletas#atletas');
   } catch (error) {
-    const mensagem = ['VALIDATION_ERROR', 'CPF_INVALIDO', 'NOME_INCOMPLETO', 'CAMPOS_OBRIGATORIOS'].includes(error.code)
+    const mensagem = ['VALIDATION_ERROR', 'CPF_INVALIDO', 'NOME_INCOMPLETO', 'CAMPOS_OBRIGATORIOS', 'LIMITE_MODALIDADE_EXCEDIDO'].includes(error.code)
       ? error.message
       : 'Não foi possível registrar a substituição.';
     res.redirect('/campus/inscricoes?aba=atletas&erro=' + encodeURIComponent(mensagem) + '#atletas');

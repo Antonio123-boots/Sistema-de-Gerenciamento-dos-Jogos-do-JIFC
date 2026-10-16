@@ -13,8 +13,8 @@
 .admin-card,
 .management-panel,
 .management-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(var(--fg-rgb), 0.04);
+  border: 1px solid rgba(var(--fg-rgb), 0.08);
   border-radius: 18px;
   padding: 1.4rem;
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.18);
@@ -22,8 +22,8 @@
 
 .admin-panel--glass,
 .management-panel--glass {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(var(--fg-rgb), 0.04);
+  border: 1px solid rgba(var(--fg-rgb), 0.08);
   backdrop-filter: blur(10px);
 }
 
@@ -44,12 +44,12 @@
 
 .management-section-title {
   margin: 0 0 0.35rem;
-  color: #f5f7ff;
+  color: varcolor: var(--text);
 }
 
 .management-section-subtitle {
   margin: 0 0 1rem;
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(var(--fg-rgb), 0.72);
 }
 
 .management-card-list {
@@ -64,8 +64,8 @@
   gap: 1rem;
   padding: 1rem;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(var(--fg-rgb), 0.02);
+  border: 1px solid rgba(var(--fg-rgb), 0.08);
 }
 
 .management-list-item__meta {
@@ -74,12 +74,12 @@
 }
 
 .management-list-item__meta strong {
-  color: #f5f7ff;
+  color: varcolor: var(--text);
 }
 
 .management-list-item__meta p {
   margin: 0;
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(var(--fg-rgb), 0.72);
 }
 
 .management-actions {
@@ -123,15 +123,15 @@
 
 .btn-outline-danger:hover {
   background: rgba(255, 75, 75, 0.16);
-  color: #fff;
+  color: var(--text);
   border-color: #ff8d8d;
 }
 
 fieldset.management-fieldset {
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(var(--fg-rgb), 0.12);
   border-radius: 18px;
   padding: 1rem;
-  color: #f5f7ff;
+  color: varcolor: var(--text);
 }
 
 legend.management-legend {
@@ -141,7 +141,7 @@ legend.management-legend {
 
 .panel-info {
   font-size: 0.95rem;
-  color: #cbd5e1;
+  color: var(--text-muted);
   margin-top: 0.25rem;
 }
 
@@ -160,7 +160,7 @@ legend.management-legend {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  color: #f5f7ff;
+  color: varcolor: var(--text);
   font-weight: 700;
 }
 
@@ -170,22 +170,22 @@ legend.management-legend {
   width: 100%;
   padding: 1rem 1.05rem;
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.06);
-  color: #eef2ff;
+  border: 1px solid rgba(var(--fg-rgb), 0.14);
+  background: rgba(var(--fg-rgb), 0.06);
+  color: varcolor: var(--text);
   font-weight: 500;
 }
 
 .management-field input::placeholder,
 .management-field textarea::placeholder {
-  color: rgba(255, 255, 255, 0.56);
+  color: rgba(var(--fg-rgb), 0.56);
 }
 
 .management-field input:focus,
 .management-field select:focus,
 .management-field textarea:focus {
-  outline: 2px solid rgba(236, 228, 45, 0.35);
-  border-color: rgba(236, 228, 45, 0.45);
+  outline: 2px solid rgba(var(--accent-rgb), 0.35);
+  border-color: rgba(var(--accent-rgb), 0.45);
 }
 
 .management-submit-bar {

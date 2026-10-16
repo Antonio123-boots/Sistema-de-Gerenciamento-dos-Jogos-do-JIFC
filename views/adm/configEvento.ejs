@@ -9,13 +9,13 @@
     </div>
 
     <% if (typeof mensagemErro !== 'undefined' && mensagemErro) { %>
-      <div style="background: rgba(255, 77, 77, 0.1); border: 1px solid #ff4d4d; color: #ff4d4d; padding: 1rem; border-radius: 12px; margin-bottom: 1rem; font-weight: 600;">
+      <div class="auto-dismiss" style="background: rgba(255, 77, 77, 0.1); border: 1px solid #ff4d4d; color: #ff4d4d; padding: 1rem; border-radius: 12px; margin-bottom: 1rem; font-weight: 600;">
         <%= mensagemErro %>
       </div>
     <% } %>
 
     <% if (typeof mensagemSucesso !== 'undefined' && mensagemSucesso) { %>
-      <div style="background: rgba(0, 255, 136, 0.1); border: 1px solid #00ff88; color: #00ff88; padding: 1rem; border-radius: 12px; margin-bottom: 1rem; font-weight: 600;">
+      <div class="auto-dismiss" style="background: rgba(0, 255, 136, 0.1); border: 1px solid #00ff88; color: #00ff88; padding: 1rem; border-radius: 12px; margin-bottom: 1rem; font-weight: 600;">
         <%= mensagemSucesso %>
       </div>
     <% } %>
@@ -27,7 +27,6 @@
         <div class="card-context-header">
           <div>
             <h2 class="context-title">Duração Oficial</h2>
-            <p class="context-subtitle">Defina o intervalo de realização dos jogos no calendário.</p>
           </div>
         </div>
         
@@ -47,7 +46,6 @@
         <div class="card-context-header">
           <div>
             <h2 class="context-title">Prazos de Inscrições e Processos</h2>
-            <p class="context-subtitle">Gerencie as janelas de tempo permitidas para cada etapa do sistema.</p>
           </div>
         </div>
         
@@ -89,7 +87,6 @@
         <div class="card-context-header">
           <div>
             <h2 class="context-title">Restrições Gerais do Campus</h2>
-            <p class="context-subtitle">Definição do limite máximo de participantes que um campus pode enviar no total.</p>
           </div>
         </div>
         
@@ -112,7 +109,6 @@
       <div class="card-context-header">
         <div>
           <h2 class="context-title">Gerenciar Catálogo de Esportes</h2>
-          <p class="context-subtitle">Cadastre novos esportes oficiais e remova aqueles que não fazem parte do JIFC.</p>
         </div>
       </div>
 
@@ -143,6 +139,11 @@
             </select>
           </div>
 
+          <div class="flow-element input-container">
+            <span class="field-label-text">Limite de atletas por campus</span>
+            <input type="number" name="limite_inscritos" class="premium-number-input" min="1" placeholder="Sem limite">
+          </div>
+
           <div class="flow-element input-container" style="flex: 1 1 100%;">
             <span class="field-label-text">Upload de imagem da modalidade</span>
             <input type="file" id="iconeModalidadeInput" accept="image/*" class="hidden-input-state">
@@ -161,12 +162,12 @@
       <% if (typeof modalidades !== 'undefined' && modalidades && modalidades.length) { %>
         <div style="margin-top: 1.25rem; display: grid; gap: 0.65rem;">
           <% modalidades.forEach((modalidade) => { %>
-            <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:0.75rem 0.9rem; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.03); flex-wrap:wrap;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:0.75rem 0.9rem; border:1px solid rgba(var(--fg-rgb), 0.08); border-radius:12px; background:rgba(var(--fg-rgb), 0.03); flex-wrap:wrap;">
               <div style="display:flex; align-items:center; gap:0.8rem;">
-                <img src="<%= modalidade.icone && (modalidade.icone.startsWith('/') || modalidade.icone.startsWith('http')) ? modalidade.icone : (modalidade.imagem || '/imagens/atletismo1.svg') %>" alt="Ícone <%= modalidade.nome %>" class="sport-icon" style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.08);">
+                <img src="<%= modalidade.icone && (modalidade.icone.startsWith('/') || modalidade.icone.startsWith('http')) ? modalidade.icone : (modalidade.imagem || '/imagens/atletismo1.svg') %>" alt="Ícone <%= modalidade.nome %>" class="sport-icon" style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid rgba(var(--fg-rgb), 0.08);">
                 <div>
-                  <strong style="display:block; color:#fff;"><%= modalidade.nome %></strong>
-                  <span style="font-size:0.8rem; color:rgba(255,255,255,0.7);"><%= modalidade.genero %> • <%= modalidade.tipo_confronto %></span>
+                  <strong style="display:block; color: var(--text);"><%= modalidade.nome %></strong>
+                  <span style="font-size:0.8rem; color:rgba(var(--fg-rgb), 0.7);"><%= modalidade.genero %> • <%= modalidade.tipo_confronto %></span>
                 </div>
               </div>
               <form action="/admin/modalidades/excluir/<%= modalidade.id %>" method="POST" onsubmit="return confirm('Deseja remover este esporte do catálogo?');">

@@ -2,8 +2,6 @@ const adminModel = require('../models/adminModel');
 const campusModel = require('../models/campusModel');
 const resultadosIndividuaisService = require('../services/resultadosIndividuaisService');
 const mataMataService = require('../services/mataMataService');
-const boletimService = require('../services/boletimService');
-const edicaoService = require('../services/edicaoService');
 const db = require('../config/db');
 const { listarCampi, adicionarCampus, atualizarCampus, banCampus, desbanirCampus, removerCampus } = require('../models/campiCatalog');
 const { obterStatusPrazos } = require('../utils/statusPrazos');
@@ -49,9 +47,10 @@ async function cadastrarModalidade(req, res) {
     const genero = String(req.body.genero_modalidade || '').trim();
     const formatoDisputa = String(req.body.formato_disputa || '').trim();
     const iconeData = String(req.body.icone_modalidade_data || '').trim();
+    const limiteInscritos = req.body.limite_inscritos;
 
     const icone = iconeData ? normalizarImagemUpload(iconeData, null, 'modalidades') : null;
-    await adminModel.adicionarModalidade({ nome, tipoConfronto, formatoDisputa, genero, icone });
+    await adminModel.adicionarModalidade({ nome, tipoConfronto, formatoDisputa, genero, icone, limiteInscritos });
     res.redirect('/admin/configurar?sucesso=' + encodeURIComponent(`Modalidade "${nome}" adicionada com sucesso.`));
   } catch (error) {
     res.redirect('/admin/configurar?erro=' + encodeURIComponent(error.message));
@@ -67,7 +66,6 @@ async function excluirModalidade(req, res) {
     res.redirect('/admin/configurar?erro=' + encodeURIComponent(error.message));
   }
 }
-
 
 async function renderCadastroCampus(req, res) {
   try {
@@ -538,31 +536,10 @@ async function renderChaveamento(req, res) {
         ORDER BY m.nome ASC, m.genero ASC
       `);
 
-      let statusJifcEncerrado = false;
-      let edicaoAnoAtualJaSalva = false;
-      const anoJifcAtual = Number(adminModel.getAnoJifc() || 0);
-      try {
-        const statusJifc = await boletimService.obterStatusJifc();
-        statusJifcEncerrado = Boolean(statusJifc && statusJifc.encerrado);
-      } catch (erroStatus) {
-        console.error('Erro ao verificar status do JIFC (chaveamento):', erroStatus);
-      }
-      if (statusJifcEncerrado) {
-        try {
-          const edicaoDoAno = await edicaoService.obterEdicao(anoJifcAtual);
-          edicaoAnoAtualJaSalva = Boolean(edicaoDoAno);
-        } catch (erroEdicao) {
-          console.error('Erro ao verificar edição do ano atual:', erroEdicao);
-        }
-      }
-
       res.render('adm/chaveamento', {
         title: 'Chaveamento dos Jogos — JIFC',
         usuarioLogado: req.user,
         mostrarFiltros: false,
-        statusJifcEncerrado,
-        edicaoAnoAtualJaSalva,
-        anoJifcAtual: Number(adminModel.getAnoJifc() || 0),
         inscricoesAbertas,
         chaveamentoBloqueado: false,
         sorteioBloqueado,
@@ -961,6 +938,7 @@ async function renderBoletins(req, res) {
     const boletins = await adminModel.listarBoletins();
     const statusJifc = await adminModel.obterStatusJifc();
     const anoAtual = adminModel.getAnoJifc();
+    const boletimAtual = await adminModel.obterBoletimPorAno(anoAtual);
 
     res.render('adm/boletins', {
       title: 'Boletins Finais',
@@ -969,6 +947,7 @@ async function renderBoletins(req, res) {
       boletins,
       statusJifc,
       anoAtual,
+      boletimAtual,
       mensagemErro: req.query.erro || '',
       mensagemSucesso: req.query.sucesso || ''
     });
@@ -997,24 +976,22 @@ function parseJsonValue(valor, fallback) {
 async function renderBoletimAno(req, res) {
   try {
     const ano = Number(req.params.ano || 0);
-    const boletim = await adminModel.obterBoletimPorAno(ano);
+    const dados = await adminModel.obterBoletimCompleto(ano);
 
-    if (!boletim) {
+    if (!dados) {
       return res.redirect('/admin/boletins?erro=' + encodeURIComponent('Boletim final não encontrado para este ano.'));
     }
-
-    const resumo = parseJsonValue(boletim.resumo_json, { ano, ranking: [], modalidades: [], dataGeracao: null });
-    const ranking = parseJsonValue(boletim.ranking_json, resumo.ranking || []);
-    const modalidades = parseJsonValue(boletim.modalidades_json, resumo.modalidades || []);
 
     res.render('adm/boletimDetalhe', {
       title: `Boletim final ${ano}`,
       usuarioLogado: req.user,
       mostrarFiltros: false,
-      boletim,
-      resumo,
-      ranking,
-      modalidades
+      boletim: dados.boletim,
+      resumo: dados.resumo,
+      ranking: dados.ranking,
+      modalidades: dados.modalidades,
+      completo: dados.completo,
+      temCompleto: dados.temCompleto
     });
   } catch (error) {
     console.error('Erro ao visualizar boletim:', error);
@@ -1057,12 +1034,14 @@ async function renderEdicoesAnteriores(req, res) {
 }
 
 async function salvarEdicaoAtualAno(req, res) {
+  const voltarParaPerfil = String(req.body.redirect || '') === '/perfil';
+  const destino = voltarParaPerfil ? '/perfil' : '/admin/edicoes';
   try {
     const ano = Number(req.body.ano_jifc || adminModel.getAnoJifc());
     const resultado = await adminModel.salvarEdicaoAtual(ano);
-    res.redirect('/admin/edicoes?sucesso=' + encodeURIComponent(`Edição do JIFC ${resultado.ano} salva em edições anteriores.`));
+    res.redirect(`${destino}?sucesso=` + encodeURIComponent(`Edição do JIFC ${resultado.ano} salva em edições anteriores.`));
   } catch (error) {
-    res.redirect('/admin/edicoes?erro=' + encodeURIComponent(error.message || 'Erro ao salvar a edição.'));
+    res.redirect(`${destino}?erro=` + encodeURIComponent(error.message || 'Erro ao salvar a edição.'));
   }
 }
 

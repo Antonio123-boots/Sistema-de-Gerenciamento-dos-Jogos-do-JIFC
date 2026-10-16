@@ -6,10 +6,10 @@
     </div>
 
     <% if (mensagemErro) { %>
-      <div class="alert alert-error"><%= mensagemErro %></div>
+      <div class="alert alert-error auto-dismiss"><%= mensagemErro %></div>
     <% } %>
     <% if (mensagemSucesso) { %>
-      <div class="alert alert-success"><%= mensagemSucesso %></div>
+      <div class="alert alert-success auto-dismiss"><%= mensagemSucesso %></div>
     <% } %>
 
     <form action="/admin/cadastroCampus/salvar" method="POST" class="modern-config-form">
@@ -61,7 +61,7 @@
       </div>
 
       <div class="config-submit-bar" style="justify-content:space-between; gap:1rem;">
-        <a href="/admin/cadastroCampus" class="premium-action-btn" style="background:rgba(255,255,255,0.12); color:#f8fafc; text-decoration:none;">
+        <a href="/admin/cadastroCampus" class="premium-action-btn" style="background:rgba(var(--fg-rgb), 0.12); color:varcolor: var(--text); text-decoration:none;">
           <span><%= campusEdicao ? 'Cancelar edição' : 'Limpar formulário' %></span>
         </a>
         <button type="submit" class="premium-action-btn primary-save-btn">
@@ -109,10 +109,10 @@
 
       <div style="display:grid; gap:0.9rem;">
         <% (campi || []).forEach((campus) => { %>
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:1rem; border-radius:16px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); flex-wrap:wrap;">
+          <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:1rem; border-radius:16px; background:rgba(var(--fg-rgb), 0.03); border:1px solid rgba(var(--fg-rgb), 0.08); flex-wrap:wrap;">
             <div>
               <strong><%= campus.nomeExibicao %></strong>
-              <p style="margin:0.25rem 0 0; color:rgba(255,255,255,0.72);">E-mail: <%= campus.email %></p>
+              <p style="margin:0.25rem 0 0; color:rgba(var(--fg-rgb), 0.72);">E-mail: <%= campus.email %></p>
             </div>
             <div style="display:flex; gap:0.65rem; flex-wrap:wrap;">
               <a href="/admin/cadastroCampus?editar=<%= campus.slug %>" class="btn btn-secondary">Editar</a>

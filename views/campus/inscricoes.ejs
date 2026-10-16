@@ -75,31 +75,31 @@
     <div style="background: rgba(255, 77, 77, 0.1); border: 1px solid #ff4d4d; color: #ff4d4d; padding: 1rem; border-radius: 12px; margin-bottom: 2rem; font-weight: bold; text-align: center; width: 100%;">
         ⚠ Fora do período de cadastro.
         <br>
-        <small style="font-weight: normal; color: rgba(255,255,255,0.6);">
+        <small style="font-weight: normal; color: rgba(var(--fg-rgb), 0.6);">
         Nenhuma etapa está disponível no período cadastrado globalmente.
         </small>
     </div>
     <% } %>
 
     <% if (typeof mensagemErro !== 'undefined' && mensagemErro) { %>
-      <div style="background: rgba(255, 77, 77, 0.1); border: 1px solid #ff4d4d; color: #ff4d4d; padding: 1rem; border-radius: 12px; margin-bottom: 1.25rem; font-weight: 600;">
+      <div class="auto-dismiss" style="background: rgba(255, 77, 77, 0.1); border: 1px solid #ff4d4d; color: #ff4d4d; padding: 1rem; border-radius: 12px; margin-bottom: 1.25rem; font-weight: 600;">
         <%= mensagemErro %>
       </div>
     <% } %>
 
     <% if (typeof mensagemSucesso !== 'undefined' && mensagemSucesso) { %>
-      <div style="background: rgba(0, 255, 136, 0.1); border: 1px solid #00ff88; color: #00ff88; padding: 1rem; border-radius: 12px; margin-bottom: 1.25rem; font-weight: 600;">
+      <div class="auto-dismiss" style="background: rgba(0, 255, 136, 0.1); border: 1px solid #00ff88; color: #00ff88; padding: 1rem; border-radius: 12px; margin-bottom: 1.25rem; font-weight: 600;">
         <%= mensagemSucesso %>
       </div>
     <% } %>
 
-    <header class="institution-header" style="border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 1.5rem; margin-bottom: 2rem;">
+    <header class="institution-header" style="border-bottom: 1px solid rgba(var(--fg-rgb), 0.08); padding-bottom: 1.5rem; margin-bottom: 2rem;">
       <div class="institution-details">
         <div class="badge-row">
           <span class="badge badge--role">Campus</span>
           <span class="badge badge--status">Painel de Inscrições</span>
         </div>
-        <h1 class="institution-title" style="color: #ece42d;"><%= nomeCampus %></h1>
+        <h1 class="institution-title" style="color: var(--accent);"><%= nomeCampus %></h1>
         <p class="institution-meta">Selecione as modalidades e cadastre os atletas do campus no mesmo painel.</p>
         <p class="institution-meta">Regulares: <strong><%= typeof quantidadeRegulares !== 'undefined' ? quantidadeRegulares : 0 %></strong> · Pendentes: <strong><%= typeof quantidadePendentes !== 'undefined' ? quantidadePendentes : 0 %></strong> · Limite regular: <strong><%= limiteCampus > 0 ? limiteCampus : 'sem limite' %></strong></p>
       </div>
@@ -128,9 +128,9 @@
 
       <% if (mostrarModalidades) { %>
       <div class="dashboard-view <%= abaAtivaAtual === 'modalidades' ? 'is-active' : '' %>" id="modalidades">
-        <section style="background: rgba(255, 255, 255, 0.02); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(236, 228, 45, 0.12); margin-bottom: 2rem;">
-          <h3 style="color: #ffffff; margin-bottom: 1rem; font-size: 1.1rem;">Inscrição por Modalidade</h3>
-          <p style="margin: 0 0 1.25rem; color: rgba(255,255,255,0.68);">Marque o(s) gênero(s) disponíveis para cada esporte (Individual, Misto ou ambos).</p>
+        <section style="background: rgba(var(--fg-rgb), 0.02); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(var(--accent-rgb), 0.12); margin-bottom: 2rem;">
+          <h3 style="color: varcolor: var(--text); margin-bottom: 1rem; font-size: 1.1rem;">Inscrição por Modalidade</h3>
+          <p style="margin: 0 0 1.25rem; color: rgba(var(--fg-rgb), 0.68);">Marque o(s) gênero(s) disponíveis para cada esporte (Individual, Misto ou ambos).</p>
 
           <form action="/campus/inscricoes/salvar" method="POST">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
@@ -143,24 +143,24 @@
                 <div class="mini-card" style="display: flex; flex-direction: column; gap: 0.9rem; padding: 1rem 1.1rem;">
                   <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.5rem;">
                     <img src="<%= esporte.icone && (esporte.icone.startsWith('/') || esporte.icone.startsWith('http')) ? esporte.icone : (esporte.imagem || '/imagens/atletismo1.svg') %>" alt="Ícone <%= esporte.nome %>" class="sport-icon" style="width: 28px; height: 28px; border-radius: 50%;">
-                    <strong style="color: #ffffff; font-size: 1rem;"><%= esporte.nome %></strong>
+                    <strong style="color: varcolor: var(--text); font-size: 1rem;"><%= esporte.nome %></strong>
                   </div>
                   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 0.75rem;">
                     <% if (esporte.masculino) { %>
-                      <label style="display: flex; align-items: center; gap: 0.65rem; cursor: pointer; color: rgba(255,255,255,0.85); font-weight: 600;">
-                        <input type="checkbox" name="modalidades" value="<%= esporte.masculino %>" <%= selecionadoMasculino ? 'checked' : '' %> style="width: 18px; height: 18px; accent-color: #ece42d;">
+                      <label style="display: flex; align-items: center; gap: 0.65rem; cursor: pointer; color: rgba(var(--fg-rgb), 0.85); font-weight: 600;">
+                        <input type="checkbox" name="modalidades" value="<%= esporte.masculino %>" <%= selecionadoMasculino ? 'checked' : '' %> style="width: 18px; height: 18px; accent-color: var(--accent);">
                         Masculino
                       </label>
                     <% } %>
                     <% if (esporte.feminino) { %>
-                      <label style="display: flex; align-items: center; gap: 0.65rem; cursor: pointer; color: rgba(255,255,255,0.85); font-weight: 600;">
-                        <input type="checkbox" name="modalidades" value="<%= esporte.feminino %>" <%= selecionadoFeminino ? 'checked' : '' %> style="width: 18px; height: 18px; accent-color: #ece42d;">
+                      <label style="display: flex; align-items: center; gap: 0.65rem; cursor: pointer; color: rgba(var(--fg-rgb), 0.85); font-weight: 600;">
+                        <input type="checkbox" name="modalidades" value="<%= esporte.feminino %>" <%= selecionadoFeminino ? 'checked' : '' %> style="width: 18px; height: 18px; accent-color: var(--accent);">
                         Feminino
                       </label>
                     <% } %>
                     <% if (esporte.misto) { %>
-                      <label style="display: flex; align-items: center; gap: 0.65rem; cursor: pointer; color: rgba(255,255,255,0.85); font-weight: 600;">
-                        <input type="checkbox" name="modalidades" value="<%= esporte.misto %>" <%= selecionadoMisto ? 'checked' : '' %> style="width: 18px; height: 18px; accent-color: #ece42d;">
+                      <label style="display: flex; align-items: center; gap: 0.65rem; cursor: pointer; color: rgba(var(--fg-rgb), 0.85); font-weight: 600;">
+                        <input type="checkbox" name="modalidades" value="<%= esporte.misto %>" <%= selecionadoMisto ? 'checked' : '' %> style="width: 18px; height: 18px; accent-color: var(--accent);">
                         Misto
                       </label>
                     <% } %>
@@ -182,9 +182,9 @@
 
       <% if (mostrarAtletas) { %>
       <div class="dashboard-view <%= abaAtivaAtual === 'atletas' ? 'is-active' : '' %>" id="atletas">
-        <section style="background: rgba(255, 255, 255, 0.02); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(236, 228, 45, 0.12); margin-bottom: 2rem;">
-          <h3 style="color: #ffffff; margin-bottom: 0.75rem; font-size: 1.1rem;">Cadastro de Atletas do Campus</h3>
-          <p style="margin: 0 0 0.75rem; color: rgba(255,255,255,0.68);">Escolha o gênero do atleta e veja somente os esportes compatíveis para inscrição.</p>
+        <section style="background: rgba(var(--fg-rgb), 0.02); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(var(--accent-rgb), 0.12); margin-bottom: 2rem;">
+          <h3 style="color: varcolor: var(--text); margin-bottom: 0.75rem; font-size: 1.1rem;">Cadastro de Atletas do Campus</h3>
+          <p style="margin: 0 0 0.75rem; color: rgba(var(--fg-rgb), 0.68);">Escolha o gênero do atleta e veja somente os esportes compatíveis para inscrição.</p>
 
           <form action="<%= rotaFormularioAtleta %>" method="POST" class="form-grid" style="align-items: flex-end; margin-bottom: 1.5rem;">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
@@ -195,7 +195,7 @@
 
             <label>
               Gênero
-              <select name="genero" id="genero-atleta" required class="premium-text-input" style="height: 43px; background: #1c1d3b; color: white;">
+              <select name="genero" id="genero-atleta" required class="premium-text-input" style="height: 43px; background: var(--bg); color: varcolor: var(--text);">
                 <option value="Masculino" <%= generoFormulario === 'Masculino' ? 'selected' : '' %>>Masculino</option>
                 <option value="Feminino" <%= generoFormulario === 'Feminino' ? 'selected' : '' %>>Feminino</option>
               </select>
@@ -236,16 +236,16 @@
                   <% }); %>
                 </div>
               <% } else { %>
-                <div style="padding: 1rem; border-radius: 14px; border: 1px dashed rgba(255,255,255,0.18); color: rgba(255,255,255,0.7);">
+                <div style="padding: 1rem; border-radius: 14px; border: 1px dashed rgba(var(--fg-rgb), 0.18); color: rgba(var(--fg-rgb), 0.7);">
                   Salve as inscrições de modalidades para liberar esta seleção.
                 </div>
               <% } %>
-              <small style="display:block; margin-top: 0.55rem; color: rgba(255,255,255,0.6);">Preencha todos os campos e marque no máximo 3 opções.</small>
+              <small style="display:block; margin-top: 0.55rem; color: rgba(var(--fg-rgb), 0.6);">Preencha todos os campos e marque no máximo 3 opções.</small>
             </div>
 
-            <div id="detalhes-atleta" style="display: none; grid-column: 1 / -1; margin-top: 0.25rem; padding: 1rem; border-radius: 14px; border: 1px solid rgba(236, 228, 45, 0.16); background: rgba(255,255,255,0.03);">
+            <div id="detalhes-atleta" style="display: none; grid-column: 1 / -1; margin-top: 0.25rem; padding: 1rem; border-radius: 14px; border: 1px solid rgba(var(--accent-rgb), 0.16); background: rgba(var(--fg-rgb), 0.03);">
               <div id="detalhes-atletismo" style="display: none; margin-bottom: 1rem;">
-                <strong style="display:block; margin-bottom: 0.6rem; color: #ffffff;">Provas de Atletismo</strong>
+                <strong style="display:block; margin-bottom: 0.6rem; color: varcolor: var(--text);">Provas de Atletismo</strong>
                 <div class="prova-pills">
                   <% ['100m rasos', '200m rasos', '400m', '800m', '1500m', '3000m', '5000m', '4x100m', '4x400m', 'Salto em distância', 'Salto em altura', 'Salto Triplo', 'Disco', 'Dardo', 'Peso'].forEach(function(prova) { %>
                     <label class="prova-pill">
@@ -257,7 +257,7 @@
               </div>
 
               <div id="detalhes-tenis-mesa" style="display: none;">
-                <strong style="display:block; margin-bottom: 0.6rem; color: #ffffff;">Participação no Tênis de Mesa</strong>
+                <strong style="display:block; margin-bottom: 0.6rem; color: varcolor: var(--text);">Participação no Tênis de Mesa</strong>
                 <div class="prova-pills">
                   <% ['Individual', 'Duplas', 'Individual e Duplas'].forEach(function(participacao) { %>
                     <label class="prova-pill">
@@ -282,7 +282,7 @@
           <div style="overflow-x: auto;">
             <table class="score-table">
               <thead>
-                <tr style="color: #ece42d; border-bottom: 2px solid rgba(255,255,255,0.1);">
+                <tr style="color: var(--accent); border-bottom: 2px solid rgba(var(--fg-rgb), 0.1);">
                   <th style="padding: 0.75rem 0.5rem;">Nome</th>
                   <th>Matrícula</th>
                   <th>CPF</th>
@@ -296,17 +296,17 @@
                   <% atletasSalvos.forEach(function(atleta) { %>
                     <tr class="<%= atleta.status === 'Regular' ? 'row--regular' : (atleta.status === 'Pendente' || atleta.status === 'Pendente_Laudo') ? 'row--pending' : 'row--irregular' %>">
                       <td style="padding: 0.75rem 0.5rem; font-weight: 600;"><%= atleta.nome %></td>
-                      <td style="color: rgba(255,255,255,0.7);"><%= atleta.matricula %></td>
-                      <td style="color: rgba(255,255,255,0.7);"><%= atleta.cpf || '-' %></td>
+                      <td style="color: rgba(var(--fg-rgb), 0.7);"><%= atleta.matricula %></td>
+                      <td style="color: rgba(var(--fg-rgb), 0.7);"><%= atleta.cpf || '-' %></td>
                       <td>
                         <% const modalidadesAtleta = Array.isArray(atleta.modalidades) ? atleta.modalidades : String(atleta.modalidade || '').split(',').map((item) => item.trim()).filter(Boolean); %>
                         <div style="display:flex; flex-direction:column; gap:0.35rem;">
-                          <span class="status-tag" style="background: rgba(255,255,255,0.05); color: #fff;"><%= modalidadesAtleta.join(', ') %></span>
+                          <span class="status-tag" style="background: rgba(var(--fg-rgb), 0.05); color: var(--text);"><%= modalidadesAtleta.join(', ') %></span>
                           <% if (Array.isArray(atleta.atletismoProvas) && atleta.atletismoProvas.length) { %>
-                            <span class="status-tag" style="background: rgba(236, 228, 45, 0.15); color: #ece42d;">Atletismo: <%= atleta.atletismoProvas.join(', ') %></span>
+                            <span class="status-tag" style="background: rgba(var(--accent-rgb), 0.15); color: var(--accent);">Atletismo: <%= atleta.atletismoProvas.join(', ') %></span>
                           <% } %>
                           <% if (Array.isArray(atleta.tenisMesaParticipacoes) && atleta.tenisMesaParticipacoes.length) { %>
-                            <span class="status-tag" style="background: rgba(236, 228, 45, 0.15); color: #ece42d;">Tênis de Mesa: <%= atleta.tenisMesaParticipacoes.join(', ') %></span>
+                            <span class="status-tag" style="background: rgba(var(--accent-rgb), 0.15); color: var(--accent);">Tênis de Mesa: <%= atleta.tenisMesaParticipacoes.join(', ') %></span>
                           <% } %>
                         </div>
                       </td>
@@ -493,9 +493,9 @@
       </script>
       <% } %>
     <% } else { %>
-      <section style="min-height: 40vh; display: flex; align-items: center; justify-content: center; text-align: center; background: rgba(255, 255, 255, 0.02); padding: 2rem; border-radius: 16px; border: 1px solid rgba(236, 228, 45, 0.12); color: rgba(255,255,255,0.8);">
+      <section style="min-height: 40vh; display: flex; align-items: center; justify-content: center; text-align: center; background: rgba(var(--fg-rgb), 0.02); padding: 2rem; border-radius: 16px; border: 1px solid rgba(var(--accent-rgb), 0.12); color: rgba(var(--fg-rgb), 0.8);">
         <div>
-          <h3 style="color: #ffffff; margin-bottom: 0.75rem; font-size: 1.2rem;">Fora do período de cadastro</h3>
+          <h3 style="color: varcolor: var(--text); margin-bottom: 0.75rem; font-size: 1.2rem;">Fora do período de cadastro</h3>
           <p style="margin: 0;">Nenhuma aba está disponível no período cadastrado globalmente.</p>
         </div>
       </section>

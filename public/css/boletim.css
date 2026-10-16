@@ -1,0 +1,592 @@
+/* Boletim Final JIFC — layout do boletim completo (usado no admin e no público).
+   Todas as cores derivam das variáveis de tema (--accent, --fg-rgb, --panel...). */
+
+.boletim {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* ---------- Cabeçalho ---------- */
+.boletim-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 20px;
+  padding: 1.75rem 1.6rem;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(var(--accent-rgb), 0.22), transparent 55%),
+    linear-gradient(135deg, rgba(var(--accent-rgb), 0.14), rgba(var(--fg-rgb), 0.03));
+  border: 1px solid rgba(var(--accent-rgb), 0.4);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.2);
+}
+
+.boletim-hero__eyebrow {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.boletim-hero__title {
+  margin: 0.35rem 0 0.2rem;
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.1;
+}
+
+.boletim-hero__sub {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
+.boletim-hero__acoes {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-bottom: 0.9rem;
+}
+
+.boletim-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--accent-ink);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  transition: filter 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.boletim-btn:hover {
+  filter: brightness(1.08);
+}
+
+.boletim-btn--ghost {
+  color: var(--text);
+  background: rgba(var(--fg-rgb), 0.06);
+  border-color: rgba(var(--fg-rgb), 0.15);
+}
+
+.boletim-btn--ghost:hover {
+  color: var(--accent);
+  border-color: rgba(var(--accent-rgb), 0.5);
+  background: rgba(var(--accent-rgb), 0.1);
+}
+
+.boletim-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.boletim-stat {
+  background: rgba(var(--fg-rgb), 0.05);
+  border: 1px solid rgba(var(--fg-rgb), 0.09);
+  border-radius: 14px;
+  padding: 0.75rem 0.9rem;
+}
+
+.boletim-stat__value {
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1.1;
+}
+
+.boletim-stat__label {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ---------- Índice / navegação ---------- */
+.boletim-nav {
+  position: sticky;
+  top: 0.5rem;
+  z-index: 30;
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 0.6rem;
+  border-radius: 14px;
+  background: var(--panel);
+  border: 1px solid rgba(var(--fg-rgb), 0.1);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.16);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.boletim-nav::-webkit-scrollbar {
+  height: 6px;
+}
+
+.boletim-nav::-webkit-scrollbar-thumb {
+  background: rgba(var(--accent-rgb), 0.4);
+  border-radius: 3px;
+}
+
+.boletim-nav a {
+  flex: none;
+  white-space: nowrap;
+  padding: 0.42rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-decoration: none;
+  color: var(--text-muted);
+  background: rgba(var(--fg-rgb), 0.05);
+  border: 1px solid transparent;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.boletim-nav a:hover {
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.12);
+  border-color: rgba(var(--accent-rgb), 0.4);
+}
+
+/* ---------- Seções ---------- */
+.boletim-section {
+  border-radius: 18px;
+  padding: 1.25rem;
+  background: var(--panel);
+  border: 1px solid rgba(var(--fg-rgb), 0.08);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  scroll-margin-top: 4.5rem;
+}
+
+.boletim-section__head {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.boletim-section__bar {
+  width: 5px;
+  height: 1.5rem;
+  border-radius: 3px;
+  background: var(--accent);
+  flex: none;
+}
+
+.boletim-section__title {
+  margin: 0;
+  font-size: 1.22rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.boletim-section__hint {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.boletim-count {
+  margin-left: auto;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.14);
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
+}
+
+/* ---------- Subseções ---------- */
+.boletim-subsection + .boletim-subsection {
+  margin-top: 1.4rem;
+}
+
+.boletim-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.65rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.boletim-subtitle::before {
+  content: '';
+  width: 4px;
+  height: 1.05rem;
+  border-radius: 2px;
+  background: var(--accent);
+  flex: none;
+}
+
+.boletim-subtitle__hint {
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 0.78rem;
+}
+
+/* ---------- Tabelas ---------- */
+.boletim-table-wrap {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(var(--fg-rgb), 0.08);
+}
+
+.boletim-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.boletim-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgba(var(--accent-rgb), 0.12);
+  color: var(--text);
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  border-bottom: 1px solid rgba(var(--fg-rgb), 0.12);
+}
+
+.boletim-table tbody td {
+  padding: 0.6rem 0.75rem;
+  border-top: 1px solid rgba(var(--fg-rgb), 0.06);
+  vertical-align: middle;
+  color: var(--text);
+}
+
+.boletim-table tbody tr:nth-child(even) {
+  background: rgba(var(--fg-rgb), 0.03);
+}
+
+.boletim-table tbody tr:hover {
+  background: rgba(var(--accent-rgb), 0.08);
+}
+
+.boletim-table .is-center {
+  text-align: center;
+}
+
+.boletim-table .is-right {
+  text-align: right;
+}
+
+.boletim-table strong {
+  font-weight: 800;
+}
+
+.boletim-table__sets {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.boletim-pos {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 50%;
+  background: rgba(var(--fg-rgb), 0.08);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.boletim-pos.is-1 { background: linear-gradient(135deg, #ffe07a, #e0a800); color: #1a1a1a; }
+.boletim-pos.is-2 { background: linear-gradient(135deg, #e6ebf2, #a7b0bd); color: #1a1a1a; }
+.boletim-pos.is-3 { background: linear-gradient(135deg, #e3a877, #c07a3e); color: #1a1a1a; }
+
+.boletim-tag-status {
+  display: inline-block;
+  color: var(--text-muted);
+}
+
+.boletim-tag-status.is-wo { color: #ffb36b; }
+.boletim-tag-status.is-cancelado { color: #ff6b6b; }
+
+/* ---------- Pódio ---------- */
+.boletim-podium {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.boletim-podium-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.95rem 1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(var(--fg-rgb), 0.1);
+  background: rgba(var(--fg-rgb), 0.04);
+}
+
+.boletim-podium-card.is-1 {
+  border-color: rgba(224, 168, 0, 0.65);
+  background: linear-gradient(135deg, rgba(244, 196, 48, 0.18), rgba(var(--fg-rgb), 0.02));
+}
+
+.boletim-podium-card.is-2 {
+  border-color: rgba(167, 176, 189, 0.6);
+  background: linear-gradient(135deg, rgba(192, 199, 208, 0.16), rgba(var(--fg-rgb), 0.02));
+}
+
+.boletim-podium-card.is-3 {
+  border-color: rgba(192, 122, 62, 0.6);
+  background: linear-gradient(135deg, rgba(205, 127, 50, 0.16), rgba(var(--fg-rgb), 0.02));
+}
+
+.boletim-medal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  flex: none;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1a1a1a;
+}
+
+.boletim-medal.is-1 { background: linear-gradient(135deg, #ffe07a, #e0a800); }
+.boletim-medal.is-2 { background: linear-gradient(135deg, #e6ebf2, #a7b0bd); }
+.boletim-medal.is-3 { background: linear-gradient(135deg, #e3a877, #c07a3e); }
+.boletim-medal.is-4 { background: rgba(var(--fg-rgb), 0.16); color: var(--text); }
+
+.boletim-podium-card__label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.boletim-podium-card__name {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.boletim-podium-sub {
+  margin: 0.9rem 0 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* ---------- Chips ---------- */
+.boletim-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.boletim-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.38rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(var(--fg-rgb), 0.06);
+  border: 1px solid rgba(var(--fg-rgb), 0.09);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.boletim-tag__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex: none;
+}
+
+/* ---------- Modalidades (blocos recolhíveis) ---------- */
+.boletim-modality {
+  border: 1px solid rgba(var(--fg-rgb), 0.08);
+  border-radius: 16px;
+  background: var(--panel);
+  overflow: hidden;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.boletim-modality + .boletim-modality {
+  margin-top: 0.9rem;
+}
+
+.boletim-modality__summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem 1.25rem;
+  background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.14), transparent 70%);
+  transition: background 0.15s ease;
+}
+
+.boletim-modality__summary::-webkit-details-marker {
+  display: none;
+}
+
+.boletim-modality__summary:hover {
+  background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.24), transparent 70%);
+}
+
+.boletim-modality__badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 12px;
+  flex: none;
+  font-weight: 800;
+  color: var(--accent-ink);
+  background: var(--accent);
+}
+
+.boletim-modality__name {
+  font-size: 1.12rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.boletim-modality__meta {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.boletim-modality__chevron {
+  margin-left: auto;
+  flex: none;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.boletim-modality[open] .boletim-modality__chevron {
+  transform: rotate(180deg);
+}
+
+.boletim-modality__body {
+  padding: 1.25rem;
+  border-top: 1px solid rgba(var(--fg-rgb), 0.08);
+}
+
+.boletim-controls {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.boletim-controls button {
+  padding: 0.42rem 0.9rem;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--text);
+  background: rgba(var(--fg-rgb), 0.06);
+  border: 1px solid rgba(var(--fg-rgb), 0.12);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.boletim-controls button:hover {
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.12);
+  border-color: rgba(var(--accent-rgb), 0.4);
+}
+
+/* ---------- Estados e avisos ---------- */
+.boletim-empty {
+  margin: 0;
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 0.88rem;
+}
+
+.boletim-warning {
+  border-radius: 16px;
+  padding: 1rem 1.25rem;
+  border: 1px solid rgba(255, 215, 75, 0.4);
+  background: rgba(255, 215, 75, 0.1);
+}
+
+.boletim-warning p {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+/* ---------- Impressão ---------- */
+@media print {
+  .boletim-nav,
+  .boletim-controls,
+  .boletim-modality__chevron {
+    display: none !important;
+  }
+
+  .boletim-section,
+  .boletim-modality,
+  .boletim-hero {
+    box-shadow: none;
+    break-inside: avoid;
+  }
+
+  .boletim-modality__body {
+    border-top: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .boletim-hero {
+    padding: 1.25rem;
+  }
+
+  .boletim-section {
+    padding: 1rem;
+  }
+
+  .boletim-modality__summary,
+  .boletim-modality__body {
+    padding: 0.9rem 1rem;
+  }
+
+  .boletim-podium {
+    grid-template-columns: 1fr;
+  }
+}

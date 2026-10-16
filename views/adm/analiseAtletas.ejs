@@ -5,8 +5,8 @@
   <% if (typeof campusSelecionado === 'string' && campusSelecionado) { %>
     <div style="margin: 0 0 1rem; display:flex; justify-content:space-between; gap:1rem; align-items:center; flex-wrap:wrap;">
       <div>
-        <strong style="color:#ece42d;">Campus selecionado:</strong>
-        <span style="color:#fff;"><%= campusSelecionado %></span>
+        <strong style="color:var(--accent);">Campus selecionado:</strong>
+        <span style="color: var(--text);"><%= campusSelecionado %></span>
       </div>
       <a class="btn btn-ghost" href="/admin/laudos">Voltar aos campi</a>
     </div>
@@ -16,7 +16,7 @@
         <ul class="profile-list" style="display:grid; gap:0.75rem;">
           <% atletas.forEach((atleta) => { %>
             <% const modalidadesAtleta = Array.isArray(atleta.modalidades) ? atleta.modalidades : String(atleta.modalidade || '').split(',').map((item) => item.trim()).filter(Boolean); %>
-            <li style="display:flex; justify-content:space-between; gap:1rem; align-items:center; flex-wrap:wrap; padding:0.85rem 0.95rem; border-radius:14px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);">
+            <li style="display:flex; justify-content:space-between; gap:1rem; align-items:center; flex-wrap:wrap; padding:0.85rem 0.95rem; border-radius:14px; background:rgba(var(--fg-rgb), 0.03); border:1px solid rgba(var(--fg-rgb), 0.06);">
               <span style="display:block; min-width: 220px;">
                 <strong><%= atleta.nome %></strong><br>
                 <small><%= modalidadesAtleta.join(', ') %> · <%= atleta.dataNascimento || '-' %></small><br>
@@ -51,8 +51,8 @@
   <% } else { %>
     <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:0.85rem; margin-top:1rem;">
       <% (campi || []).forEach((campus) => { %>
-        <a href="/admin/laudos?campus=<%= encodeURIComponent(campus.nome) %>" style="text-decoration:none; padding:1rem; border-radius:16px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); color:#fff; transition:0.2s ease;">
-          <div style="color:#ece42d; font-size:0.78rem; font-weight:800; letter-spacing:0.12em; text-transform:uppercase; margin-bottom:0.25rem;">Campus</div>
+        <a href="/admin/laudos?campus=<%= encodeURIComponent(campus.nome) %>" style="text-decoration:none; padding:1rem; border-radius:16px; background:rgba(var(--fg-rgb), 0.04); border:1px solid rgba(var(--fg-rgb), 0.08); color: var(--text); transition:0.2s ease;">
+          <div style="color:var(--accent); font-size:0.78rem; font-weight:800; letter-spacing:0.12em; text-transform:uppercase; margin-bottom:0.25rem;">Campus</div>
           <div style="font-size:1.05rem; font-weight:700;"><%= campus.nomeExibicao %></div>
         </a>
       <% }) %>

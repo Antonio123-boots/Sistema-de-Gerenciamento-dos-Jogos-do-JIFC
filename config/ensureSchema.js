@@ -436,11 +436,20 @@ async function ensureBoletinsTable() {
       resumo_json JSON DEFAULT NULL,
       modalidades_json JSON DEFAULT NULL,
       ranking_json JSON DEFAULT NULL,
+      completo_json LONGTEXT DEFAULT NULL,
       criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       UNIQUE KEY uq_ano_jifc (ano_jifc)
     )
   `);
+
+  try {
+    await pool.query('ALTER TABLE boletins_finais ADD COLUMN completo_json LONGTEXT DEFAULT NULL');
+  } catch (error) {
+    if (!error || error.code !== 'ER_DUP_FIELDNAME') {
+      throw error;
+    }
+  }
 }
 
 async function ensureRascunhoEdicoesTable() {

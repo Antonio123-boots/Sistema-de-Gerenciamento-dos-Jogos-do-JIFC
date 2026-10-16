@@ -13,7 +13,7 @@
   gap: 1rem;
   padding-top: 1rem;
   margin-top: 2rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid rgba(var(--fg-rgb), 0.05);
 }
 
 .modern-config-form .premium-action-btn {
@@ -32,8 +32,8 @@
   gap: 1rem;
   padding: 1rem;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(var(--fg-rgb), 0.03);
+  border: 1px solid rgba(var(--fg-rgb), 0.08);
 }
 
 .campus-list-item__actions {

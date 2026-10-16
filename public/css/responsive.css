@@ -158,9 +158,9 @@ table th,
         padding: 0.7rem 0.95rem;
         margin-bottom: 0.75rem;
         border-radius: 12px;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(236, 228, 45, 0.2);
-        color: #fff;
+        background: rgba(var(--fg-rgb), 0.05);
+        border: 1px solid rgba(var(--accent-rgb), 0.2);
+        color: var(--text);
         cursor: pointer;
         list-style: none;
         user-select: none;
@@ -179,7 +179,7 @@ table th,
         letter-spacing: 0.06em;
         font-size: 0.85rem;
         font-weight: 800;
-        color: #ece42d;
+        color: var(--accent);
     }
 
     .painel-jogos__dica {
@@ -188,7 +188,7 @@ table th,
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.08em;
-        color: rgba(255, 255, 255, 0.45);
+        color: rgba(var(--fg-rgb), 0.45);
     }
 
     .painel-jogos__dica::after {
@@ -201,7 +201,7 @@ table th,
 
     .painel-jogos__seta {
         font-size: 0.85rem;
-        color: #ece42d;
+        color: var(--accent);
         transition: transform 0.2s ease;
     }
 

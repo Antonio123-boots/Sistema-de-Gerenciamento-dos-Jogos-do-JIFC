@@ -19,7 +19,7 @@
         <% if (fotoPerfil) { %>
           <img src="<%= fotoPerfil %>" alt="Foto de perfil" class="institution-img institution-avatar-image campus-photo campus-photo--xl campus-photo--real">
         <% } else { %>
-          <div class="institution-img institution-logo" style="--campus-color: <%= campusVisual && campusVisual.cor ? campusVisual.cor : '#ece42d' %>"><%= logoCampus %></div>
+          <div class="institution-img institution-logo" style="--campus-color: <%= campusVisual && campusVisual.cor ? campusVisual.cor : 'var(--accent)' %>"><%= logoCampus %></div>
         <% } %>
       </div>
       
@@ -34,12 +34,12 @@
         <% if (!publicMode && isLoggedIn) { %>
           <% if (viewer.tipo) { %>
             <% if (typeof mensagemErro !== 'undefined' && mensagemErro) { %>
-              <div style="background: rgba(255, 77, 77, 0.1); border: 1px solid #ff4d4d; color: #ff4d4d; padding: 0.8rem 0.9rem; border-radius: 10px; margin: 0.8rem 0 1rem; font-weight: 600;">
+              <div class="auto-dismiss" style="background: rgba(255, 77, 77, 0.1); border: 1px solid #ff4d4d; color: #ff4d4d; padding: 0.8rem 0.9rem; border-radius: 10px; margin: 0.8rem 0 1rem; font-weight: 600;">
                 <%= mensagemErro %>
               </div>
             <% } %>
             <% if (typeof mensagemSucesso !== 'undefined' && mensagemSucesso) { %>
-              <div style="background: rgba(0, 255, 136, 0.1); border: 1px solid #00ff88; color: #00ff88; padding: 0.8rem 0.9rem; border-radius: 10px; margin: 0.8rem 0 1rem; font-weight: 600;">
+              <div class="auto-dismiss" style="background: rgba(0, 255, 136, 0.1); border: 1px solid #00ff88; color: #00ff88; padding: 0.8rem 0.9rem; border-radius: 10px; margin: 0.8rem 0 1rem; font-weight: 600;">
                 <%= mensagemSucesso %>
               </div>
             <% } %>
@@ -82,7 +82,7 @@
                     <div class="profile-photo-picker" style="display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center;">
                       <input type="file" id="fotoPerfilInput" accept="image/*" class="hidden-input-state">
                       <label for="fotoPerfilInput" class="premium-upload-btn">Escolher foto</label>
-                      <button type="button" id="removerFotoBtn" class="premium-upload-btn" style="background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.16);">Remover foto</button>
+                      <button type="button" id="removerFotoBtn" class="premium-upload-btn" style="background: rgba(var(--fg-rgb), 0.08); border-color: rgba(var(--fg-rgb), 0.16);">Remover foto</button>
                     </div>
                   </label>
                 </div>
@@ -196,6 +196,24 @@
     <% if (!publicMode && viewer.tipo === 'admin') { %>
       <nav class="admin-actions-zone" aria-label="Gestão do evento">
         <h2>JIFC</h2>
+
+        <% if (typeof statusJifcEncerrado !== 'undefined' && statusJifcEncerrado && typeof edicaoAnoAtualJaSalva !== 'undefined' && !edicaoAnoAtualJaSalva) { %>
+          <section class="panel-card" style="margin: 0 0 0.8rem 0; border:1px solid rgba(var(--accent-rgb), 0.35); background:rgba(var(--accent-rgb), 0.08);">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.8rem; padding:0.8rem 1rem;">
+              <div>
+                <div style="font-weight:800; color: var(--text); font-size:0.92rem;">O JIFC <%= typeof anoJifcAtual !== 'undefined' ? anoJifcAtual : (typeof anoJifc !== 'undefined' ? anoJifc : '') %> foi finalizado!</div>
+                <div style="font-size:0.78rem; color:var(--text-muted); margin-top:0.2rem;">Deseja salvar esta edição em «Edições anteriores»? O campeonato fica disponível para consulta pelos anos.</div>
+              </div>
+              <form action="/admin/edicoes/salvar-ano-atual" method="POST">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="ano_jifc" value="<%= typeof anoJifcAtual !== 'undefined' ? anoJifcAtual : (typeof anoJifc !== 'undefined' ? anoJifc : '') %>">
+                <input type="hidden" name="redirect" value="/perfil">
+                <button type="submit" class="btn btn-primary" style="font-size:0.78rem; font-weight:800; padding:0.55rem 1rem;">Salvar JIFC <%= typeof anoJifcAtual !== 'undefined' ? anoJifcAtual : (typeof anoJifc !== 'undefined' ? anoJifc : '') %></button>
+              </form>
+            </div>
+          </section>
+        <% } %>
+
         <div class="admin-nav-grid">
           <a class="admin-nav-card" href="/admin/configurar">JIFC <%= typeof anoJifc !== 'undefined' ? anoJifc : '2026' %></a>
           <a class="admin-nav-card" href="/admin/chaveamento">Chaveamento</a>
@@ -229,10 +247,10 @@
           }
 
           .compact-panel {
-            background: rgba(255, 255, 255, 0.02);
+            background: rgba(var(--fg-rgb), 0.02);
             padding: 1.1rem;
             border-radius: 16px;
-            border: 1px solid rgba(236, 228, 45, 0.1);
+            border: 1px solid rgba(var(--accent-rgb), 0.1);
           }
 
           .scroll-list {
@@ -250,16 +268,16 @@
           .day-chip {
             padding: 0.55rem 0.8rem;
             border-radius: 999px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: rgba(255, 255, 255, 0.82);
+            border: 1px solid rgba(var(--fg-rgb), 0.1);
+            color: rgba(var(--fg-rgb), 0.82);
             text-decoration: none;
-            background: rgba(255, 255, 255, 0.03);
+            background: rgba(var(--fg-rgb), 0.03);
           }
 
           .day-chip.is-active {
-            background: rgba(236, 228, 45, 0.16);
-            border-color: rgba(236, 228, 45, 0.45);
-            color: #ece42d;
+            background: rgba(var(--accent-rgb), 0.16);
+            border-color: rgba(var(--accent-rgb), 0.45);
+            color: var(--accent);
           }
 
           @media (max-width: 900px) {
@@ -270,9 +288,9 @@
         </style>
 
         <% if (!publicMode && viewer && viewer.tipo === 'campus') { %>
-          <div style="margin-top: 0.5rem; margin-bottom: 1rem; padding: 1rem 1.1rem; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.05); background: rgba(255, 255, 255, 0.02);">
-            <h3 style="color: #ffffff; margin: 0 0 0.6rem; font-size: 1.05rem;">Painel do Competidor</h3>
-            <p style="color: rgba(255,255,255,0.6); font-size: 0.9rem; margin: 0 0 1rem;">Gerencie a participação do seu campus nas Olimpíadas Institucionais.</p>
+          <div style="margin-top: 0.5rem; margin-bottom: 1rem; padding: 1rem 1.1rem; border-radius: 16px; border: 1px solid rgba(var(--fg-rgb), 0.05); background: rgba(var(--fg-rgb), 0.02);">
+            <h3 style="color: varcolor: var(--text); margin: 0 0 0.6rem; font-size: 1.05rem;">Painel do Competidor</h3>
+            <p style="color: rgba(var(--fg-rgb), 0.6); font-size: 0.9rem; margin: 0 0 1rem;">Gerencie a participação do seu campus nas Olimpíadas Institucionais.</p>
             <a href="/campus/inscricoes" class="btn btn-primary btn-cta-jifc" style="display: block; text-align: center; text-decoration: none;">Acessar JIFC <%= typeof anoJifc !== 'undefined' ? anoJifc : '2026' %></a>
           </div>
         <% } %>
@@ -280,8 +298,8 @@
         <div class="campus-panel-grid" style="margin-top: 1rem;">
           <div class="compact-panel">
           <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.85rem;">
-            <h3 style="color: #ffffff; margin: 0; font-size: 1.05rem;">Jogos do campus</h3>
-            <span style="color: rgba(255,255,255,0.65); font-size: 0.92rem;">Selecione um dia para ver os confrontos</span>
+            <h3 style="color: varcolor: var(--text); margin: 0; font-size: 1.05rem;">Jogos do campus</h3>
+            <span style="color: rgba(var(--fg-rgb), 0.65); font-size: 0.92rem;">Selecione um dia para ver os confrontos</span>
           </div>
 
           <% if (diasJogosCampus && diasJogosCampus.length) { %>
@@ -353,7 +371,7 @@
                 %>
                 <li class="data-item">
                   <div class="item-info">
-                    <strong class="item-name"><%= nomeModalidadeItem %><% if (generoModalidadeItem) { %> <span style="font-size:0.65rem; font-weight:700; margin-left:0.3rem; padding:0.12rem 0.45rem; border-radius:999px; background:rgba(236,228,45,0.16); color:#ece42d; text-transform:uppercase; vertical-align:middle;"><%= generoModalidadeItem %></span><% } %></strong>
+                    <strong class="item-name"><%= nomeModalidadeItem %><% if (generoModalidadeItem) { %> <span style="font-size:0.65rem; font-weight:700; margin-left:0.3rem; padding:0.12rem 0.45rem; border-radius:999px; background:rgba(var(--accent-rgb), 0.16); color:var(--accent); text-transform:uppercase; vertical-align:middle;"><%= generoModalidadeItem %></span><% } %></strong>
                   </div>
                 </li>
               <% }) %>

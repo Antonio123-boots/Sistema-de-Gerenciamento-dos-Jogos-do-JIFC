@@ -3,7 +3,7 @@
         <h1>Entrar</h1>
 
         <% if (typeof erro !== 'undefined' && erro) { %>
-            <p class="login-error"><%= erro %></p>
+            <p class="login-error auto-dismiss"><%= erro %></p>
         <% } %>
 
         <form action="/auth/login" method="POST" class="login-form">

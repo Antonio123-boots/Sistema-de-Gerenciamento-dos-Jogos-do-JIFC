@@ -212,6 +212,22 @@ async function obterBoletimPorAno(anoJifc) {
   return linhas[0] || null;
 }
 
+async function montarSnapshotCompleto(ano) {
+  try {
+    const edicaoService = require('./edicaoService');
+    const capturar = edicaoService.capturarEdicaoAtual;
+    if (typeof capturar === 'function') {
+      const dados = await capturar(ano, { incluirNaoPublicados: true });
+      if (dados && typeof dados === 'object') {
+        return dados;
+      }
+    }
+  } catch (error) {
+    console.error('Aviso: não foi possível montar o snapshot completo do boletim:', error.message);
+  }
+  return null;
+}
+
 async function gerarBoletimFinal(anoJifc) {
   const ano = Number(anoJifc || new Date().getFullYear());
   const statusJifc = await obterStatusJifc();
@@ -274,36 +290,84 @@ async function gerarBoletimFinal(anoJifc) {
     dataGeracao: new Date().toISOString().slice(0, 10)
   });
 
+  const snapshotCompleto = await montarSnapshotCompleto(ano);
+  const completoJson = snapshotCompleto ? JSON.stringify(snapshotCompleto) : null;
+
   const [existente] = await db.query('SELECT id FROM boletins_finais WHERE ano_jifc = ?', [ano]);
   if (existente && existente.length) {
     await db.query(
       `UPDATE boletins_finais
-       SET resumo_json = ?, modalidades_json = ?, ranking_json = ?, atualizado_em = NOW()
+       SET resumo_json = ?, modalidades_json = ?, ranking_json = ?, completo_json = ?, atualizado_em = NOW()
        WHERE ano_jifc = ?`,
-      [JSON.stringify(resumo), JSON.stringify(resumo.modalidades), JSON.stringify(resumo.ranking), ano]
+      [JSON.stringify(resumo), JSON.stringify(resumo.modalidades), JSON.stringify(resumo.ranking), completoJson, ano]
     );
-    return { ...resumo, id: existente[0].id, atualizado: true };
+    return { ...resumo, id: existente[0].id, atualizado: true, completo: Boolean(snapshotCompleto) };
   }
 
   const [resultado] = await db.query(
     `INSERT INTO boletins_finais
-      (ano_jifc, resumo_json, modalidades_json, ranking_json, criado_em)
-     VALUES (?, ?, ?, ?, NOW())`,
-    [ano, JSON.stringify(resumo), JSON.stringify(resumo.modalidades), JSON.stringify(resumo.ranking)]
+      (ano_jifc, resumo_json, modalidades_json, ranking_json, completo_json, criado_em)
+     VALUES (?, ?, ?, ?, ?, NOW())`,
+    [ano, JSON.stringify(resumo), JSON.stringify(resumo.modalidades), JSON.stringify(resumo.ranking), completoJson]
   );
 
-  return { ...resumo, id: resultado.insertId, atualizado: false };
+  return { ...resumo, id: resultado.insertId, atualizado: false, completo: Boolean(snapshotCompleto) };
+}
+
+function parseJsonSeguro(valor, fallback) {
+  if (valor === null || valor === undefined || valor === '') return fallback;
+  if (typeof valor === 'object') return valor;
+  try {
+    return JSON.parse(valor);
+  } catch (_) {
+    return fallback;
+  }
+}
+
+async function obterBoletimCompleto(anoJifc) {
+  const ano = Number(anoJifc || 0);
+  if (!ano) return null;
+
+  const boletim = await obterBoletimPorAno(ano);
+  if (!boletim) return null;
+
+  const resumo = parseJsonSeguro(boletim.resumo_json, { ano, ranking: [], modalidades: [], dataGeracao: null });
+  const ranking = parseJsonSeguro(boletim.ranking_json, resumo.ranking || []);
+  const modalidades = parseJsonSeguro(boletim.modalidades_json, resumo.modalidades || []);
+  const completo = parseJsonSeguro(boletim.completo_json, null);
+
+  return {
+    boletim,
+    ano,
+    resumo,
+    ranking,
+    modalidades,
+    completo,
+    temCompleto: Boolean(completo)
+  };
+}
+
+async function listarAnosComBoletim() {
+  const [linhas] = await db.query(`
+    SELECT ano_jifc, criado_em, atualizado_em
+    FROM boletins_finais
+    ORDER BY ano_jifc DESC
+  `);
+  return linhas || [];
 }
 
 module.exports = {
   detectarEncerramentoJifc,
   obterStatusJifc,
   montarResumoBoletim,
+  montarSnapshotCompleto,
   aplicarFinaisAoBoletim,
   aplicarPodiosIndividuais,
   aplicarClassificacoesIndividuaisAoBoletim,
   obterResultadosFinaisModalidades,
   listarBoletins,
   obterBoletimPorAno,
+  obterBoletimCompleto,
+  listarAnosComBoletim,
   gerarBoletimFinal
 };

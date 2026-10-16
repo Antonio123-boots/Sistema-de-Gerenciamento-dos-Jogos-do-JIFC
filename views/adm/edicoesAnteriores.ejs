@@ -15,10 +15,10 @@
     </div>
 
     <% if (typeof mensagemErro !== 'undefined' && mensagemErro) { %>
-      <div class="alert alert-error"><%= mensagemErro %></div>
+      <div class="alert alert-error auto-dismiss"><%= mensagemErro %></div>
     <% } %>
     <% if (typeof mensagemSucesso !== 'undefined' && mensagemSucesso) { %>
-      <div class="alert alert-success"><%= mensagemSucesso %></div>
+      <div class="alert alert-success auto-dismiss"><%= mensagemSucesso %></div>
     <% } %>
 
     <div class="admin-shell">
@@ -53,7 +53,7 @@
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <input type="hidden" name="edicao_json_texto" id="edicaoJsonTexto">
             <label class="btn btn-secondary" for="edicaoJsonInput" style="width:100%; cursor:pointer; margin-bottom:0.5rem;">Escolher arquivo .json</label>
-            <span id="edicaoJsonNome" style="display:block; font-size:0.78rem; color:rgba(255,255,255,0.62); margin-bottom:0.5rem;"></span>
+            <span id="edicaoJsonNome" style="display:block; font-size:0.78rem; color:rgba(var(--fg-rgb), 0.62); margin-bottom:0.5rem;"></span>
             <input type="file" id="edicaoJsonInput" accept=".json,application/json" style="display:none;">
             <button type="submit" class="btn btn-primary" style="width:100%;" id="edicaoImportarBtn" disabled>Importar edição</button>
           </form>
@@ -73,7 +73,7 @@
             <div class="management-list-item">
               <div class="management-list-item__meta">
                 <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
-                  <strong style="color:#ece42d; font-size:1.05rem;">JIFC <%= edicao.ano %></strong>
+                  <strong style="color:var(--accent); font-size:1.05rem;">JIFC <%= edicao.ano %></strong>
                   <% if (edicao.origem === 'importada') { %>
                     <span class="status-tag" style="background:rgba(91,143,249,0.16); color:#8fb8ff; font-size:0.7rem; padding:0.2rem 0.55rem;">Importada</span>
                   <% } else { %>

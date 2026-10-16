@@ -1,0 +1,12 @@
+<section class="panel-card">
+    <%- include('partials/boletimConteudo', {
+        resumo,
+        ranking,
+        modalidades,
+        completo: (typeof completo !== 'undefined' ? completo : null),
+        boletim,
+        mostrarImprimir: true,
+        voltarHref: '/boletim',
+        voltarLabel: 'Voltar aos boletins'
+    }) %>
+</section>

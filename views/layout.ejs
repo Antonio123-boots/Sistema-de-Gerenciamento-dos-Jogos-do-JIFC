@@ -5,13 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#1c1d3b">
     <title>JIFC - Jogos Internos</title>
-    <link rel="stylesheet" href="/css/geral.css?v=20">
-    <link rel="stylesheet" href="/css/login.css">
-    <link rel="stylesheet" href="/css/perfil.css">
-    <link rel="stylesheet" href="/css/cadastroCampus.css">
-    <link rel="stylesheet" href="/css/banirCampus.css">
-    <link rel="stylesheet" href="/css/chaveamento.css">
-    <link rel="stylesheet" href="/css/responsive.css?v=6">
+    <script>
+        (function () {
+            var t = 'navy';
+            try { t = localStorage.getItem('jifc-theme') || 'navy'; } catch (e) {}
+            if (t !== 'navy' && t !== 'dark' && t !== 'light') t = 'navy';
+            document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
+    <link rel="stylesheet" href="/css/themes.css?v=6">
+    <link rel="stylesheet" href="/css/geral.css?v=24">
+    <link rel="stylesheet" href="/css/login.css?v=2">
+    <link rel="stylesheet" href="/css/perfil.css?v=2">
+    <link rel="stylesheet" href="/css/cadastroCampus.css?v=2">
+    <link rel="stylesheet" href="/css/banirCampus.css?v=2">
+    <link rel="stylesheet" href="/css/chaveamento.css?v=2">
+    <link rel="stylesheet" href="/css/boletim.css?v=1">
+    <link rel="stylesheet" href="/css/responsive.css?v=7">
 </head>
 <body>
 
@@ -23,16 +33,17 @@
                 </div>
                 <div class="nav-buttons">
                     <a href="/equipes" class="nav-btn">EQUIPES</a>
+                    <a href="/boletim" class="nav-btn">BOLETINS</a>
                     <% if (typeof usuarioLogado !== 'undefined' && usuarioLogado && usuarioLogado.tipo === 'admin') { %>
                         <a href="/admin/edicoes/nova" class="nav-btn" title="Cadastrar edição anterior"
-                           style="background:#2b3a67; color:#e9c46a; border-radius:8px; line-height:1; display:inline-flex; align-items:center;">
+                           style="background:var(--surface-2); color:var(--accent); border-radius:8px; line-height:1; display:inline-flex; align-items:center;">
                             <span style="font-size:1.05rem; font-weight:800; margin-right:0.35rem;">+</span>
                             <span style="font-size:0.68rem; letter-spacing:0.04em;">EDIÇÃO ANTERIOR</span>
                         </a>
                     <% } %>
                     <% if (typeof edicoesAnteriores !== 'undefined' && Array.isArray(edicoesAnteriores) && edicoesAnteriores.length) { %>
                         <select id="seletor-ano-edicao" onchange="window.location.href = this.value;"
-                            style="background:#1c1d3b; color:#8fa3ad; border:1px solid rgba(255,255,255,0.15); border-radius:8px; padding:0.34rem 0.7rem; font-size:0.7rem; font-weight:800; letter-spacing:0.06em; text-transform:uppercase; cursor:pointer; outline:none; font-family:inherit;">
+                            style="background:var(--bg); color:var(--text-muted); border:1px solid rgba(var(--fg-rgb), 0.15); border-radius:8px; padding:0.34rem 0.7rem; font-size:0.7rem; font-weight:800; letter-spacing:0.06em; text-transform:uppercase; cursor:pointer; outline:none; font-family:inherit;">
                             <option value="/" <%= (typeof anoSelecionadoUnico === 'undefined' || !anoSelecionadoUnico) ? 'selected' : '' %>>JIFC <%= typeof anoAtualJifc !== 'undefined' ? anoAtualJifc : '' %></option>
                             <% edicoesAnteriores.forEach((ed) => { %>
                                 <option value="/?ano=<%= ed.ano %>" <%= (typeof anoSelecionadoUnico !== 'undefined' && anoSelecionadoUnico === ed.ano) ? 'selected' : '' %>><%= ed.titulo %></option>
@@ -51,6 +62,28 @@
                 </div>
             </div>
             <div class="menu-right">
+                <div class="theme-switcher">
+                    <button type="button" id="theme-palette-btn" class="nav-btn theme-palette-btn" title="Mudar tema de cores" aria-label="Mudar tema de cores" aria-haspopup="true" aria-expanded="false">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M12 3a9 9 0 0 0 0 18h1.2a1.8 1.8 0 0 0 1.2-3.1c-.7-.7-.3-1.9.7-1.9H17A4 4 0 0 0 21 12a9 9 0 0 0-9-9Z"></path>
+                            <circle cx="7.5" cy="11.5" r="1"></circle>
+                            <circle cx="10" cy="7.5" r="1"></circle>
+                            <circle cx="15" cy="7.5" r="1"></circle>
+                            <circle cx="17.5" cy="11" r="1"></circle>
+                        </svg>
+                    </button>
+                    <div class="theme-dropdown" id="theme-dropdown" role="menu" aria-label="Temas de cores" hidden>
+                        <button type="button" class="theme-option" role="menuitemradio" data-theme-choice="navy">
+                            <span class="theme-swatch" style="background:#1c1d3b; box-shadow: inset 0 0 0 2px #ece42d;"></span> Azul Marinho
+                        </button>
+                        <button type="button" class="theme-option" role="menuitemradio" data-theme-choice="dark">
+                            <span class="theme-swatch" style="background:#000000; box-shadow: inset 0 0 0 2px #21f8f6;"></span> Preto
+                        </button>
+                        <button type="button" class="theme-option" role="menuitemradio" data-theme-choice="light">
+                            <span class="theme-swatch" style="background:#ffffff; box-shadow: inset 0 0 0 2px #000000;"></span> Branco
+                        </button>
+                    </div>
+                </div>
                 <% if (typeof usuarioLogado !== 'undefined' && usuarioLogado) { %>
                     <% const avatarLayout = usuarioLogado.fotoPerfil || '/imagens/avatar.svg'; %>
                     <% const avatarReal = !!((usuarioLogado.fotoPerfil || '') && (usuarioLogado.fotoPerfil || '') !== '/imagens/avatar.svg'); %>
@@ -281,6 +314,103 @@
             } else {
                 centralizarItemAtivo();
             }
+        })();
+
+        /* ==========================================================
+           AUTO-DISMISS DE MENSAGENS (ERRO / SUCESSO)
+           - Toda mensagem marcada com a classe .auto-dismiss some
+             sozinha apos ~5 segundos (com fade), sem precisar recarregar
+           ========================================================== */
+        (function () {
+            var DURACAO_VISIVEL = 5000;
+            var DURACAO_FADE = 400;
+
+            function agendarRemocao(el) {
+                if (!el || el.dataset.autoDismissAgendado === '1') return;
+                el.dataset.autoDismissAgendado = '1';
+                window.setTimeout(function () {
+                    el.style.transition = 'opacity ' + DURACAO_FADE + 'ms ease';
+                    el.style.opacity = '0';
+                    window.setTimeout(function () {
+                        el.style.display = 'none';
+                    }, DURACAO_FADE);
+                }, DURACAO_VISIVEL);
+            }
+
+            function iniciarAutoDismiss() {
+                document.querySelectorAll('.auto-dismiss').forEach(agendarRemocao);
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', iniciarAutoDismiss);
+            } else {
+                iniciarAutoDismiss();
+            }
+        })();
+    </script>
+
+    <script>
+        (function () {
+            var META_CORES = { navy: '#1c1d3b', dark: '#000000', light: '#eef0f3' };
+            var btn = document.getElementById('theme-palette-btn');
+            var dropdown = document.getElementById('theme-dropdown');
+            if (!btn || !dropdown) return;
+
+            function temaAtual() {
+                return document.documentElement.getAttribute('data-theme') || 'navy';
+            }
+
+            function sincronizarMeta() {
+                var meta = document.querySelector('meta[name="theme-color"]');
+                if (meta) meta.setAttribute('content', META_CORES[temaAtual()] || META_CORES.navy);
+            }
+
+            function marcarOpcaoAtiva() {
+                dropdown.querySelectorAll('.theme-option').forEach(function (op) {
+                    op.setAttribute('aria-checked', String(op.getAttribute('data-theme-choice') === temaAtual()));
+                });
+            }
+
+            function fecharDropdown() {
+                dropdown.hidden = true;
+                btn.setAttribute('aria-expanded', 'false');
+            }
+
+            btn.addEventListener('click', function (evento) {
+                evento.stopPropagation();
+                var abrir = dropdown.hidden;
+                dropdown.hidden = !abrir;
+                btn.setAttribute('aria-expanded', String(abrir));
+            });
+
+            dropdown.addEventListener('click', function (evento) {
+                var opcao = evento.target.closest('.theme-option');
+                if (!opcao) return;
+                var escolhido = opcao.getAttribute('data-theme-choice');
+                var raiz = document.documentElement;
+                raiz.classList.add('theme-anim');
+                void raiz.offsetWidth;
+                window.clearTimeout(window.__jifcThemeTimer);
+                window.__jifcThemeTimer = window.setTimeout(function () {
+                    raiz.classList.remove('theme-anim');
+                }, 500);
+                raiz.setAttribute('data-theme', escolhido);
+                try { localStorage.setItem('jifc-theme', escolhido); } catch (e) {}
+                sincronizarMeta();
+                marcarOpcaoAtiva();
+                fecharDropdown();
+            });
+
+            document.addEventListener('click', function () {
+                if (!dropdown.hidden) fecharDropdown();
+            });
+
+            document.addEventListener('keydown', function (evento) {
+                if (evento.key === 'Escape' && !dropdown.hidden) fecharDropdown();
+            });
+
+            sincronizarMeta();
+            marcarOpcaoAtiva();
         })();
     </script>
 

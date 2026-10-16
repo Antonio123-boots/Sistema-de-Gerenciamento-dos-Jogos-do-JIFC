@@ -6,10 +6,10 @@
     </div>
 
     <% if (mensagemSucesso) { %>
-      <div class="alert alert-success"><%= mensagemSucesso %></div>
+      <div class="alert alert-success auto-dismiss"><%= mensagemSucesso %></div>
     <% } %>
     <% if (mensagemErro) { %>
-      <div class="alert alert-error"><%= mensagemErro %></div>
+      <div class="alert alert-error auto-dismiss"><%= mensagemErro %></div>
     <% } %>
 
     <div style="display:flex; justify-content:flex-end; margin-bottom:1.5rem;">
@@ -26,11 +26,11 @@
               <img src="<%= juiz.foto_perfil || '/imagens/avatar.svg' %>" alt="<%= juiz.nome %>" class="campus-photo campus-photo--md <%= (juiz.foto_perfil && juiz.foto_perfil !== '/imagens/avatar.svg') ? 'campus-photo--real' : 'campus-photo--default' %>">
               <div style="min-width:0;">
                 <h3 style="font-size:1rem; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= juiz.nome %></h3>
-                <p style="margin:0.15rem 0 0; font-size:0.82rem; color:rgba(255,255,255,0.55); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= juiz.email %></p>
+                <p style="margin:0.15rem 0 0; font-size:0.82rem; color:rgba(var(--fg-rgb), 0.55); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= juiz.email %></p>
                 <% if (juiz.esportes && juiz.esportes.length) { %>
                   <div style="display:flex; gap:0.35rem; margin-top:0.4rem; flex-wrap:wrap;">
                     <% juiz.esportes.forEach((esp) => { %>
-                      <span style="font-size:0.72rem; background:rgba(236,228,45,0.15); color:#ece42d; padding:0.2rem 0.55rem; border-radius:6px; white-space:nowrap;"><%= esp %></span>
+                      <span style="font-size:0.72rem; background:rgba(var(--accent-rgb), 0.15); color:var(--accent); padding:0.2rem 0.55rem; border-radius:6px; white-space:nowrap;"><%= esp %></span>
                     <% }) %>
                   </div>
                 <% } %>

@@ -14,7 +14,7 @@
   background: rgba(15, 16, 22, 0.72);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(var(--fg-rgb), 0.09);
   border-radius: 20px;
   padding: 2.4rem 2rem;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
@@ -37,28 +37,28 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(var(--fg-rgb), 0.65);
   margin-top: 0.55rem;
 }
 
 .login-form input {
   padding: 0.85rem 1rem;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.05);
-  color: #fff;
+  border: 1px solid rgba(var(--fg-rgb), 0.12);
+  background: rgba(var(--fg-rgb), 0.05);
+  color: var(--text);
   font-size: 1rem;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .login-form input::placeholder {
-  color: rgba(255, 255, 255, 0.28);
+  color: rgba(var(--fg-rgb), 0.28);
 }
 
 .login-form input:focus {
   outline: none;
-  border-color: #ece42d;
-  box-shadow: 0 0 0 3px rgba(236, 228, 45, 0.18);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
 }
 
 .login-form .btn.btn-primary {

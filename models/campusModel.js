@@ -652,6 +652,61 @@ function getQuantidadeDisponivelRegular(campusNome, limiteRegularTotalCampus) {
   return Math.max(limite - getQuantidadeTotal(campusNome), 0);
 }
 
+async function buscarModalidadeParaLimite(nomeModalidade) {
+  const nome = normalizarNomeModalidadeParaBanco(nomeModalidade);
+  if (!nome) {
+    return null;
+  }
+
+  const nomeBase = nome.replace(/\s+(Masculino|Feminino)$/i, '').trim();
+  const genero = inferirGeneroModalidade(nome);
+
+  const [linhas] = await db.query(
+    `SELECT id, limite_inscritos FROM modalidades
+     WHERE genero = ? AND (nome = ? OR nome = ?)
+     ORDER BY (nome = ?) DESC, id ASC
+     LIMIT 1`,
+    [genero, nome, nomeBase, nome]
+  );
+
+  return linhas[0] || null;
+}
+
+async function validarLimiteModalidadeCampus({ campusId, modalidadesSelecionadas = [], atletaIdExcluir = null }) {
+  if (!campusId) {
+    return;
+  }
+
+  for (const modalidade of normalizarModalidades(modalidadesSelecionadas)) {
+    const modalidadeBanco = await buscarModalidadeParaLimite(modalidade);
+    const limite = Number(modalidadeBanco?.limite_inscritos || 0);
+
+    if (!modalidadeBanco || !Number.isFinite(limite) || limite <= 0) {
+      continue;
+    }
+
+    const params = [modalidadeBanco.id, campusId];
+    let sql = `SELECT COUNT(*) AS total
+               FROM atleta_modalidade am
+               JOIN atletas a ON a.id = am.atleta_id
+               WHERE am.modalidade_id = ? AND a.campus_id = ? AND a.status <> 'Reprovado'`;
+
+    if (atletaIdExcluir) {
+      sql += ' AND a.id <> ?';
+      params.push(Number(atletaIdExcluir));
+    }
+
+    const [linhas] = await db.query(sql, params);
+    const total = Number(linhas[0]?.total || 0);
+
+    if (total >= limite) {
+      const erro = new Error(`Você já atingiu o limite de inscritos em ${modalidade}`);
+      erro.code = 'LIMITE_MODALIDADE_EXCEDIDO';
+      throw erro;
+    }
+  }
+}
+
 /* =====================================================================
    Escritas (MySQL + atualização do cache)
    ===================================================================== */
@@ -766,6 +821,8 @@ async function cadastrarAtleta(campusNome, dados, opcoes = {}) {
     throw erro;
   }
 
+  await validarLimiteModalidadeCampus({ campusId, modalidadesSelecionadas });
+
   const atleta = {
     nome: nomeCompleto,
     matricula: matriculaNormalizada,
@@ -824,6 +881,8 @@ async function atualizarAtleta(atletaId, campusNome, dados, opcoes = {}) {
     erro.code = 'CAMPUS_NAO_ENCONTRADO';
     throw erro;
   }
+
+  await validarLimiteModalidadeCampus({ campusId, modalidadesSelecionadas, atletaIdExcluir: Number(atletaId) });
 
   await sincronizarAtletaNoBanco(campusId, {
     nome: nomeCompleto,
@@ -923,6 +982,15 @@ async function substituirAtleta(campusNome, dados) {
     erro.code = 'CAMPUS_NAO_ENCONTRADO';
     throw erro;
   }
+
+  const atletaExistente = cache.atletasCampus.find(
+    (item) => item.campus === campusNome && normalizarMatricula(item.matricula) === matricula
+  );
+  await validarLimiteModalidadeCampus({
+    campusId,
+    modalidadesSelecionadas,
+    atletaIdExcluir: atletaExistente ? Number(atletaExistente.id) : null
+  });
 
   const atleta = {
     nome: nomeCompleto,

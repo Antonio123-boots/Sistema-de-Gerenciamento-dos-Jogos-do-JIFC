@@ -1,5 +1,12 @@
 const assert = require('node:assert/strict');
-const { detectarEncerramentoJifc, montarResumoBoletim, aplicarFinaisAoBoletim, aplicarPodiosIndividuais } = require('../services/boletimService');
+const {
+  detectarEncerramentoJifc,
+  montarResumoBoletim,
+  aplicarFinaisAoBoletim,
+  aplicarPodiosIndividuais,
+  obterBoletimCompleto,
+  listarAnosComBoletim
+} = require('../services/boletimService');
 
 const encerrado = detectarEncerramentoJifc({
   totalJogos: 12,
@@ -86,4 +93,15 @@ assert.deepEqual(podiosIndividualizados.map((item) => [item.campeao, item.vice])
   ['Campus G', 'Campus H']
 ]);
 
-console.log('Teste de boletim final concluído com sucesso.');
+assert.equal(typeof obterBoletimCompleto, 'function');
+assert.equal(typeof listarAnosComBoletim, 'function');
+
+(async () => {
+  const semAno = await obterBoletimCompleto(0);
+  assert.equal(semAno, null);
+
+  console.log('Teste de boletim final concluído com sucesso.');
+})().catch((erro) => {
+  console.error('Falha no teste de boletim final:', erro);
+  process.exit(1);
+});

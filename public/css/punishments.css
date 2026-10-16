@@ -14,12 +14,12 @@
 }
 
 #campusSlug {
-  color: #0f172a !important;
+  color: var(--accent-ink) !important;
   background: #ffffff !important;
 }
 
 #campusSlug option {
-  color: #0f172a !important;
+  color: var(--accent-ink) !important;
   background: #ffffff !important;
 }
 
@@ -30,15 +30,15 @@
   align-items: flex-start;
   padding: 1rem;
   border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(var(--fg-rgb), 0.12);
+  background: rgba(var(--fg-rgb), 0.04);
   cursor: pointer;
   transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
 }
 
 .punishment-option-card:hover {
-  border-color: rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(var(--fg-rgb), 0.3);
+  background: rgba(var(--fg-rgb), 0.12);
   transform: translateY(-1px);
 }
 
@@ -49,7 +49,7 @@
 
 .punishment-option-card input[type="radio"]:checked + .punishment-option-card__content {
   border-color: #f2c94c;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(var(--fg-rgb), 0.12);
 }
 
 .punishment-option-card__content {
@@ -90,10 +90,10 @@
 
 .campus-legend {
   padding: 1rem;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(var(--fg-rgb), 0.04);
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #f5f7ff;
+  border: 1px solid rgba(var(--fg-rgb), 0.08);
+  color: varcolor: var(--text);
 }
 
 @media (max-width: 900px) {

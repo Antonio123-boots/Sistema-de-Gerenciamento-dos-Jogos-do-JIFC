@@ -6,7 +6,7 @@
     </div>
 
     <% if (mensagemErro) { %>
-      <div class="alert alert-error"><%= mensagemErro %></div>
+      <div class="alert alert-error auto-dismiss"><%= mensagemErro %></div>
     <% } %>
 
     <form action="<%= juizEdicao ? '/admin/juizes/editar/' + juizEdicao.id : '/admin/juizes/cadastrar' %>" method="POST" class="modern-config-form">
@@ -60,12 +60,12 @@
             </label>
           </div>
         <% } else { %>
-          <p style="font-size:0.85rem; color:rgba(255,255,255,0.5); margin:0;">Nenhuma modalidade cadastrada no sistema.</p>
+          <p style="font-size:0.85rem; color:rgba(var(--fg-rgb), 0.5); margin:0;">Nenhuma modalidade cadastrada no sistema.</p>
         <% } %>
       </div>
 
       <div class="config-submit-bar" style="justify-content:space-between; gap:1rem;">
-        <a href="/admin/juizes" class="premium-action-btn" style="background:rgba(255,255,255,0.12); color:#f8fafc; text-decoration:none;">
+        <a href="/admin/juizes" class="premium-action-btn" style="background:rgba(var(--fg-rgb), 0.12); color:varcolor: var(--text); text-decoration:none;">
           <span>Cancelar</span>
         </a>
         <button type="submit" class="premium-action-btn primary-save-btn">
