@@ -16,8 +16,9 @@
     
     <header class="institution-header">
       <div class="institution-avatar-container">
+        <% const fotoPerfilEhPadrao = !fotoPerfil || fotoPerfil === '/imagens/avatar.svg'; %>
         <% if (fotoPerfil) { %>
-          <img src="<%= fotoPerfil %>" alt="Foto de perfil" class="institution-img institution-avatar-image campus-photo campus-photo--xl campus-photo--real">
+        <img src="<%= fotoPerfil %>" alt="Foto de perfil" class="institution-img institution-avatar-image campus-photo campus-photo--xl <%= fotoPerfilEhPadrao ? 'campus-photo--default' : 'campus-photo--real' %>">
         <% } else { %>
           <div class="institution-img institution-logo" style="--campus-color: <%= campusVisual && campusVisual.cor ? campusVisual.cor : 'var(--accent)' %>"><%= logoCampus %></div>
         <% } %>
@@ -289,7 +290,7 @@
 
         <% if (!publicMode && viewer && viewer.tipo === 'campus') { %>
           <div style="margin-top: 0.5rem; margin-bottom: 1rem; padding: 1rem 1.1rem; border-radius: 16px; border: 1px solid rgba(var(--fg-rgb), 0.05); background: rgba(var(--fg-rgb), 0.02);">
-            <h3 style="color: varcolor: var(--text); margin: 0 0 0.6rem; font-size: 1.05rem;">Painel do Competidor</h3>
+            <h3 style="color: var(--text); margin: 0 0 0.6rem; font-size: 1.05rem;">Painel do Competidor</h3>
             <p style="color: rgba(var(--fg-rgb), 0.6); font-size: 0.9rem; margin: 0 0 1rem;">Gerencie a participação do seu campus nas Olimpíadas Institucionais.</p>
             <a href="/campus/inscricoes" class="btn btn-primary btn-cta-jifc" style="display: block; text-align: center; text-decoration: none;">Acessar JIFC <%= typeof anoJifc !== 'undefined' ? anoJifc : '2026' %></a>
           </div>
@@ -298,7 +299,7 @@
         <div class="campus-panel-grid" style="margin-top: 1rem;">
           <div class="compact-panel">
           <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.85rem;">
-            <h3 style="color: varcolor: var(--text); margin: 0; font-size: 1.05rem;">Jogos do campus</h3>
+            <h3 style="color: var(--text); margin: 0; font-size: 1.05rem;">Jogos do campus</h3>
             <span style="color: rgba(var(--fg-rgb), 0.65); font-size: 0.92rem;">Selecione um dia para ver os confrontos</span>
           </div>
 

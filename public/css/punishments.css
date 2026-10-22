@@ -14,13 +14,13 @@
 }
 
 #campusSlug {
-  color: var(--accent-ink) !important;
-  background: #ffffff !important;
+  color: var(--text) !important;
+  background: var(--surface-2) !important;
 }
 
 #campusSlug option {
-  color: var(--accent-ink) !important;
-  background: #ffffff !important;
+  color: var(--text) !important;
+  background: var(--surface-2) !important;
 }
 
 .punishment-option-card {
@@ -93,7 +93,7 @@
   background: rgba(var(--fg-rgb), 0.04);
   border-radius: 16px;
   border: 1px solid rgba(var(--fg-rgb), 0.08);
-  color: varcolor: var(--text);
+  color: var(--text);
 }
 
 @media (max-width: 900px) {

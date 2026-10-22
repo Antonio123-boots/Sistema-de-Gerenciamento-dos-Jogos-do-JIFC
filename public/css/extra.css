@@ -44,7 +44,7 @@
     border-radius: 10px;
     border: 1px solid rgba(var(--fg-rgb), 0.12);
     background: rgba(var(--fg-rgb), 0.06);
-    color: varcolor: var(--text);
+    color: var(--text);
 }
 
 .form-grid input:focus,
@@ -75,7 +75,7 @@
 }
 
 .config-main-title {
-    color: varcolor: var(--text);
+    color: var(--text);
     font-size: 1.8rem;
     font-weight: 700;
     letter-spacing: -0.5px;
@@ -206,11 +206,11 @@
 .premium-text-input {
     width: 100%;
     height: 46px;
-    background: rgba(0, 0, 0, 0.25) !important;
-    border: 1px solid rgba(var(--fg-rgb), 0.12) !important;
+    background: rgba(var(--fg-rgb), 0.06) !important;
+    border: 1px solid rgba(var(--accent-rgb), 0.4) !important;
     border-radius: 8px !important;
     padding: 0 1rem !important;
-    color: varcolor: var(--text) !important;
+    color: var(--text) !important;
     font-size: 0.95rem !important;
     outline: none !important;
     transition: all 0.2s ease !important;
@@ -312,7 +312,7 @@
 
 .addition-btn {
     background: rgba(var(--fg-rgb), 0.08);
-    color: varcolor: var(--text);
+    color: var(--text);
     border: 1px solid rgba(var(--fg-rgb), 0.15);
     width: 100%;
 }

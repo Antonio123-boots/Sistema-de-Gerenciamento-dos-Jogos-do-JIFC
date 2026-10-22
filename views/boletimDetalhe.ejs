@@ -1,11 +1,10 @@
 <section class="panel-card">
     <%- include('partials/boletimConteudo', {
         resumo,
-        ranking,
         modalidades,
         completo: (typeof completo !== 'undefined' ? completo : null),
         boletim,
-        mostrarImprimir: true,
+        pdfHref: `/boletim/${resumo.ano || boletim.ano_jifc}/pdf`,
         voltarHref: '/boletim',
         voltarLabel: 'Voltar aos boletins'
     }) %>

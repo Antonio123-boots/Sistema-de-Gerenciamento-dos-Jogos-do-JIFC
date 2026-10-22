@@ -44,7 +44,7 @@
 
 .management-section-title {
   margin: 0 0 0.35rem;
-  color: varcolor: var(--text);
+  color: var(--text);
 }
 
 .management-section-subtitle {
@@ -74,7 +74,7 @@
 }
 
 .management-list-item__meta strong {
-  color: varcolor: var(--text);
+  color: var(--text);
 }
 
 .management-list-item__meta p {
@@ -131,7 +131,7 @@ fieldset.management-fieldset {
   border: 1px solid rgba(var(--fg-rgb), 0.12);
   border-radius: 18px;
   padding: 1rem;
-  color: varcolor: var(--text);
+  color: var(--text);
 }
 
 legend.management-legend {
@@ -160,7 +160,7 @@ legend.management-legend {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  color: varcolor: var(--text);
+  color: var(--text);
   font-weight: 700;
 }
 
@@ -172,7 +172,7 @@ legend.management-legend {
   border-radius: 16px;
   border: 1px solid rgba(var(--fg-rgb), 0.14);
   background: rgba(var(--fg-rgb), 0.06);
-  color: varcolor: var(--text);
+  color: var(--text);
   font-weight: 500;
 }
 

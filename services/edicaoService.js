@@ -45,6 +45,20 @@ async function capturarModalidades() {
   }));
 }
 
+async function capturarInscricoesModalidades() {
+  const [rows] = await db.query(`
+    SELECT cm.modalidade_id, cm.campus_id, c.nome_exibicao AS campus_nome
+    FROM campus_modalidade cm
+    JOIN campus c ON c.id = cm.campus_id
+    ORDER BY cm.modalidade_id ASC, c.nome_exibicao ASC
+  `);
+  return (rows || []).map((row) => ({
+    modalidadeId: row.modalidade_id,
+    campusId: row.campus_id,
+    campus: row.campus_nome || null
+  }));
+}
+
 async function capturarChaves() {
   const [rows] = await db.query('SELECT id, modalidade_id, numero_chave, nome_chave, sub_categoria FROM chaves');
   return (rows || []).map((c) => ({
@@ -235,46 +249,44 @@ async function capturarXadrez() {
   const classificacao = [];
   const campiPorGenero = [];
   for (const mod of modalidadesXadrez) {
-    try {
-      const [linhas] = await db.query(`
-         SELECT rx.atleta_id, rx.pontuacao, rx.vitorias, rx.derrotas, rx.empates, rx.publicado,
-           a.nome AS atleta_nome, a.campus_id AS campus_id,
-           COALESCE(NULLIF(c.nome_exibicao, ''), c.nome) AS campus_nome
-        FROM resultados_xadrez rx
-        JOIN atletas a ON rx.atleta_id = a.id
-        LEFT JOIN campus c ON a.campus_id = c.id
-        WHERE rx.modalidade_id = ?
-        ORDER BY rx.pontuacao DESC, rx.vitorias DESC
-      `, [mod.id]);
-      (linhas || []).forEach((linha) => {
-        classificacao.push({
-          atletaId: linha.atleta_id,
-          atleta: String(linha.atleta_nome || linha.atleta || '').trim() || null,
-          campusId: linha.campus_id || null,
-          campus: String(linha.campus_nome || '').trim() || null,
-          genero: mod.genero,
-          pontuacao: Number(linha.pontuacao || 0),
-          vitorias: Number(linha.vitorias || 0),
-          empates: Number(linha.empates || 0),
-          derrotas: Number(linha.derrotas || 0),
-          publicado: Boolean(linha.publicado)
-        });
+    const [linhas] = await db.query(`
+       SELECT rx.atleta_id, rx.pontuacao, rx.vitorias, rx.derrotas, rx.empates, rx.publicado,
+         a.nome AS atleta_nome, a.campus_id AS campus_id,
+         COALESCE(NULLIF(c.nome_exibicao, ''), c.nome) AS campus_nome
+      FROM resultados_xadrez rx
+      JOIN atletas a ON rx.atleta_id = a.id
+      LEFT JOIN campus c ON a.campus_id = c.id
+      WHERE rx.modalidade_id = ?
+      ORDER BY rx.pontuacao DESC, rx.vitorias DESC
+    `, [mod.id]);
+    (linhas || []).forEach((linha) => {
+      classificacao.push({
+        atletaId: linha.atleta_id,
+        atleta: String(linha.atleta_nome || linha.atleta || '').trim() || null,
+        campusId: linha.campus_id || null,
+        campus: String(linha.campus_nome || '').trim() || null,
+        genero: mod.genero,
+        pontuacao: Number(linha.pontuacao || 0),
+        vitorias: Number(linha.vitorias || 0),
+        empates: Number(linha.empates || 0),
+        derrotas: Number(linha.derrotas || 0),
+        publicado: Boolean(linha.publicado)
       });
+    });
 
-      const classificacaoCampi = await resultadosIndividuaisService.obterClassificacaoGeralXadrez(mod.id);
-      (classificacaoCampi || []).forEach((linha, index) => {
-        campiPorGenero.push({
-          genero: mod.genero,
-          campusId: linha.campus_id,
-          campus: String(linha.campus_nome || '').trim() || null,
-          posicao: index + 1,
-          pontos: Number(linha.pontos || 0),
-          vitorias: Number(linha.vitorias || 0),
-          derrotas: Number(linha.derrotas || 0),
-          empates: Number(linha.empates || 0)
-        });
+    const classificacaoCampi = await resultadosIndividuaisService.obterClassificacaoGeralXadrez(mod.id);
+    (classificacaoCampi || []).forEach((linha, index) => {
+      campiPorGenero.push({
+        genero: mod.genero,
+        campusId: linha.campus_id,
+        campus: String(linha.campus_nome || '').trim() || null,
+        posicao: index + 1,
+        pontos: Number(linha.pontos || 0),
+        vitorias: Number(linha.vitorias || 0),
+        derrotas: Number(linha.derrotas || 0),
+        empates: Number(linha.empates || 0)
       });
-    } catch (_) { /* resultados de xadrez são opcionais */ }
+    });
   }
 
   return {
@@ -353,9 +365,10 @@ async function capturarEdicaoAtual(anoJifc, opcoes = {}) {
     throw new Error('Não é possível salvar a edição enquanto o JIFC não estiver encerrado.');
   }
 
-  const [campi, modalidades, chaves, grupos, jogos, boletim] = await Promise.allSettled([
+  const [campi, modalidades, inscricoes, chaves, grupos, jogos, boletim] = await Promise.allSettled([
     capturarCampi(),
     capturarModalidades(),
+    capturarInscricoesModalidades(),
     capturarChaves(),
     capturarGrupos(),
     capturarJogos(incluirNaoPublicados),
@@ -370,6 +383,7 @@ async function capturarEdicaoAtual(anoJifc, opcoes = {}) {
     geradoEm: new Date().toISOString().slice(0, 10),
     campi: campi.status === 'fulfilled' ? campi.value : [],
     modalidades: modalidades.status === 'fulfilled' ? modalidades.value : [],
+    inscricoes: inscricoes.status === 'fulfilled' ? inscricoes.value : [],
     chaves: chaves.status === 'fulfilled' ? chaves.value : [],
     grupos: grupos.status === 'fulfilled' ? grupos.value : [],
     jogos: jogos.status === 'fulfilled' ? jogos.value : [],
@@ -380,6 +394,12 @@ async function capturarEdicaoAtual(anoJifc, opcoes = {}) {
     capturarAtletismo(),
     capturarXadrez()
   ]);
+  if (atletismo.status === 'rejected') {
+    console.error(`Não foi possível incluir os resultados de atletismo no boletim ${ano}:`, atletismo.reason);
+  }
+  if (xadrez.status === 'rejected') {
+    console.error(`Não foi possível incluir os resultados de xadrez no boletim ${ano}:`, xadrez.reason);
+  }
   if (atletismo.status === 'fulfilled' && atletismo.value) dados.atletismo = atletismo.value;
   if (xadrez.status === 'fulfilled' && xadrez.value) dados.xadrez = xadrez.value;
 

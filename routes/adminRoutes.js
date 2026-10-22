@@ -4,6 +4,7 @@ const { body, param } = require('express-validator');
 const adminController = require('../controllers/adminController');
 const juizController = require('../controllers/juizController');
 const edicaoWizardController = require('../controllers/edicaoWizardController');
+const boletimController = require('../controllers/boletimController');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { handleValidationForm } = require('../middleware/validation');
 
@@ -108,6 +109,7 @@ router.post('/chaveamento/cancelar', adminController.cancelarSorteio);
 router.get('/chaveamento/exportar', adminController.exportResumoInscricoes);
 router.post('/chaveamento/jogo/:jogoId/salvar', jogoIdParam, jogoValidation, handleValidationForm, adminController.salvarJogoChaveamento);
 router.get('/boletins', adminController.renderBoletins);
+router.get('/boletins/:ano/pdf', anoParam, handleValidationForm, boletimController.baixarPdf);
 router.get('/boletins/:ano', anoParam, handleValidationForm, adminController.renderBoletimAno);
 router.post('/boletins/gerar', adminController.gerarBoletimFinal);
 

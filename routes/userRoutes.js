@@ -10,6 +10,7 @@ const { ehTenisDeMesa, normalizarSubCategoriaFiltro } = require('../services/jog
 const resultadosIndividuaisService = require('../services/resultadosIndividuaisService');
 const mataMataService = require('../services/mataMataService');
 const edicaoService = require('../services/edicaoService');
+const boletimController = require('../controllers/boletimController');
 
 function normalizarNomeBase(nome) {
     return String(nome || '').trim();
@@ -970,7 +971,9 @@ router.get('/', async function(req, res, next) {
         res.locals.modalidades = todasAsModalidades;
         const { obterRegras: obterRegrasClassificacao } = require('../utils/sportClassificationRules');
         const nomeModalidadeFiltro = modalidadeSelecionadaValida || modalidadeSelecionada || '';
-        const regrasClassificacao = obterRegrasClassificacao(nomeModalidadeFiltro);
+        const regrasClassificacao = nomeModalidadeFiltro
+            ? obterRegrasClassificacao(nomeModalidadeFiltro)
+            : { temSets: false, temCartoes: false, colunasTabela: ['Pts', 'PJ', 'V', 'E', 'D', 'GP', 'GC', 'SG'] };
 
         let boletimDisponivel = null;
         try {
@@ -1439,6 +1442,7 @@ router.get('/boletim', async function(req, res) {
 });
 
 /* GET boletim final de um ano */
+router.get('/boletim/:ano/pdf', boletimController.baixarPdf);
 router.get('/boletim/:ano', async function(req, res) {
     try {
         const ano = Number(req.params.ano || 0);

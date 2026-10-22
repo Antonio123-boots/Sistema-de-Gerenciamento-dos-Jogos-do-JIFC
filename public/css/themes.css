@@ -14,6 +14,11 @@
   --accent-hover: #fff56b;
   --accent-rgb: 236, 228, 45;
   --accent-ink: #17192f;
+  --icon-filter: brightness(0) invert(1);
+  --icon-filter-active: brightness(0) saturate(100%) invert(88%) sepia(35%) saturate(1200%) hue-rotate(5deg) brightness(105%) contrast(95%);
+  --media-filter: none;
+  --media-filter-active: brightness(0) saturate(100%) invert(88%) sepia(35%) saturate(1200%) hue-rotate(5deg) brightness(105%) contrast(95%);
+  --photo-filter-active: sepia(0.75) saturate(3.5) hue-rotate(-8deg) brightness(1.02);
 }
 
 [data-theme="dark"] {
@@ -30,14 +35,19 @@
   --accent-hover: #7dfcfa;
   --accent-rgb: 33, 248, 246;
   --accent-ink: #04211f;
+  --icon-filter: brightness(0) invert(1);
+  --icon-filter-active: brightness(0) saturate(100%) invert(82%) sepia(77%) saturate(421%) hue-rotate(115deg) brightness(103%) contrast(99%);
+  --media-filter: brightness(0) saturate(100%) invert(82%) sepia(77%) saturate(421%) hue-rotate(115deg) brightness(103%) contrast(99%);
+  --media-filter-active: brightness(0) saturate(100%) invert(82%) sepia(77%) saturate(421%) hue-rotate(115deg) brightness(120%) contrast(99%);
+  --photo-filter-active: sepia(0.9) saturate(4) hue-rotate(135deg) brightness(1.05);
 }
 
 [data-theme="light"] {
-  --bg: #ffffff;
-  --bg-menu: linear-gradient(135deg, #f7f7f9 0%, #ececf0 100%);
-  --surface-2: #f2f2f5;
-  --panel: rgba(255, 255, 255, 0.95);
-  --panel-grad: linear-gradient(145deg, rgba(255, 255, 255, 0.97), rgba(244, 244, 247, 0.97));
+  --bg: #eef0f3;
+  --bg-menu: linear-gradient(135deg, #fbfbfc 0%, #eceef1 100%);
+  --surface-2: #e6e9ed;
+  --panel: rgba(251, 251, 252, 0.96);
+  --panel-grad: linear-gradient(145deg, rgba(252, 252, 253, 0.97), rgba(240, 242, 245, 0.97));
   --panel-soft: rgba(0, 0, 0, 0.04);
   --fg-rgb: 0, 0, 0;
   --text: #141414;
@@ -46,6 +56,11 @@
   --accent-hover: #333333;
   --accent-rgb: 0, 0, 0;
   --accent-ink: #ffffff;
+  --icon-filter: brightness(0);
+  --icon-filter-active: brightness(0) saturate(100%) invert(88%) sepia(35%) saturate(1200%) hue-rotate(5deg) brightness(105%) contrast(95%);
+  --media-filter: brightness(0);
+  --media-filter-active: brightness(0);
+  --photo-filter-active: grayscale(1) contrast(1.05) brightness(0.95);
 }
 
 /* Botão da paleta + dropdown de temas (menu superior) */
@@ -102,7 +117,7 @@
   gap: 0.55rem;
   background: none;
   border: none;
-  color: varcolor: var(--text);
+  color: var(--text);
   font: inherit;
   font-size: 0.72rem;
   font-weight: 700;
@@ -131,4 +146,35 @@
   flex: none;
   border: 1px solid rgba(var(--fg-rgb), 0.25);
   box-sizing: border-box;
+}
+
+/* Transição suave ao trocar de tema (classe aplicada via JS por ~550ms) */
+html.theme-anim,
+html.theme-anim *,
+html.theme-anim *::before,
+html.theme-anim *::after {
+  transition: background-color 0.5s ease, color 0.5s ease,
+    border-color 0.5s ease, box-shadow 0.5s ease, fill 0.5s ease,
+    stroke 0.5s ease, filter 0.5s ease !important;
+}
+
+@keyframes jifc-theme-fade {
+  from { opacity: 0.82; }
+  to { opacity: 1; }
+}
+
+html.theme-anim body {
+  animation: jifc-theme-fade 0.5s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.theme-anim,
+  html.theme-anim *,
+  html.theme-anim *::before,
+  html.theme-anim *::after {
+    transition: none !important;
+  }
+  html.theme-anim body {
+    animation: none !important;
+  }
 }

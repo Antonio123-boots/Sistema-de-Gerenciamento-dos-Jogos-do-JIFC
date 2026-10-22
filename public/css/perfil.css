@@ -91,7 +91,7 @@
 .admin-actions-zone h2 {
   font-size: 0.95rem;
   margin: 0 0 0.85rem;
-  color: varcolor: var(--text);
+  color: var(--text);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -262,10 +262,10 @@
 }
 
 .item-score-box {
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(var(--fg-rgb), 0.06);
   padding: 0.4rem 1rem;
   border-radius: 8px;
-  border: 1px solid rgba(var(--fg-rgb), 0.1);
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
 }
 
 .score-display {

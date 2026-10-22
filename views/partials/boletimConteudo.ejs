@@ -2,6 +2,7 @@
   const dadosCompletos = (typeof completo !== 'undefined' && completo) ? completo : null;
   const listaCampi = Array.isArray(dadosCompletos && dadosCompletos.campi) ? dadosCompletos.campi : [];
   const listaModalidades = Array.isArray(dadosCompletos && dadosCompletos.modalidades) ? dadosCompletos.modalidades : [];
+  const listaInscricoes = Array.isArray(dadosCompletos && dadosCompletos.inscricoes) ? dadosCompletos.inscricoes : [];
   const listaChaves = Array.isArray(dadosCompletos && dadosCompletos.chaves) ? dadosCompletos.chaves : [];
   const listaGrupos = Array.isArray(dadosCompletos && dadosCompletos.grupos) ? dadosCompletos.grupos : [];
   const listaJogos = Array.isArray(dadosCompletos && dadosCompletos.jogos) ? dadosCompletos.jogos : [];
@@ -20,6 +21,60 @@
   const gruposDaModalidade = (id) => listaGrupos.filter((g) => Number(g.modalidadeId) === Number(id));
   const jogosDaModalidade = (id) => listaJogos.filter((j) => Number(j.modalidadeId) === Number(id));
   const chavesDaModalidade = (id) => listaChaves.filter((c) => Number(c.modalidadeId) === Number(id));
+  const participantesDaModalidade = (id) => {
+    const participantes = new Set();
+    gruposDaModalidade(id).forEach((g) => {
+      const nome = g.atleta ? (g.campus ? `${g.atleta} (${g.campus})` : g.atleta) : g.campus;
+      if (nome) participantes.add(nome);
+    });
+    jogosDaModalidade(id).forEach((j) => {
+      [nomeLado(j, 'casa'), nomeLado(j, 'fora')].forEach((nome) => {
+        if (nome && nome !== '—') participantes.add(nome);
+      });
+    });
+    return [...participantes];
+  };
+  const campiInscritosNaModalidade = (id) => {
+    const inscritos = listaInscricoes.filter((item) => Number(item.modalidadeId) === Number(id));
+    if (inscritos.length) {
+      return new Set(inscritos.map((item) => String(item.campusId || item.campus || '').trim()).filter(Boolean)).size;
+    }
+    const campi = new Set();
+    const adicionar = (campusId, nome) => {
+      const chave = campusId != null && campusId !== ''
+        ? `id:${campusId}`
+        : `nome:${String(nome || '').trim().toLocaleLowerCase('pt-BR')}`;
+      if (chave !== 'nome:') campi.add(chave);
+    };
+    gruposDaModalidade(id).forEach((g) => adicionar(g.campusId, g.campus));
+    jogosDaModalidade(id).forEach((j) => {
+      adicionar(j.casaId, j.casa || j.rotuloCasa);
+      adicionar(j.foraId, j.fora || j.rotuloFora);
+    });
+    return campi.size;
+  };
+  const ordenarClassificacao = (a, b) =>
+    (Number(b.pontos || 0) - Number(a.pontos || 0)) ||
+    (Number(b.vitorias || 0) - Number(a.vitorias || 0)) ||
+    (Number(b.saldo || 0) - Number(a.saldo || 0));
+  const montarBlocosClassificacao = (grupos, chaves, totalCampi) => {
+    if (totalCampi <= 5) {
+      return grupos.length ? [{ nome: 'Classificação geral', linhas: [...grupos].sort(ordenarClassificacao) }] : [];
+    }
+    const blocos = chaves.map((chave) => ({
+      nome: chave.nomeChave || `Chave ${chave.numeroChave || ''}`,
+      linhas: grupos.filter((g) => Number(g.chaveId) === Number(chave.id)).sort(ordenarClassificacao)
+    })).filter((bloco) => bloco.linhas.length);
+    if (blocos.length) return blocos;
+    const porGrupo = new Map();
+    grupos.forEach((linha) => {
+      const nome = String(linha.grupo || '').trim();
+      if (!nome) return;
+      if (!porGrupo.has(nome)) porGrupo.set(nome, []);
+      porGrupo.get(nome).push(linha);
+    });
+    return [...porGrupo.entries()].map(([nome, linhas]) => ({ nome, linhas: linhas.sort(ordenarClassificacao) }));
+  };
   const generoLabel = (g) => {
     const valor = String(g || '').trim();
     if (!valor) return '';
@@ -27,6 +82,13 @@
     if (/masculino/i.test(valor)) return 'Masculino';
     if (/misto/i.test(valor)) return 'Misto';
     return valor;
+  };
+  const nomeModalidadeCompleto = (mod) => {
+    const nome = String(mod.nome || '').trim();
+    const genero = generoLabel(mod.genero);
+    return genero && !nome.toLocaleLowerCase('pt-BR').endsWith(genero.toLocaleLowerCase('pt-BR'))
+      ? `${nome} ${genero}`
+      : nome;
   };
   const dataBr = (valor) => {
     if (!valor) return '-';
@@ -123,7 +185,6 @@
     return podios;
   };
 
-  const temRanking = Array.isArray(ranking) && ranking.length > 0;
   const temPodios = Array.isArray(modalidades) && modalidades.length > 0;
   const temModalidades = listaModalidades.length > 0;
   const temAtletismo = !!(atletismo && Array.isArray(atletismo.provas) && atletismo.provas.length);
@@ -152,61 +213,32 @@
   <% if (!dadosCompletos) { %>
     <section class="boletim-warning">
       <p>
-        Este boletim foi gerado antes do formato completo e contém apenas o ranking e os pódios.
+        Este boletim foi gerado antes do formato completo e contém apenas os pódios.
         Gere o boletim novamente para incluir todos os jogos, resultados, tabelas e chaveamentos.
       </p>
     </section>
   <% } %>
 
-  <header class="boletim-hero" id="resumo">
-    <% if ((typeof mostrarImprimir !== 'undefined' && mostrarImprimir) || (typeof voltarHref !== 'undefined' && voltarHref)) { %>
-      <div class="boletim-hero__acoes">
-        <% if (typeof mostrarImprimir !== 'undefined' && mostrarImprimir) { %>
-          <button type="button" class="boletim-btn" onclick="window.print()">Imprimir / Salvar PDF</button>
-        <% } %>
-        <% if (typeof voltarHref !== 'undefined' && voltarHref) { %>
-          <a class="boletim-btn boletim-btn--ghost" href="<%= voltarHref %>"><%= (typeof voltarLabel !== 'undefined' && voltarLabel) ? voltarLabel : 'Voltar' %></a>
-        <% } %>
-      </div>
-    <% } %>
-    <p class="boletim-hero__eyebrow">Boletim Final Oficial</p>
-    <h1 class="boletim-hero__title">JIFC <%= anoJifc %></h1>
-    <p class="boletim-hero__sub">Data de geração: <%= dataGeracao %></p>
-
-    <div class="boletim-stats">
-      <% if (temCampi) { %>
-        <div class="boletim-stat">
-          <span class="boletim-stat__value"><%= listaCampi.length %></span>
-          <span class="boletim-stat__label">Campi</span>
-        </div>
-      <% } %>
-      <% if (temModalidades) { %>
-        <div class="boletim-stat">
-          <span class="boletim-stat__value"><%= listaModalidades.length %></span>
-          <span class="boletim-stat__label">Modalidades</span>
-        </div>
-        <div class="boletim-stat">
-          <span class="boletim-stat__value"><%= listaJogos.length %></span>
-          <span class="boletim-stat__label">Jogos</span>
-        </div>
-      <% } %>
-      <% if (temAtletismo) { %>
-        <div class="boletim-stat">
-          <span class="boletim-stat__value"><%= atletismo.provas.length %></span>
-          <span class="boletim-stat__label">Provas de atletismo</span>
-        </div>
-      <% } %>
-      <% if (temXadrez) { %>
-        <div class="boletim-stat">
-          <span class="boletim-stat__value"><%= xadrez.classificacao.length %></span>
-          <span class="boletim-stat__label">Atletas no xadrez</span>
-        </div>
-      <% } %>
-    </div>
+  <header class="boletim-cover" id="resumo">
+    <img class="boletim-cover__logo" src="/imagens/jifc%20original-Picsart-AiImageEnhancer.jfif" alt="JIFC - Jogos Internos do IFC">
+    <p class="boletim-cover__title">Boletim final</p>
+    <h1>Jogos Internos do IFC</h1>
+    <p class="boletim-cover__edition">JIFC/<%= anoJifc %></p>
+    <p class="boletim-cover__date">Gerado em <%= dataGeracao %></p>
   </header>
 
+  <% if ((typeof pdfHref !== 'undefined' && pdfHref) || (typeof voltarHref !== 'undefined' && voltarHref)) { %>
+    <div class="boletim-toolbar">
+      <% if (typeof pdfHref !== 'undefined' && pdfHref) { %>
+        <a class="boletim-btn" href="<%= pdfHref %>">Salvar em PDF</a>
+      <% } %>
+      <% if (typeof voltarHref !== 'undefined' && voltarHref) { %>
+        <a class="boletim-btn boletim-btn--ghost" href="<%= voltarHref %>"><%= (typeof voltarLabel !== 'undefined' && voltarLabel) ? voltarLabel : 'Voltar' %></a>
+      <% } %>
+    </div>
+  <% } %>
+
   <nav class="boletim-nav" aria-label="Índice do boletim">
-    <a href="#ranking">Ranking</a>
     <a href="#podios">Pódios</a>
     <% if (temModalidades) { %><a href="#modalidades">Modalidades</a><% } %>
     <% if (temDetalhes) { %><a href="#detalhes">Resultados</a><% } %>
@@ -214,38 +246,6 @@
     <% if (temXadrez) { %><a href="#xadrez">Xadrez</a><% } %>
     <% if (temCampi) { %><a href="#campi">Campi</a><% } %>
   </nav>
-
-  <section class="boletim-section" id="ranking">
-    <div class="boletim-section__head">
-      <span class="boletim-section__bar"></span>
-      <h2 class="boletim-section__title">Ranking final dos campi</h2>
-      <% if (temRanking) { %><span class="boletim-count"><%= ranking.length %> campi</span><% } %>
-    </div>
-    <% if (temRanking) { %>
-      <div class="boletim-table-wrap">
-        <table class="boletim-table">
-          <thead>
-            <tr>
-              <th style="width:3.5rem;">Posição</th>
-              <th>Campus</th>
-              <th class="is-right">Pontos</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% ranking.forEach((item, index) => { %>
-              <tr>
-                <td><span class="boletim-pos <%= index < 3 ? 'is-' + (index + 1) : '' %>"><%= item.posicao || (index + 1) %>º</span></td>
-                <td><strong><%= item.campi || item.campus || 'Campus' %></strong></td>
-                <td class="is-right"><strong><%= Number(item.pontos || 0) %></strong></td>
-              </tr>
-            <% }) %>
-          </tbody>
-        </table>
-      </div>
-    <% } else { %>
-      <p class="boletim-empty">Ranking ainda não disponível.</p>
-    <% } %>
-  </section>
 
   <section class="boletim-section" id="podios">
     <div class="boletim-section__head">
@@ -290,7 +290,7 @@
         <% listaModalidades.forEach((m) => { %>
           <span class="boletim-tag">
             <span class="boletim-tag__dot"></span>
-            <%= m.nome %><% if (m.genero) { %> · <%= generoLabel(m.genero) %><% } %>
+            <%= nomeModalidadeCompleto(m) %>
           </span>
         <% }) %>
       </div>
@@ -313,16 +313,21 @@
       <% modalidadesComDados.forEach((mod, modIndex) => {
            const grupos = gruposDaModalidade(mod.id);
            const jogos = jogosDaModalidade(mod.id);
+         const chaves = chavesDaModalidade(mod.id);
+         const participantes = participantesDaModalidade(mod.id);
+           const totalCampiInscritos = campiInscritosNaModalidade(mod.id);
+           const blocosClassificacao = montarBlocosClassificacao(grupos, chaves, totalCampiInscritos);
            const jogosGrupo = jogos.filter(ehFaseDeGrupos).sort(compararJogos);
            const jogosElim = jogos.filter(ehEliminatoria).sort(compararJogos);
            const podios = podioDaModalidade(mod.id);
       %>
         <details class="boletim-modality" id="mod-<%= mod.id %>" <%= modIndex === 0 ? 'open' : '' %>>
           <summary class="boletim-modality__summary">
-            <span class="boletim-modality__badge"><%= iniciais(mod.nome) %></span>
-            <span>
+            <img class="boletim-modality__logo" src="/imagens/jifc%20original-Picsart-AiImageEnhancer.jfif" alt="JIFC - Jogos Internos do IFC">
+            <span class="boletim-modality__heading">
+              <img class="boletim-modality__sport-icon" src="<%= (mod.icone && (mod.icone.startsWith('/') || mod.icone.startsWith('http')) ? mod.icone : '/imagens/atletismo1.svg') %>" alt="" onerror="this.src='/imagens/atletismo1.svg'">
               <span class="boletim-modality__name">
-                <%= mod.nome %><% if (mod.genero) { %> <span class="boletim-section__hint">· <%= generoLabel(mod.genero) %></span><% } %>
+                <%= nomeModalidadeCompleto(mod) %>
               </span>
               <span class="boletim-modality__meta">
                 <%= grupos.length %> classificação · <%= jogosGrupo.length %> jogos de grupo · <%= jogosElim.length %> jogos de eliminatória
@@ -334,78 +339,78 @@
           </summary>
 
           <div class="boletim-modality__body">
-            <% if (grupos.length) { %>
+            <% if (participantes.length) { %>
               <div class="boletim-subsection">
-                <p class="boletim-subtitle">Tabela de classificação</p>
-                <div class="boletim-table-wrap">
-                  <table class="boletim-table">
-                    <thead>
-                      <tr>
-                        <th style="width:3rem;">Pos.</th>
-                        <th>Participante</th>
-                        <th>Grupo/Chave</th>
-                        <th class="is-center">PTS</th>
-                        <th class="is-center">J</th>
-                        <th class="is-center">V</th>
-                        <th class="is-center">E</th>
-                        <th class="is-center">D</th>
-                        <th class="is-center">PP</th>
-                        <th class="is-center">PC</th>
-                        <th class="is-center">Saldo</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <% grupos.forEach((g, index) => { %>
-                        <tr>
-                          <td><span class="boletim-pos <%= index < 3 ? 'is-' + (index + 1) : '' %>"><%= index + 1 %>º</span></td>
-                          <td><strong><%= g.atleta || g.campus || '—' %></strong><% if (g.atleta && g.campus) { %> <span class="boletim-section__hint">(<%= g.campus %>)</span><% } %></td>
-                          <td><%= g.grupo || '—' %></td>
-                          <td class="is-center"><strong><%= g.pontos %></strong></td>
-                          <td class="is-center"><%= g.jogosJogados %></td>
-                          <td class="is-center"><%= g.vitorias %></td>
-                          <td class="is-center"><%= g.empates %></td>
-                          <td class="is-center"><%= g.derrotas %></td>
-                          <td class="is-center"><%= g.pontosPro %></td>
-                          <td class="is-center"><%= g.pontosContra %></td>
-                          <td class="is-center"><%= g.saldo %></td>
-                        </tr>
+                <p class="boletim-subtitle">Equipes participantes</p>
+                <p class="boletim-participants"><%= participantes.join(' · ') %></p>
+              </div>
+            <% } %>
+
+            <% if (chaves.length) { %>
+              <div class="boletim-subsection">
+                <p class="boletim-subtitle">Chaveamento</p>
+                <div class="boletim-bracket">
+                  <% chaves.forEach((chave) => {
+                       const participantesChave = grupos
+                         .filter((g) => Number(g.chaveId) === Number(chave.id))
+                         .map((g) => g.atleta || g.campus)
+                         .concat(jogos.filter((j) => Number(j.chaveId) === Number(chave.id)).flatMap((j) => [nomeLado(j, 'casa'), nomeLado(j, 'fora')]))
+                         .filter((nome, index, lista) => nome && nome !== '—' && lista.indexOf(nome) === index);
+                  %>
+                    <div class="boletim-bracket__group">
+                      <strong><%= chave.nomeChave || `Chave ${chave.numeroChave || ''}` %></strong>
+                      <% participantesChave.forEach((participante) => { %>
+                        <span><%= participante %></span>
                       <% }) %>
-                    </tbody>
-                  </table>
+                    </div>
+                  <% }) %>
                 </div>
               </div>
             <% } %>
 
             <% if (jogosGrupo.length) { %>
               <div class="boletim-subsection">
-                <p class="boletim-subtitle">Jogos da fase de classificação <span class="boletim-subtitle__hint"><%= jogosGrupo.length %> jogo(s)</span></p>
+                <p class="boletim-subtitle">Tabela de jogos <span class="boletim-subtitle__hint"><%= jogosGrupo.length %> jogo(s)</span></p>
                 <div class="boletim-table-wrap">
                   <table class="boletim-table">
                     <thead>
                       <tr>
                         <th>Jogo</th>
-                        <th>Rodada</th>
-                        <th class="is-center">Placar</th>
-                        <th>Data</th>
                         <th>Horário</th>
+                        <th>Chave</th>
+                        <th>Equipe</th>
+                        <th class="is-center">Pontos</th>
+                        <th>Equipe</th>
                         <th>Local</th>
-                        <th>Situação</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <% jogosGrupo.forEach((j) => {
+                      <% let dataAtual = '';
+                         let rodadaAtual = '';
+                         jogosGrupo.forEach((j, indiceJogo) => {
                            const sets = Array.isArray(j.sets) && j.sets.length
                              ? j.sets.map((s) => `${s.pontosCasa}-${s.pontosFora}`).join(' / ')
                              : '';
+                           const dataJogo = dataBr(j.data);
+                           const rodadaJogo = rotuloRodadaFase(j);
+                           if (dataJogo !== dataAtual) {
+                             dataAtual = dataJogo;
                       %>
+                        <tr class="boletim-table__section-row is-date"><th colspan="7"><%= dataAtual %></th></tr>
+                      <% } %>
+                      <% if (rodadaJogo !== rodadaAtual) {
+                           rodadaAtual = rodadaJogo;
+                      %>
+                        <tr class="boletim-table__section-row is-phase"><th colspan="7"><%= rodadaAtual %></th></tr>
+                      <% } %>
                         <tr>
-                          <td><strong><%= nomeLado(j, 'casa') %></strong> <span class="boletim-section__hint">x</span> <strong><%= nomeLado(j, 'fora') %></strong></td>
-                          <td><%= rotuloRodadaFase(j) %></td>
-                          <td class="is-center"><strong><%= j.placarCasa %> - <%= j.placarFora %></strong><% if (sets) { %><span class="boletim-table__sets"><%= sets %></span><% } %></td>
-                          <td><%= dataBr(j.data) %></td>
+                          <td><%= j.numeroJogo || indiceJogo + 1 %></td>
                           <td><%= j.horario || '—' %></td>
-                          <td><%= j.local || '—' %></td>
-                          <td><span class="boletim-tag-status"><%= j.status || '-' %></span><% if (j.wo) { %> · <span class="boletim-tag-status is-wo">W.O.</span><% } %><% if (j.cancelado) { %> · <span class="boletim-tag-status is-cancelado">Cancelado</span><% } %></td>
+                          <td><%= j.chave || '—' %></td>
+                          <td><strong><%= nomeLado(j, 'casa') %></strong></td>
+                          <td class="is-center"><strong><%= j.placarCasa %> - <%= j.placarFora %></strong><% if (sets) { %><span class="boletim-table__sets"><%= sets %></span><% } %><% if (j.wo) { %><span class="boletim-table__sets">W.O.</span><% } %></td>
+                          <td><strong><%= nomeLado(j, 'fora') %></strong></td>
+                          <td><%= j.local || '—' %><% if (j.cancelado) { %><span class="boletim-tag-status is-cancelado">Cancelado</span><% } %></td>
                         </tr>
                       <% }) %>
                     </tbody>
@@ -414,36 +419,104 @@
               </div>
             <% } %>
 
+            <% if (grupos.length) { %>
+              <div class="boletim-subsection">
+                <p class="boletim-subtitle"><%= totalCampiInscritos <= 5 ? 'Classificação geral' : 'Classificação na chave' %></p>
+                <% if (blocosClassificacao.length) { %>
+                  <% blocosClassificacao.forEach((bloco) => { %>
+                    <% if (totalCampiInscritos > 5) { %><p class="boletim-podium-sub"><%= bloco.nome %></p><% } %>
+                    <div class="boletim-table-wrap">
+                      <table class="boletim-table">
+                        <thead>
+                          <tr>
+                            <th>Classificação</th>
+                            <th>Equipe</th>
+                            <th class="is-center">Jogos</th>
+                            <th class="is-center">Pontos</th>
+                            <th class="is-center">Vitórias</th>
+                            <% if (grupos.some((g) => Number(g.setsGanhos || 0) || Number(g.setsPerdidos || 0))) { %>
+                              <th class="is-center">Sets ganhos</th>
+                              <th class="is-center">Sets perdidos</th>
+                              <th class="is-center">Saldo de sets</th>
+                            <% } else { %>
+                              <th class="is-center">Feitos</th>
+                              <th class="is-center">Sofridos</th>
+                              <th class="is-center">Saldo</th>
+                            <% } %>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <% bloco.linhas.forEach((g, index) => { %>
+                            <tr>
+                              <td><strong><%= index + 1 %>º lugar</strong></td>
+                              <td><strong><%= nomeParticipanteClassificacao(g) %></strong></td>
+                              <td class="is-center"><%= g.jogosJogados %></td>
+                              <td class="is-center"><strong><%= g.pontos %></strong></td>
+                              <td class="is-center"><%= g.vitorias %></td>
+                              <% if (grupos.some((linha) => Number(linha.setsGanhos || 0) || Number(linha.setsPerdidos || 0))) { %>
+                                <td class="is-center"><%= g.setsGanhos %></td>
+                                <td class="is-center"><%= g.setsPerdidos %></td>
+                                <td class="is-center"><%= Number(g.setsGanhos || 0) - Number(g.setsPerdidos || 0) %></td>
+                              <% } else { %>
+                                <td class="is-center"><%= g.pontosPro %></td>
+                                <td class="is-center"><%= g.pontosContra %></td>
+                                <td class="is-center"><%= g.saldo %></td>
+                              <% } %>
+                            </tr>
+                          <% }) %>
+                        </tbody>
+                      </table>
+                    </div>
+                  <% }) %>
+                <% } else { %>
+                  <p class="boletim-empty">As chaves deste campeonato não estão cadastradas; a classificação geral foi omitida para não apresentar todos os campi em uma tabela única.</p>
+                <% } %>
+              </div>
+            <% } %>
+
             <% if (jogosElim.length) { %>
               <div class="boletim-subsection">
-                <p class="boletim-subtitle">Jogos da eliminatória <span class="boletim-subtitle__hint"><%= jogosElim.length %> jogo(s)</span></p>
+                <p class="boletim-subtitle">Eliminatórias <span class="boletim-subtitle__hint"><%= jogosElim.length %> jogo(s)</span></p>
                 <div class="boletim-table-wrap">
                   <table class="boletim-table">
                     <thead>
                       <tr>
                         <th>Jogo</th>
-                        <th>Fase</th>
-                        <th class="is-center">Placar</th>
-                        <th>Data</th>
                         <th>Horário</th>
+                        <th>Fase</th>
+                        <th>Equipe</th>
+                        <th class="is-center">Pontos</th>
+                        <th>Equipe</th>
                         <th>Local</th>
-                        <th>Situação</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <% jogosElim.forEach((j) => {
+                      <% let dataEliminatoriaAtual = '';
+                         let faseAtual = '';
+                         jogosElim.forEach((j, indiceJogo) => {
                            const sets = Array.isArray(j.sets) && j.sets.length
                              ? j.sets.map((s) => `${s.pontosCasa}-${s.pontosFora}`).join(' / ')
                              : '';
+                           const dataJogo = dataBr(j.data);
+                           const faseJogo = normalizaFase(j.fase) || 'Eliminatória';
+                           if (dataJogo !== dataEliminatoriaAtual) {
+                             dataEliminatoriaAtual = dataJogo;
                       %>
+                        <tr class="boletim-table__section-row is-date"><th colspan="7"><%= dataEliminatoriaAtual %></th></tr>
+                      <% } %>
+                      <% if (faseJogo !== faseAtual) {
+                           faseAtual = faseJogo;
+                      %>
+                        <tr class="boletim-table__section-row is-phase"><th colspan="7"><%= faseAtual %></th></tr>
+                      <% } %>
                         <tr>
-                          <td><strong><%= nomeLado(j, 'casa') %></strong> <span class="boletim-section__hint">x</span> <strong><%= nomeLado(j, 'fora') %></strong></td>
-                          <td><%= normalizaFase(j.fase) || '—' %></td>
-                          <td class="is-center"><strong><%= j.placarCasa %> - <%= j.placarFora %></strong><% if (sets) { %><span class="boletim-table__sets"><%= sets %></span><% } %></td>
-                          <td><%= dataBr(j.data) %></td>
+                          <td><%= j.numeroJogo || indiceJogo + 1 %></td>
                           <td><%= j.horario || '—' %></td>
-                          <td><%= j.local || '—' %></td>
-                          <td><span class="boletim-tag-status"><%= j.status || '-' %></span><% if (j.wo) { %> · <span class="boletim-tag-status is-wo">W.O.</span><% } %><% if (j.cancelado) { %> · <span class="boletim-tag-status is-cancelado">Cancelado</span><% } %></td>
+                          <td><%= normalizaFase(j.fase) || '—' %></td>
+                          <td><strong><%= nomeLado(j, 'casa') %></strong></td>
+                          <td class="is-center"><strong><%= j.placarCasa %> - <%= j.placarFora %></strong><% if (sets) { %><span class="boletim-table__sets"><%= sets %></span><% } %><% if (j.wo) { %><span class="boletim-table__sets">W.O.</span><% } %></td>
+                          <td><strong><%= nomeLado(j, 'fora') %></strong></td>
+                          <td><%= j.local || '—' %><% if (j.cancelado) { %><span class="boletim-tag-status is-cancelado">Cancelado</span><% } %></td>
                         </tr>
                       <% }) %>
                     </tbody>
@@ -658,20 +731,5 @@
       document.querySelectorAll('.boletim-modality').forEach(function (d) { d.open = false; });
     });
 
-    var estadoImpressao = null;
-    window.addEventListener('beforeprint', function () {
-      estadoImpressao = [];
-      document.querySelectorAll('.boletim-modality').forEach(function (d) {
-        estadoImpressao.push(d.open);
-        d.open = true;
-      });
-    });
-    window.addEventListener('afterprint', function () {
-      if (!estadoImpressao) return;
-      document.querySelectorAll('.boletim-modality').forEach(function (d, i) {
-        d.open = estadoImpressao[i];
-      });
-      estadoImpressao = null;
-    });
   })();
 </script>

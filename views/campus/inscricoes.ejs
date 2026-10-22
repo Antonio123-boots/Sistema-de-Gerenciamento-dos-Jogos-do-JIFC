@@ -129,7 +129,7 @@
       <% if (mostrarModalidades) { %>
       <div class="dashboard-view <%= abaAtivaAtual === 'modalidades' ? 'is-active' : '' %>" id="modalidades">
         <section style="background: rgba(var(--fg-rgb), 0.02); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(var(--accent-rgb), 0.12); margin-bottom: 2rem;">
-          <h3 style="color: varcolor: var(--text); margin-bottom: 1rem; font-size: 1.1rem;">Inscrição por Modalidade</h3>
+          <h3 style="color: var(--text); margin-bottom: 1rem; font-size: 1.1rem;">Inscrição por Modalidade</h3>
           <p style="margin: 0 0 1.25rem; color: rgba(var(--fg-rgb), 0.68);">Marque o(s) gênero(s) disponíveis para cada esporte (Individual, Misto ou ambos).</p>
 
           <form action="/campus/inscricoes/salvar" method="POST">
@@ -143,7 +143,7 @@
                 <div class="mini-card" style="display: flex; flex-direction: column; gap: 0.9rem; padding: 1rem 1.1rem;">
                   <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.5rem;">
                     <img src="<%= esporte.icone && (esporte.icone.startsWith('/') || esporte.icone.startsWith('http')) ? esporte.icone : (esporte.imagem || '/imagens/atletismo1.svg') %>" alt="Ícone <%= esporte.nome %>" class="sport-icon" style="width: 28px; height: 28px; border-radius: 50%;">
-                    <strong style="color: varcolor: var(--text); font-size: 1rem;"><%= esporte.nome %></strong>
+                    <strong style="color: var(--text); font-size: 1rem;"><%= esporte.nome %></strong>
                   </div>
                   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 0.75rem;">
                     <% if (esporte.masculino) { %>
@@ -183,7 +183,7 @@
       <% if (mostrarAtletas) { %>
       <div class="dashboard-view <%= abaAtivaAtual === 'atletas' ? 'is-active' : '' %>" id="atletas">
         <section style="background: rgba(var(--fg-rgb), 0.02); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(var(--accent-rgb), 0.12); margin-bottom: 2rem;">
-          <h3 style="color: varcolor: var(--text); margin-bottom: 0.75rem; font-size: 1.1rem;">Cadastro de Atletas do Campus</h3>
+          <h3 style="color: var(--text); margin-bottom: 0.75rem; font-size: 1.1rem;">Cadastro de Atletas do Campus</h3>
           <p style="margin: 0 0 0.75rem; color: rgba(var(--fg-rgb), 0.68);">Escolha o gênero do atleta e veja somente os esportes compatíveis para inscrição.</p>
 
           <form action="<%= rotaFormularioAtleta %>" method="POST" class="form-grid" style="align-items: flex-end; margin-bottom: 1.5rem;">
@@ -195,7 +195,7 @@
 
             <label>
               Gênero
-              <select name="genero" id="genero-atleta" required class="premium-text-input" style="height: 43px; background: var(--bg); color: varcolor: var(--text);">
+              <select name="genero" id="genero-atleta" required class="premium-text-input" style="height: 43px; background: var(--bg); color: var(--text);">
                 <option value="Masculino" <%= generoFormulario === 'Masculino' ? 'selected' : '' %>>Masculino</option>
                 <option value="Feminino" <%= generoFormulario === 'Feminino' ? 'selected' : '' %>>Feminino</option>
               </select>
@@ -245,7 +245,7 @@
 
             <div id="detalhes-atleta" style="display: none; grid-column: 1 / -1; margin-top: 0.25rem; padding: 1rem; border-radius: 14px; border: 1px solid rgba(var(--accent-rgb), 0.16); background: rgba(var(--fg-rgb), 0.03);">
               <div id="detalhes-atletismo" style="display: none; margin-bottom: 1rem;">
-                <strong style="display:block; margin-bottom: 0.6rem; color: varcolor: var(--text);">Provas de Atletismo</strong>
+                <strong style="display:block; margin-bottom: 0.6rem; color: var(--text);">Provas de Atletismo</strong>
                 <div class="prova-pills">
                   <% ['100m rasos', '200m rasos', '400m', '800m', '1500m', '3000m', '5000m', '4x100m', '4x400m', 'Salto em distância', 'Salto em altura', 'Salto Triplo', 'Disco', 'Dardo', 'Peso'].forEach(function(prova) { %>
                     <label class="prova-pill">
@@ -257,7 +257,7 @@
               </div>
 
               <div id="detalhes-tenis-mesa" style="display: none;">
-                <strong style="display:block; margin-bottom: 0.6rem; color: varcolor: var(--text);">Participação no Tênis de Mesa</strong>
+                <strong style="display:block; margin-bottom: 0.6rem; color: var(--text);">Participação no Tênis de Mesa</strong>
                 <div class="prova-pills">
                   <% ['Individual', 'Duplas', 'Individual e Duplas'].forEach(function(participacao) { %>
                     <label class="prova-pill">
@@ -495,7 +495,7 @@
     <% } else { %>
       <section style="min-height: 40vh; display: flex; align-items: center; justify-content: center; text-align: center; background: rgba(var(--fg-rgb), 0.02); padding: 2rem; border-radius: 16px; border: 1px solid rgba(var(--accent-rgb), 0.12); color: rgba(var(--fg-rgb), 0.8);">
         <div>
-          <h3 style="color: varcolor: var(--text); margin-bottom: 0.75rem; font-size: 1.2rem;">Fora do período de cadastro</h3>
+          <h3 style="color: var(--text); margin-bottom: 0.75rem; font-size: 1.2rem;">Fora do período de cadastro</h3>
           <p style="margin: 0;">Nenhuma aba está disponível no período cadastrado globalmente.</p>
         </div>
       </section>

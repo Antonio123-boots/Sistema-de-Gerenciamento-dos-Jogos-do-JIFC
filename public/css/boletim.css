@@ -8,6 +8,57 @@
   gap: 1.25rem;
 }
 
+.boletim-cover {
+  min-height: 72vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2rem 1rem;
+  text-align: center;
+  color: #111;
+  background: #fff;
+}
+
+.boletim-toolbar {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.boletim-cover__logo {
+  width: min(82%, 850px);
+  max-height: 220px;
+  object-fit: contain;
+  margin: auto 0 2rem;
+}
+
+.boletim-cover__title {
+  margin: 1rem 0 0;
+  font-size: clamp(2rem, 5vw, 4rem);
+  font-weight: 800;
+}
+
+.boletim-cover h1 {
+  margin: 1rem 0;
+  font-size: clamp(1.8rem, 4.5vw, 3.5rem);
+  color: #111;
+}
+
+.boletim-cover__edition {
+  margin: 0;
+  font-size: clamp(1.6rem, 4vw, 3rem);
+  font-weight: 800;
+}
+
+.boletim-cover__date {
+  margin: auto 0 0;
+  color: #333;
+  font-size: 0.9rem;
+}
+
 /* ---------- Cabeçalho ---------- */
 .boletim-hero {
   position: relative;
@@ -243,6 +294,50 @@
   font-size: 0.78rem;
 }
 
+.boletim-table__section-row th {
+  padding: 0.45rem 0.6rem;
+  color: #111;
+  background: #e3efdc;
+  text-align: center;
+}
+
+.boletim-table__section-row.is-date th {
+  background: #fff1c7;
+}
+
+.boletim-participants {
+  margin: 0;
+  padding: 0.65rem 0.8rem;
+  color: var(--text);
+  background: rgba(var(--accent-rgb), 0.1);
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.boletim-bracket {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  border: 1px solid rgba(var(--fg-rgb), 0.2);
+}
+
+.boletim-bracket__group {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  border-right: 1px solid rgba(var(--fg-rgb), 0.2);
+  text-align: center;
+}
+
+.boletim-bracket__group strong {
+  padding: 0.55rem;
+  background: rgba(var(--accent-rgb), 0.14);
+}
+
+.boletim-bracket__group span {
+  padding: 0.45rem;
+  border-top: 1px solid rgba(var(--fg-rgb), 0.14);
+}
+
 /* ---------- Tabelas ---------- */
 .boletim-table-wrap {
   overflow-x: auto;
@@ -448,11 +543,13 @@
 .boletim-modality__summary {
   list-style: none;
   cursor: pointer;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(120px, 27%) 1fr auto;
   align-items: center;
-  gap: 0.85rem;
-  padding: 1rem 1.25rem;
-  background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.14), transparent 70%);
+  gap: 0;
+  padding: 0;
+  color: var(--text);
+  background: #fff;
   transition: background 0.15s ease;
 }
 
@@ -461,32 +558,50 @@
 }
 
 .boletim-modality__summary:hover {
-  background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.24), transparent 70%);
+  background: #f5f7fa;
 }
 
-.boletim-modality__badge {
-  display: flex;
+.boletim-modality__logo {
+  width: 100%;
+  height: 76px;
+  padding: 0.45rem;
+  object-fit: contain;
+  border-right: 1px solid #222;
+}
+
+.boletim-modality__heading {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
   align-items: center;
   justify-content: center;
-  width: 2.4rem;
-  height: 2.4rem;
-  border-radius: 12px;
-  flex: none;
-  font-weight: 800;
-  color: var(--accent-ink);
-  background: var(--accent);
+  column-gap: 0.8rem;
+  padding: 0.6rem 1rem;
+  text-align: center;
+}
+
+.boletim-modality__sport-icon {
+  grid-row: span 2;
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
 }
 
 .boletim-modality__name {
-  font-size: 1.12rem;
+  display: block;
+  font-size: 1.3rem;
   font-weight: 800;
-  color: var(--text);
+  color: #111;
+  text-transform: uppercase;
+}
+
+.boletim-modality__name .boletim-section__hint {
+  color: #333;
 }
 
 .boletim-modality__meta {
   display: block;
   font-size: 0.78rem;
-  color: var(--text-muted);
+  color: #333;
 }
 
 .boletim-modality__chevron {
@@ -554,17 +669,173 @@
 
 /* ---------- Impressão ---------- */
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 14mm 12mm 16mm;
+  }
+
+  html,
+  body {
+    color: #111 !important;
+    background: #fff !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .boletim {
+    display: block;
+    color: #111;
+  }
+
+  .boletim-cover {
+    height: 265mm;
+    min-height: 0;
+    padding: 0;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .boletim-toolbar,
+  .boletim-btn,
   .boletim-nav,
   .boletim-controls,
   .boletim-modality__chevron {
     display: none !important;
   }
 
-  .boletim-section,
-  .boletim-modality,
-  .boletim-hero {
+  .boletim-section {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: #fff;
     box-shadow: none;
+    break-before: page;
+    page-break-before: always;
+  }
+
+  .boletim-section__head,
+  .boletim-subtitle {
+    color: #111;
+  }
+
+  .boletim-section__bar,
+  .boletim-subtitle::before {
+    display: none;
+  }
+
+  .boletim-modality {
+    display: block;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    break-before: page;
+    page-break-before: always;
+  }
+
+  .boletim-modality__summary {
+    grid-template-columns: 27% 1fr;
+    padding: 0;
+    color: #111;
+    background: #fff;
+    border: 1px solid #111;
+    text-align: center;
+  }
+
+  .boletim-modality__logo {
+    height: 34mm;
+    padding: 2mm;
+    border-right: 1px solid #111;
+  }
+
+  .boletim-modality__heading {
+    grid-template-columns: 11mm minmax(0, 1fr);
+    column-gap: 3mm;
+    padding: 4mm;
+  }
+
+  .boletim-modality__sport-icon {
+    width: 11mm;
+    height: 11mm;
+  }
+
+  .boletim-modality__name {
+    font-size: 18pt;
+  }
+
+  .boletim-modality__body,
+  details:not([open]) > .boletim-modality__body {
+    display: block !important;
+    padding: 0.8rem 0;
+    border: 0;
+  }
+
+  .boletim-table-wrap {
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .boletim-table {
+    width: 100%;
+    font-size: 8pt;
+    color: #111;
+  }
+
+  .boletim-table thead {
+    display: table-header-group;
+  }
+
+  .boletim-table thead th {
+    position: static;
+    color: #fff !important;
+    background: #244f7d !important;
+  }
+
+  .boletim-table tr,
+  .boletim-subsection,
+  .boletim-podium-card {
     break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .boletim-table th,
+  .boletim-table td {
+    padding: 0.28rem 0.35rem;
+    border: 1px solid #222;
+  }
+
+  .boletim-table__section-row th {
+    color: #111 !important;
+    background: #e3efdc !important;
+  }
+
+  .boletim-table__section-row.is-date th {
+    background: #fff1c7 !important;
+  }
+
+  .boletim-table__sets,
+  .boletim-participants,
+  .boletim-bracket__group strong {
+    color: #111;
+    background: #dce8f2 !important;
+  }
+
+  .boletim-bracket {
+    grid-template-columns: repeat(4, 1fr);
+    border-color: #222;
+  }
+
+  .boletim-bracket__group,
+  .boletim-bracket__group span {
+    border-color: #222;
+  }
+
+  .boletim-empty,
+  .boletim-section__hint,
+  .boletim-modality__meta {
+    color: #333;
   }
 
   .boletim-modality__body {

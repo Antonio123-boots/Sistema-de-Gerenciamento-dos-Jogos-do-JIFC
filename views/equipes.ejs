@@ -11,9 +11,10 @@
         <% (campi || []).forEach((campus) => { %>
             <a class="team-card" href="/equipes/<%= campus.slug %>">
                 <% const fotoCampus = campus.fotoPerfil || campus.foto_perfil || ''; %>
+                <% const fotoCampusReal = !!(fotoCampus && fotoCampus !== '/imagens/avatar.svg'); %>
                 <div class="team-card__media" style="--campus-color: <%= campus.cor || 'var(--accent)' %>">
                     <% if (fotoCampus) { %>
-                        <img src="<%= fotoCampus %>" alt="Foto de <%= campus.nomeExibicao %>" class="campus-photo campus-photo--real">
+                    <img src="<%= fotoCampus %>" alt="Foto de <%= campus.nomeExibicao %>" class="campus-photo <%= fotoCampusReal ? 'campus-photo--real' : 'campus-photo--default' %>">
                     <% } else { %>
                         <div class="team-card__initials"><%= campus.logoTexto %></div>
                     <% } %>
