@@ -10,6 +10,31 @@
     if(parent) parent.appendChild(e);
     return e;
   }
+
+  /*
+   * Montagem segura de DOM.
+   * Dados de campus (nome, foto) sao controlados pelo proprio campus e podem
+   * conter HTML. Nunca interpolar esses valores em innerHTML.
+   */
+  function opcao(valor,texto,selecionado){
+    var o=document.createElement('option');
+    o.value=String(valor==null?'':valor);
+    o.textContent=String(texto==null?'':texto);
+    if(selecionado) o.selected=true;
+    return o;
+  }
+  function aplicarSrc(img,src){
+    var s=String(src||'').trim();
+    if(s&&/^(https?:\/\/|\/(?!\/)|data:image\/)/i.test(s)) img.setAttribute('src',s);
+    else img.setAttribute('src','/imagens/avatar.svg');
+  }
+  function imgLogo(classe,src){
+    var img=document.createElement('img');
+    img.className=classe;
+    img.setAttribute('alt','');
+    aplicarSrc(img,src);
+    return img;
+  }
   function lerJson(id){
     var raw=document.getElementById(id);
     if(!raw) return null;
@@ -28,9 +53,10 @@
     var ds=lerPeriodo().slice();
     var s=String(sel||'');
     if(s&&ds.indexOf(s)<0) ds.push(s);
-    var h='<option value="">—</option>';
-    ds.forEach(function(d){ h+='<option value="'+d+'"'+(s===String(d)?' selected':'')+'>'+fmtData(d)+'</option>'; });
-    return h;
+    var frag=document.createDocumentFragment();
+    frag.appendChild(opcao('','—',false));
+    ds.forEach(function(d){ frag.appendChild(opcao(d,fmtData(d),s===String(d))); });
+    return frag;
   }
 
   /* ---------- upload de ícone / logo (file -> base64 -> hidden + preview) ---------- */
@@ -157,12 +183,22 @@
     grid.innerHTML='';
     chaveState.chaves.forEach(function(ch,i){
       var card=el('div',{class:'wz-chave-card','data-idx':i});
-      var chips=ch.participantes.map(function(id){
-        var p=chaveState.participantes.filter(function(x){return x.id===id;})[0];
-        if(!p) return '';
-        return '<span class="wz-chave-chip"><img src="'+p.foto+'" alt=""><span>'+p.nome+'</span></span>';
-      }).join('');
-      card.innerHTML='<div class="wz-chave-card__letra">'+ch.letra+'</div><div class="wz-chave-card__qtd">'+ch.participantes.length+' campi</div><div>'+(chips||'<span style="color:rgba(255,255,255,.4)">vazia</span>')+'</div>';
+      var head=el('div',{class:'wz-chave-card__letra',text:String(ch.letra||'')},card);
+      var qtd=el('div',{class:'wz-chave-card__qtd',text:String(ch.participantes.length)+' campi'},card);
+      var box=el('div',null,card);
+      if(!ch.participantes.length){
+        var vazia=el('span',null,box);
+        vazia.setAttribute('style','color:rgba(255,255,255,.4)');
+        vazia.textContent='vazia';
+      }else{
+        ch.participantes.forEach(function(id){
+          var p=chaveState.participantes.filter(function(x){return x.id===id;})[0];
+          if(!p) return;
+          var chip=el('span',{class:'wz-chave-chip'},box);
+          chip.appendChild(imgLogo('',p.foto));
+          chip.appendChild(el('span',{text:String(p.nome||'')}));
+        });
+      }
       card.addEventListener('click',function(){ abrirChave(Number(card.getAttribute('data-idx'))); });
       grid.appendChild(card);
     });
@@ -208,15 +244,22 @@
     var disponiveis=chaveState.participantes.filter(function(p){ return usados.indexOf(p.id)<0; });
     var lista=document.getElementById('wzModalList');
     var titulo=document.getElementById('wzModalTitulo');
-    titulo.innerHTML='Chave '+chave.letra;
+    titulo.textContent='Chave '+String(chave.letra||'');
     lista.innerHTML='';
     if(!disponiveis.length){
-      lista.innerHTML='<div class="wz-empty">Nenhum campus disponível para esta chave.</div>';
+      lista.appendChild(el('div',{class:'wz-empty',text:'Nenhum campus disponível para esta chave.'}));
     }
     disponiveis.forEach(function(p){
+      var marcado=chave.participantes.indexOf(p.id)>=0;
       var item=el('label',{class:'wz-modal-item'});
-      if(chave.participantes.indexOf(p.id)>=0) item.classList.add('sel');
-      item.innerHTML='<input type="checkbox" value="'+p.id+'"'+(chave.participantes.indexOf(p.id)>=0?' checked':'')+'><img class="wz-logo" src="'+p.foto+'" alt=""><span>'+p.nome+'</span>';
+      if(marcado) item.classList.add('sel');
+      var box=document.createElement('input');
+      box.type='checkbox';
+      box.value=String(p.id);
+      box.checked=marcado;
+      item.appendChild(box);
+      item.appendChild(imgLogo('wz-logo',p.foto));
+      item.appendChild(el('span',{text:String(p.nome||'')}));
       item.addEventListener('change',function(){ item.classList.toggle('sel',item.querySelector('input').checked); });
       lista.appendChild(item);
     });
@@ -297,11 +340,14 @@
     var names=part.map(function(p){return p.nome||p;});
     var casId=Number(cSel.value);
     var foraId=Number(fSel.value);
-    cSel.innerHTML='<option value="">Selecione</option>';
-    fSel.innerHTML='<option value="">Selecione</option>';
+    cSel.innerHTML='';
+    fSel.innerHTML='';
+    cSel.appendChild(opcao('','Selecione',false));
+    fSel.appendChild(opcao('','Selecione',false));
     ids.forEach(function(id,i){
-      if(id) cSel.innerHTML+='<option value="'+id+'"'+(id===casId?' selected':'')+'>'+names[i]+'</option>';
-      if(id) fSel.innerHTML+='<option value="'+id+'"'+(id===foraId?' selected':'')+'>'+names[i]+'</option>';
+      if(!id) return;
+      cSel.appendChild(opcao(id,names[i],id===casId));
+      fSel.appendChild(opcao(id,names[i],id===foraId));
     });
   };
 
@@ -316,25 +362,27 @@
     var gWrap=el('div',{class:'wz-field','style':'flex:0 1 100px'},wrap);
     el('label',{text:'Chave'},gWrap);
     var gSel=el('select',{class:'wz-select','name':'conf_grupo[]'},gWrap);
-    gSel.innerHTML=montarGrupoOpts(grupos,0);
+    gSel.replaceChildren(montarGrupoOpts(grupos,0));
     gSel.onchange=function(){wzUpdateCfrOpts(wrap)};
     var cWrap=el('div',{class:'wz-field'},wrap);
     el('label',{text:'Casa'},cWrap);
     var cSel=el('select',{class:'wz-select','name':'conf_casa[]'},cWrap);
-    cSel.innerHTML=montarOpts(grupos[0]?grupos[0].participantes:part,null);
+    cSel.replaceChildren(montarOpts(grupos[0]?grupos[0].participantes:part,null));
     var fWrap=el('div',{class:'wz-field'},wrap);
     el('label',{text:'Fora'},fWrap);
     var fSel=el('select',{class:'wz-select','name':'conf_fora[]'},fWrap);
-    fSel.innerHTML=montarOpts(grupos[0]?grupos[0].participantes:part,null);
+    fSel.replaceChildren(montarOpts(grupos[0]?grupos[0].participantes:part,null));
     var rWrap=el('div',{class:'wz-field','style':'flex:0 1 60px'},wrap);
     el('label',{text:'Rodada'},rWrap);
     el('input',{class:'wz-input','type':'number','name':'conf_rodada[]','min':'1','value':'1'},rWrap);
     var dWrap=el('div',{class:'wz-field','style':'flex:0 1 130px'},wrap);
     el('label',{text:'Data'},dWrap);
     var dSel=el('select',{class:'wz-select','name':'conf_data[]'},dWrap);
-    var opts='<option value="">—</option>';
-    periodo.forEach(function(d){ opts+='<option value="'+d+'">'+fmtData(d)+'</option>'; });
-    dSel.innerHTML=opts;
+    var dFrag=document.createDocumentFragment();
+    dFrag.appendChild(opcao('','—',false));
+    periodo.forEach(function(d){ dFrag.appendChild(opcao(d,fmtData(d),false)); });
+    dSel.innerHTML='';
+    dSel.appendChild(dFrag);
     var hWrap=el('div',{class:'wz-field','style':'flex:0 1 85px'},wrap);
     el('label',{text:'Hora'},hWrap);
     el('input',{class:'wz-input','type':'time','name':'conf_horario[]'},hWrap);
@@ -347,18 +395,19 @@
   };
 
   function montarOpts(participantes,selected){
-    var h='<option value="">Selecione</option>';
+    var frag=document.createDocumentFragment();
+    frag.appendChild(opcao('','Selecione',false));
     (participantes||[]).forEach(function(p){
-      h+='<option value="'+p.id+'"'+(Number(selected)===Number(p.id)?' selected':'')+'>'+p.nome+'</option>';
+      frag.appendChild(opcao(p.id,p.nome,Number(selected)===Number(p.id)));
     });
-    return h;
+    return frag;
   }
   function montarGrupoOpts(grupos,selected){
-    var h='';
+    var frag=document.createDocumentFragment();
     (grupos||[]).forEach(function(g,i){
-      h+='<option value="'+i+'"'+(Number(selected)===i?' selected':'')+'>'+g.letra+'</option>';
+      frag.appendChild(opcao(i,g.letra,Number(selected)===i));
     });
-    return h;
+    return frag;
   }
 
   /* ---------- WO / vencedor ---------- */

@@ -40,8 +40,33 @@ const campiDefault = [
   { slug: 'videira', nome: 'IFC Videira', nomeExibicao: 'Videira', cor: '#2c3e50' }
 ];
 
+/*
+ * Contas reservadas do sistema (models/authUsers.js). Um campus não pode
+ * reivindicar esses e-mails: no login, os hashes base têm precedência
+ * absoluta e a identidade do campus seria trocada pela conta reservada.
+ */
+const EMAILS_RESERVADOS = new Set([
+  'admin@ifc.edu.br',
+  'juiz@ifc.edu.br',
+  'instituicao@ifc.edu.br'
+]);
+
 function normalizarEmail(email) {
   return String(email || '').trim().toLowerCase();
+}
+
+/*
+ * Remove marcação e caracteres de controle dos textos preenchidos pelo campus.
+ * Esses valores são exibidos em várias telas e arrivei a ser injetados via
+ * innerHTML em scripts do painel do admin, então restringimos o formato aqui.
+ */
+function sanearTextoCampus(valor) {
+  return String(valor == null ? '' : valor)
+    .replace(/<[^>]*>/g, '')          // remove tags HTML
+    .replace(/[<>]/g, '')             // remove angle brackets residuais
+    .replace(/[\u0000-\u001F\u007F]/g, '') // remove controles
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function gerarSigla(nomeExibicao) {
@@ -406,12 +431,12 @@ async function atualizarCampus(identificador, dados) {
     throw erro;
   }
 
-  const nome = String(dados.nome || campusAtual.nome || '').trim();
-  const nomeExibicao = String(dados.nomeExibicao || campusAtual.nome_exibicao || campusAtual.nome || '').trim();
+  const nome = sanearTextoCampus(dados.nome || campusAtual.nome || '');
+  const nomeExibicao = sanearTextoCampus(dados.nomeExibicao || campusAtual.nome_exibicao || campusAtual.nome || '');
   const email = normalizarEmail(dados.email || campusAtual.email);
   const senhaInformada = String(dados.senha || '').trim();
   const senha = await prepararSenhaParaSalvar(senhaInformada || campusAtual.senha || senhaPadraoCampus);
-  const cidade = String(dados.cidade || campusAtual.cidade || '').trim() || 'Não informado';
+  const cidade = sanearTextoCampus(dados.cidade || campusAtual.cidade || '') || 'Não informado';
   const fotoPerfil = normalizarFotoPerfil(dados.fotoPerfil || dados.foto_perfil || campusAtual.foto_perfil || campusAtual.fotoPerfil || fotoPadrao);
 
   if (!nome) {
@@ -429,6 +454,12 @@ async function atualizarCampus(identificador, dados) {
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     const erro = new Error('Informe um e-mail válido para o campus.');
     erro.code = 'EMAIL_CAMPUS_INVALIDO';
+    throw erro;
+  }
+
+  if (EMAILS_RESERVADOS.has(email)) {
+    const erro = new Error('Este e-mail é reservado pelo sistema e não pode ser usado por um campus.');
+    erro.code = 'EMAIL_RESERVADO';
     throw erro;
   }
 
@@ -473,12 +504,16 @@ async function atualizarCampus(identificador, dados) {
   });
 }
 
+async function atualizarSenhaCampus(campusId, senhaHash) {
+  await pool.query('UPDATE campus SET senha = ? WHERE id = ?', [senhaHash, campusId]);
+}
+
 async function adicionarCampus(dados) {
-  const nome = String(dados.nome || '').trim();
-  const nomeExibicao = String(dados.nomeExibicao || '').trim();
+  const nome = sanearTextoCampus(dados.nome || '');
+  const nomeExibicao = sanearTextoCampus(dados.nomeExibicao || '');
   const email = normalizarEmail(dados.email);
   const senha = await prepararSenhaParaSalvar(dados.senha);
-  const cidade = String(dados.cidade || '').trim() || 'Não informado';
+  const cidade = sanearTextoCampus(dados.cidade || '') || 'Não informado';
   const fotoPerfil = normalizarFotoPerfil(dados.fotoPerfil || dados.foto_perfil || fotoPadrao);
 
   if (!nome) {
@@ -496,6 +531,12 @@ async function adicionarCampus(dados) {
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     const erro = new Error('Informe um e-mail válido para o campus.');
     erro.code = 'EMAIL_CAMPUS_INVALIDO';
+    throw erro;
+  }
+
+  if (EMAILS_RESERVADOS.has(email)) {
+    const erro = new Error('Este e-mail é reservado pelo sistema e não pode ser usado por um campus.');
+    erro.code = 'EMAIL_RESERVADO';
     throw erro;
   }
 
@@ -552,6 +593,7 @@ module.exports = {
   obterCampusPorEmail,
   listarCredenciaisCampus,
   atualizarCampus,
+  atualizarSenhaCampus,
   adicionarCampus,
   banCampus,
   desbanirCampus,

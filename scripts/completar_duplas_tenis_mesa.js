@@ -1,8 +1,8 @@
-const db = require('../config/db');
+﻿const db = require('../config/db');
 
 const BASE = process.env.BASE_URL || 'http://localhost:3000';
-const ADMIN = { email: 'admin@ifc.edu.br', senha: process.env.DEFAULT_ADMIN_PASSWORD || 'admin123' };
-const SENHA_CAMPUS = process.env.DEFAULT_CAMPUS_PASSWORD || 'jifc2026';
+const ADMIN = { email: 'admin@ifc.edu.br', senha: process.env.DEFAULT_ADMIN_PASSWORD };
+const SENHA_CAMPUS = process.env.DEFAULT_CAMPUS_PASSWORD;
 
 function dormir(ms) { return new Promise((r) => setTimeout(r, ms)); }
 function criarJar() { return { cookies: new Map() }; }
@@ -143,8 +143,8 @@ async function main() {
     const csrf = csrfDe(await pedir(jar, '/campus/inscricoes').then((r) => r.texto));
 
     const tarefas = [];
-    for (let k = 0; k < faltaM; k++) tarefas.push({ genero: 'Masculino', modalidade: 'Tênis de Mesa Masculino' });
-    for (let k = 0; k < faltaF; k++) tarefas.push({ genero: 'Feminino', modalidade: 'Tênis de Mesa Feminino' });
+    for (let k = 0; k < faltaM; k++) tarefas.push({ genero: 'Masculino', modalidade: 'TÃªnis de Mesa Masculino' });
+    for (let k = 0; k < faltaF; k++) tarefas.push({ genero: 'Feminino', modalidade: 'TÃªnis de Mesa Feminino' });
 
     for (const tarefa of tarefas) {
       const identidade = gerar(tarefa.genero);

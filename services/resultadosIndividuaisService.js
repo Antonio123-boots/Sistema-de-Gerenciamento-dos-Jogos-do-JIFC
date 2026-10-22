@@ -4,6 +4,26 @@ const { obterRegras } = require('../utils/sportClassificationRules');
 const PONTUACAO_POSICAO = [13, 8, 6, 5, 4, 3, 2, 1];
 const FORMATOS_PROVA = ['direta', 'final_por_tempo', 'baterias_com_final'];
 
+/*
+ * O body-parser usa `qs` com arrayLimit = max(100, qtd de parametros). Como os
+ * formularios indexam por `resultados[<id do atleta>]`, quando o id do atleta e
+ * maior que o arrayLimit o `qs` devolve um OBJETO (`{ "120": {...} }`) em vez de
+ * um array, quebrando `for (const r of resultados)`.
+ * Aqui normalizamos sempre para array, preservando a ordem numerica das chaves.
+ */
+function normalizarResultados(resultados) {
+  if (Array.isArray(resultados)) return resultados;
+
+  if (resultados && typeof resultados === 'object') {
+    return Object.keys(resultados)
+      .sort((a, b) => Number(a) - Number(b))
+      .map((chave) => resultados[chave])
+      .filter((item) => item && typeof item === 'object');
+  }
+
+  return [];
+}
+
 /* Converte "h:mm:ss.ms", "mm:ss.ms" ou "s.ms" para milissegundos (null se inválido) */
 function converterTempoParaMs(valor) {
   const texto = String(valor || '').trim();
@@ -154,7 +174,7 @@ async function recalcularRankingPorTempo(provaId, etapa) {
 async function salvarResultadosProva(provaId, resultados, formatoProva) {
   const formato = normalizarFormato(formatoProva);
 
-  for (const r of resultados || []) {
+  for (const r of normalizarResultados(resultados)) {
     const atletaId = Number(r.atleta_id);
     if (!atletaId) continue;
 
@@ -301,7 +321,7 @@ async function obterResultadosXadrez(modalidadeId) {
 }
 
 async function salvarResultadosXadrez(modalidadeId, resultados) {
-  for (const r of resultados) {
+  for (const r of normalizarResultados(resultados)) {
     const atletaId = Number(r.atleta_id);
     if (!atletaId) continue;
 
@@ -462,6 +482,7 @@ module.exports = {
   converterTempoParaMs,
   formatarTempoExibicao,
   normalizarFormato,
+  normalizarResultados,
   obterClassificacaoAtletismo,
   obterClassificacaoGeralCampi,
   obterResultadosXadrez,

@@ -442,14 +442,16 @@ async function sincronizarAtletaNoBanco(campusId, atletaDados, modalidadesSeleci
   const status = STATUS_ATLETA.includes(statusSolicitado) ? statusSolicitado : 'Analise';
 
   const [existente] = await db.query(
-    'SELECT id, status FROM atletas WHERE campus_id = ? AND matricula = ? LIMIT 1',
+    'SELECT id FROM atletas WHERE campus_id = ? AND matricula = ? LIMIT 1',
     [campusId, matricula]
   );
 
-  const statusAtual = STATUS_ATLETA.includes(String(existente?.[0]?.status || '').trim())
-    ? String(existente[0].status).trim()
-    : 'Analise';
-  const statusFinal = status === 'Analise' ? (statusSolicitado === 'Analise' ? statusAtual : status) : status;
+  /*
+   * O status enviado pelo campus NUNCA pode ser 'Regular' ou 'Reprovado' (são
+   * decisões do admin). 'Analise' devolve o atleta para a fila de laudo, e é
+   * esse o estado persistido - o cache e o banco precisam concordar.
+   */
+  const statusFinal = status;
 
   let atletaId = existente?.[0]?.id || null;
 
@@ -478,7 +480,26 @@ async function sincronizarAtletaNoBanco(campusId, atletaDados, modalidadesSeleci
   return atletaId;
 }
 
+const MIGRACAO_STATE_PARA_BANCO = 'state_campus_para_mysql_v1';
+
 async function migrarDadosCampusDoStateParaBanco() {
+  /*
+   * Migração one-shot: os dados legados do state store (JSON) são importados
+   * para o MySQL uma única vez. Reexecutar a cada boot sobrescrevia decisões
+   * já tomadas no MySQL (ex.: status 'Regular' aprovado no laudo do admin).
+   */
+  let migracaoJaAplicada = false;
+  try {
+    const { migracaoJaExecutada } = require('../config/migrationGuard');
+    migracaoJaAplicada = await migracaoJaExecutada(MIGRACAO_STATE_PARA_BANCO);
+  } catch (error) {
+    console.error('Aviso: não foi possível verificar o registro de migrações (o state store será lido):', error.message);
+  }
+
+  if (migracaoJaAplicada) {
+    return 0;
+  }
+
   const estado = readState();
   const campusState = estado.campus || {};
   const inscricoesState = campusState.inscricoesCampus || campusState.inscricoes || {};
@@ -546,11 +567,11 @@ async function migrarDadosCampusDoStateParaBanco() {
             novosCampos.push('tenis_mesa_participacoes = ?');
             novosValores.push(tenisJson);
           }
-          const statusDb = STATUS_ATLETA.includes(String(existente[0].status || '').trim()) ? String(existente[0].status).trim() : 'Analise';
-          if (status !== statusDb) {
-            novosCampos.push('status = ?');
-            novosValores.push(status);
-          }
+          /*
+           * O status NÃO é sobrescrito aqui: ele é decisão do admin (laudo) e
+           * vive no MySQL. Sobrescrever aqui (o state store é legado) faria o
+           * status voltar para 'Analise' a cada boot.
+           */
           if (novosCampos.length) {
             novosValores.push(existente[0].id);
             await db.query(`UPDATE atletas SET ${novosCampos.join(', ')} WHERE id = ?`, novosValores);
@@ -588,6 +609,13 @@ async function migrarDadosCampusDoStateParaBanco() {
     }
   } catch (_) {
     // flag opcional de migração; falha não deve interromper o startup
+  }
+
+  try {
+    const { registrarMigracao } = require('../config/migrationGuard');
+    await registrarMigracao(MIGRACAO_STATE_PARA_BANCO);
+  } catch (error) {
+    console.error('Aviso: não foi possível registrar a migração do state store (ela poderá rodar novamente):', error.message);
   }
 
   return atletasMigrados;

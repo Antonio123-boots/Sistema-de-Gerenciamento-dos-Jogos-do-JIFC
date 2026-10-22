@@ -1,5 +1,6 @@
 const pool = require('../config/db');
 const { gerarSlug } = require('../utils/slug');
+const { obterAnoEventoAtual } = require('./edicaoAtual');
 
 const COLUNAS_DISPUTA_PONTOS = ['disputa_pontos_1', 'disputa_pontos_2'];
 const TABELAS_SUB_CATEGORIA = ['chaves', 'jogos'];
@@ -160,6 +161,47 @@ async function ensureModalidadeLimiteColumn() {
 }
 
 let subCategoriaGarantida = false;
+
+/* Adiciona o escopo de edição (ano) em chaves e jogos e refaz o índice único
+   das chaves para permitir uma chave por edição. Sem isso, o sorteio de uma nova
+   edição apaga/ conflita com a edição anterior (mesma modalidade_id). */
+async function garantirAnoEventoChavesJogos() {
+  const ano = await obterAnoEventoAtual();
+
+  for (const tabela of TABELAS_SUB_CATEGORIA) {
+    try {
+      await pool.query(`ALTER TABLE ${interpolarNomeSeguro(tabela, TABELAS_SUB_CATEGORIA, 'tabela')} ADD COLUMN ano_evento INT NULL`);
+    } catch (error) {
+      if (!/Duplicate column|already exists/i.test(error.message || '')) {
+        throw error;
+      }
+    }
+  }
+
+  for (const tabela of TABELAS_SUB_CATEGORIA) {
+    await pool.query(
+      `UPDATE ${interpolarNomeSeguro(tabela, TABELAS_SUB_CATEGORIA, 'tabela')} SET ano_evento = ? WHERE ano_evento IS NULL`,
+      [ano]
+    );
+    await pool.query(
+      `ALTER TABLE ${interpolarNomeSeguro(tabela, TABELAS_SUB_CATEGORIA, 'tabela')} MODIFY ano_evento INT NOT NULL DEFAULT ${ano}`
+    );
+  }
+
+  try {
+    await pool.query('ALTER TABLE chaves DROP INDEX uq_modalidade_sub_numero');
+  } catch (_) {
+    // índice antigo já removido/inexistente: ignora silenciosamente
+  }
+
+  try {
+    await pool.query('ALTER TABLE chaves ADD UNIQUE KEY uq_modalidade_ano_sub_numero (modalidade_id, ano_evento, sub_categoria, numero_chave)');
+  } catch (error) {
+    if (!/Duplicate key name|already exists/i.test(error.message || '')) {
+      throw error;
+    }
+  }
+}
 
 async function garantirSubCategoriaChavesJogos() {
   if (subCategoriaGarantida) return;
@@ -737,6 +779,7 @@ async function ensureSchema() {
   await ensureJogoPublicadoColumn();
   await ensureJogoWoColumn();
   await ensureModalidadeLimiteColumn();
+  await garantirAnoEventoChavesJogos();
   await garantirSubCategoriaChavesJogos();
   await ensureJuizModalidadeTable();
   await ensureCartoesTable();
@@ -777,4 +820,4 @@ async function ensureSchema() {
   }
 }
 
-module.exports = { ensureSchema, ensureCampusTable, ensureConfiguracoesEventoTable, ensureJogoPublicadoColumn, ensureJogoWoColumn, ensureMataMataColumns, garantirSubCategoriaChavesJogos, ensureJuizModalidadeTable, ensureCartoesTable, ensureResultadosPorSetsTable, ensureClassificacaoCartoesColumns, ensureProvasTable, ensureResultadosAtletismoTable, ensureResultadosXadrezTable, ensureAtletasProvasColumn, ensureProvasPublicadoColumn, ensureResultadosXadrezPublicadoColumn, ensureEdicoesAnterioresTable, ensureRascunhoEdicoesTable, sincronizarProvasAtletismoDoState, sincronizarProvasPadraoAtletismo };
+module.exports = { ensureSchema, ensureCampusTable, ensureConfiguracoesEventoTable, ensureJogoPublicadoColumn, ensureJogoWoColumn, ensureMataMataColumns, garantirSubCategoriaChavesJogos, garantirAnoEventoChavesJogos, ensureJuizModalidadeTable, ensureCartoesTable, ensureResultadosPorSetsTable, ensureClassificacaoCartoesColumns, ensureProvasTable, ensureResultadosAtletismoTable, ensureResultadosXadrezTable, ensureAtletasProvasColumn, ensureProvasPublicadoColumn, ensureResultadosXadrezPublicadoColumn, ensureEdicoesAnterioresTable, ensureRascunhoEdicoesTable, sincronizarProvasAtletismoDoState, sincronizarProvasPadraoAtletismo };

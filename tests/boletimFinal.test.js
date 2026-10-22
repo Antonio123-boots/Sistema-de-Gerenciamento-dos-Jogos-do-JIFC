@@ -26,6 +26,37 @@ const incompleto = detectarEncerramentoJifc({
 });
 assert.equal(incompleto, false);
 
+// Jogo 'Cancelado' é terminal: não pode travar o encerramento do JIFC.
+const comCancelado = detectarEncerramentoJifc({
+  totalJogos: 12,
+  totalEncerrados: 10,
+  totalAgendados: 0,
+  totalEmAndamento: 0,
+  totalCancelados: 2
+});
+assert.equal(comCancelado, true);
+
+// Todos cancelados = não houve evento, logo o JIFC não está encerrado.
+const todosCancelados = detectarEncerramentoJifc({
+  totalJogos: 12,
+  totalEncerrados: 0,
+  totalAgendados: 0,
+  totalEmAndamento: 0,
+  totalCancelados: 12
+});
+assert.equal(todosCancelados, false);
+
+// Status inesperado/NULL continua pendente e impede o encerramento.
+const comPendente = detectarEncerramentoJifc({
+  totalJogos: 3,
+  totalEncerrados: 2,
+  totalAgendados: 0,
+  totalEmAndamento: 0,
+  totalCancelados: 0,
+  totalPendentes: 1
+});
+assert.equal(comPendente, false);
+
 const resumo = montarResumoBoletim({
   ano: 2025,
   ranking: [

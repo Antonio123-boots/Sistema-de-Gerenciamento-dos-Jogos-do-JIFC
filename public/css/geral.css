@@ -180,17 +180,6 @@ img {
   filter: var(--media-filter);
 }
 
-.campus-photo--default:hover,
-.avatar.campus-photo--default:hover {
-  filter: var(--media-filter-active);
-}
-
-.avatar:hover,
-.campus-photo--real:hover,
-.institution-avatar-image:hover {
-  filter: var(--photo-filter-active);
-}
-
 /* Tamanhos padronizados */
 .campus-photo--xs {
   width: 20px;
@@ -294,7 +283,6 @@ img {
 
 .avatar:hover {
   transform: scale(1.08);
-  box-shadow: 0 2px 12px rgba(var(--accent-rgb), 0.25);
 }
 
 /* Compat: manter classes antigas funcionando */
@@ -442,6 +430,45 @@ img {
   border-radius: 24px;
   padding: 1.5rem;
   margin-top: 1rem;
+}
+
+/* Bloco de destaque do boletim final (home pública) */
+.boletim-cta {
+  margin: 1rem 0 1.4rem;
+  padding: 1rem 1.15rem;
+  border: 1px solid rgba(75, 255, 135, 0.35);
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(75, 255, 135, 0.12), rgba(var(--fg-rgb), 0.03));
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.boletim-cta__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.boletim-cta__titulo {
+  display: block;
+  font-size: 0.98rem;
+  line-height: 1.35;
+}
+
+.boletim-cta__texto {
+  display: block;
+  margin-bottom: 0;
+  font-size: 0.86rem;
+  line-height: 1.4;
+  color: rgba(var(--fg-rgb), 0.78);
+}
+
+.boletim-cta .btn {
+  padding: 0.5rem 0.85rem;
+  font-size: 0.85rem;
+  border-radius: 8px;
+  box-shadow: none;
 }
 
 .configuration-dashboard {

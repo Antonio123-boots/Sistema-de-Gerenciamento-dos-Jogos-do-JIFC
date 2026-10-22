@@ -130,7 +130,6 @@
 
 .institution-img:hover {
     transform: scale(1.04);
-    box-shadow: 0 6px 20px rgba(var(--accent-rgb), 0.2);
 }
 
 .institution-logo {

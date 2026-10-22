@@ -2,6 +2,8 @@ const db = require('../config/db');
 const { obterRegras, normalizarNome } = require('../utils/sportClassificationRules');
 const { garantirSubCategoriaChavesJogos } = require('../config/ensureSchema');
 const { isModalidadeTenisMesa } = require('./modalidadeService');
+const { STATUS_ANALISE } = require('../utils/statusAtleta');
+const { filtroAnoEvento, obterAnoEventoAtual } = require('../config/edicaoAtual');
 
 async function buscarJogosDoGrupo(modalidadeId, chaveId) {
   const [jogos] = await db.query(`
@@ -14,6 +16,7 @@ async function buscarJogosDoGrupo(modalidadeId, chaveId) {
         OR (j.atleta_1_id IS NOT NULL AND j.atleta_2_id IS NOT NULL))
       AND rc.jogo_id IS NOT NULL
       AND (j.status IS NULL OR j.status <> 'Cancelado')
+      AND ${await filtroAnoEvento('j')}
   `, [modalidadeId, chaveId]);
   return jogos || [];
 }
@@ -216,7 +219,7 @@ async function sincronizarClassificacaoGruposModalidade(modalidadeId) {
 
   await garantirSubCategoriaChavesJogos();
 
-  const [chaves] = await db.query('SELECT id, numero_chave, sub_categoria FROM chaves WHERE modalidade_id = ? ORDER BY numero_chave ASC', [id]);
+  const [chaves] = await db.query(`SELECT id, numero_chave, sub_categoria FROM chaves WHERE modalidade_id = ? AND ${await filtroAnoEvento()} ORDER BY numero_chave ASC`, [id]);
   if (!chaves.length) {
     return;
   }
@@ -244,6 +247,7 @@ async function sincronizarClassificacaoGruposModalidade(modalidadeId) {
         JOIN modalidades m ON m.id = j.modalidade_id
         WHERE j.modalidade_id = ? AND j.chave_id = ?
           AND (m.genero IS NULL OR m.genero = '' OR a.genero = m.genero)
+          AND ${await filtroAnoEvento('j')}
         ORDER BY a.nome ASC
       `, [id, chave.id]);
 
@@ -297,7 +301,7 @@ async function getResumoInscricoes() {
     );
 
     const [atletasLinhas] = await db.query(
-      `SELECT a.id, a.nome, a.matricula, a.data_nascimento, a.cpf, a.genero, a.campus_id, am.modalidade_id
+      `SELECT a.id, a.nome, a.matricula, a.data_nascimento, a.cpf, a.genero, a.campus_id, am.modalidade_id, a.status
        FROM atletas a
        LEFT JOIN atleta_modalidade am ON am.atleta_id = a.id
        ORDER BY a.campus_id, a.nome ASC`
@@ -350,7 +354,7 @@ async function getResumoInscricoes() {
         matricula: atleta.matricula,
         dataNascimento: atleta.data_nascimento,
         cpf: atleta.cpf,
-        status: 'Analise',
+        status: atleta.status || STATUS_ANALISE.PENDENTE,
         genero: atleta.genero || 'Masculino'
       };
 
@@ -456,6 +460,8 @@ async function getClassificacaoModalidade(modalidadeId, chaveId = null, opcoes =
       ? String(opcoes.subCategoria).trim().toLowerCase()
       : '';
 
+    const filtroChave = await filtroAnoEvento('ch');
+
     const query = chaveId
       ? `SELECT cg.*, 
               COALESCE(c.nome, a.nome) AS participante_nome,
@@ -467,7 +473,7 @@ async function getClassificacaoModalidade(modalidadeId, chaveId = null, opcoes =
          LEFT JOIN campus c ON c.id = cg.campus_id
          LEFT JOIN atletas a ON a.id = cg.atleta_id
          LEFT JOIN chaves ch ON ch.id = cg.chave_id
-         WHERE cg.modalidade_id = ? AND cg.chave_id = ? ${filtroSubCategoria ? 'AND ch.sub_categoria = ?' : ''}`
+         WHERE cg.modalidade_id = ? AND cg.chave_id = ? ${filtroSubCategoria ? 'AND ch.sub_categoria = ?' : ''} AND ${filtroChave}`
       : `SELECT cg.*, 
               COALESCE(c.nome, a.nome) AS participante_nome,
               COALESCE(c.nome_exibicao, a.nome) AS participante_exibicao,
@@ -478,7 +484,7 @@ async function getClassificacaoModalidade(modalidadeId, chaveId = null, opcoes =
          LEFT JOIN campus c ON c.id = cg.campus_id
          LEFT JOIN atletas a ON a.id = cg.atleta_id
          LEFT JOIN chaves ch ON ch.id = cg.chave_id
-         WHERE cg.modalidade_id = ? ${filtroSubCategoria ? 'AND ch.sub_categoria = ?' : ''}`;
+         WHERE cg.modalidade_id = ? ${filtroSubCategoria ? 'AND ch.sub_categoria = ?' : ''} AND ${filtroChave}`;
 
     const params = chaveId
       ? (filtroSubCategoria ? [modalidadeId, chaveId, filtroSubCategoria] : [modalidadeId, chaveId])
@@ -716,7 +722,8 @@ async function recalcularClassificacaoModalidade(modalidadeId) {
      WHERE j.modalidade_id = ? AND (
        (j.campus_1_id IS NOT NULL AND j.campus_2_id IS NOT NULL)
        OR (j.atleta_1_id IS NOT NULL AND j.atleta_2_id IS NOT NULL)
-     ) AND (j.status IS NULL OR j.status <> 'Cancelado')`,
+     ) AND (j.status IS NULL OR j.status <> 'Cancelado')
+     AND ${await filtroAnoEvento('j')}`,
     [id]
   );
 
@@ -728,7 +735,8 @@ async function recalcularClassificacaoModalidade(modalidadeId) {
     `SELECT DISTINCT c.jogo_id
      FROM cartoes c
      JOIN jogos j ON j.id = c.jogo_id
-     WHERE j.modalidade_id = ?`,
+     WHERE j.modalidade_id = ?
+       AND ${await filtroAnoEvento('j')}`,
     [id]
   );
 

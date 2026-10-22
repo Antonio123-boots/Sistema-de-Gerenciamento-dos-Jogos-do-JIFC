@@ -73,6 +73,7 @@ function requisitar(porta, caminho) {
     );
   } finally {
     server.close();
+    await require('../config/db').end();
   }
   console.log('Teste de integração da rota / (home) concluído com sucesso.');
 })().catch((erro) => {

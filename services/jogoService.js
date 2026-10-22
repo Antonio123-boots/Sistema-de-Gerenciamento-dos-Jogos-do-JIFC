@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const { ensureJogoPublicadoColumn } = require('../config/ensureSchema');
+const { filtroAnoEvento, obterAnoEventoAtual } = require('../config/edicaoAtual');
 const { statusEfetivo } = require('../utils/jogoStatus');
 
 function normalizarSlugParaFiltro(valor = '') {
@@ -124,7 +125,7 @@ async function montarJogos(linhas) {
 async function getJogos() {
   try {
     await ensureJogoPublicadoColumn();
-    const [linhas] = await db.query(`${SELECT_JOGOS} ORDER BY j.id ASC`);
+    const [linhas] = await db.query(`${SELECT_JOGOS} WHERE ${await filtroAnoEvento('j')} ORDER BY j.id ASC`);
     return await montarJogos(linhas);
   } catch (error) {
     return [];
@@ -138,6 +139,7 @@ async function getDiasDisponiveis() {
       `SELECT DISTINCT DATE_FORMAT(j.data_hora, '%d/%m') AS dia
        FROM jogos j
        WHERE j.publicado = 1
+         AND ${await filtroAnoEvento('j')}
        ORDER BY j.data_hora ASC`
     );
     return (linhas || []).map((linha) => String(linha.dia || '').trim()).filter(Boolean);
@@ -155,7 +157,7 @@ async function getJogosPublicados(filters = {}) {
   const modalidadeBaseFiltro = modalidadeSlugFiltro.replace(/-(masculino|feminino)$/i, '');
   const subCategoriaFiltro = normalizarSubCategoriaFiltro(filters.subCategoria);
 
-  const query = `${SELECT_JOGOS} WHERE j.publicado = 1 ORDER BY j.data_hora ASC, j.id ASC`;
+  const query = `${SELECT_JOGOS} WHERE j.publicado = 1 AND ${await filtroAnoEvento('j')} ORDER BY j.data_hora ASC, j.id ASC`;
 
   try {
     const [linhas] = await db.query(query);
@@ -197,7 +199,7 @@ async function publicarJogosModalidade(modalidadeId) {
   }
 
   await ensureJogoPublicadoColumn();
-  await db.query('UPDATE jogos SET publicado = 1 WHERE modalidade_id = ?', [id]);
+  await db.query(`UPDATE jogos SET publicado = 1 WHERE modalidade_id = ? AND ${await filtroAnoEvento()}`, [id]);
 
   const { publicarModalidadeIndividual } = require('./resultadosIndividuaisService');
   await publicarModalidadeIndividual(id);
@@ -208,7 +210,7 @@ async function publicarJogosModalidade(modalidadeId) {
 
 async function publicarTodosJogos(modalidadeId) {
   await ensureJogoPublicadoColumn();
-  await db.query('UPDATE jogos SET publicado = 1');
+  await db.query(`UPDATE jogos SET publicado = 1 WHERE ${await filtroAnoEvento()}`);
 
   const { publicarTodasModalidadesIndividuais } = require('./resultadosIndividuaisService');
   await publicarTodasModalidadesIndividuais();

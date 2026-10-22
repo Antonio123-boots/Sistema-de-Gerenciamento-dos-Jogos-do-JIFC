@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const mataMataService = require('./mataMataService');
+const { filtroAnoEvento, obterAnoEventoAtual } = require('../config/edicaoAtual');
 
 const FASES_ELIMINATORIAS = new Set(['Oitavas', 'Quartas', 'Semifinal', 'Terceiro Lugar', 'Final']);
 const FASES_PRECEDENTES = {
@@ -37,7 +38,8 @@ async function faseAnteriorCompleta(modalidadeId, sub, faseAtual) {
     const [rows] = await db.query(
       `SELECT COUNT(*) AS total,
               SUM(CASE WHEN status = 'Encerrado' THEN 1 ELSE 0 END) AS encerrados
-       FROM jogos WHERE modalidade_id = ? AND sub_categoria = ? AND fase = ?`,
+       FROM jogos WHERE modalidade_id = ? AND sub_categoria = ? AND fase = ?
+         AND ${await filtroAnoEvento()}`,
       [modalidadeId, sub, faseAnterior]
     );
     if (rows[0].total > 0) {
@@ -153,6 +155,10 @@ async function atualizarJuiz(id, dados = {}) {
   }
 }
 
+async function atualizarSenhaJuiz(id, senhaHash) {
+  await db.query('UPDATE juizes SET senha = ? WHERE id = ?', [senhaHash, id]);
+}
+
 async function excluirJuiz(id) {
   await db.query('DELETE FROM juiz_modalidade WHERE juiz_id = ?', [id]);
   await db.query('DELETE FROM juizes WHERE id = ?', [id]);
@@ -254,6 +260,9 @@ async function obterJogosPorEsporte(esporteNome, genero = null) {
     params.push(genero);
   }
 
+  const filtroAno = await filtroAnoEvento('j');
+  const filtroChave = await filtroAnoEvento('chv');
+
   const [rows] = await db.query(
     `SELECT j.id, j.modalidade_id, j.sub_categoria, j.fase, j.rodada, j.status, j.data_hora, j.local_jogo,
             j.campus_1_id, j.campus_2_id, j.atleta_1_id, j.atleta_2_id,
@@ -275,6 +284,8 @@ async function obterJogosPorEsporte(esporteNome, genero = null) {
      LEFT JOIN resultados_coletivos rc ON rc.jogo_id = j.id
      LEFT JOIN chaves chv ON chv.id = j.chave_id
      WHERE ${whereClause}
+     AND ${filtroAno}
+     AND ${filtroChave}
      ORDER BY CASE WHEN j.fase IN ('Oitavas','Quartas','Semifinal','Final','Terceiro Lugar') THEN 1 ELSE 0 END,
               j.numero_jogo ASC, j.data_hora ASC, j.id ASC`,
     params
@@ -438,6 +449,7 @@ async function atualizarStatusAutomatico() {
     WHERE status = 'Agendado'
       AND data_hora <= NOW()
       AND publicado = 1
+      AND ${await filtroAnoEvento()}
   `);
 }
 
@@ -569,6 +581,7 @@ module.exports = {
   buscarJuizPorId,
   cadastrarJuiz,
   atualizarJuiz,
+  atualizarSenhaJuiz,
   excluirJuiz,
   buscarJuizPorEmail,
   obterEsportesDoJuiz,

@@ -1,10 +1,10 @@
-const fs = require('fs');
+﻿const fs = require('fs');
 const path = require('path');
 const db = require('../config/db');
 
 const BASE = process.env.BASE_URL || 'http://localhost:3000';
-const ADMIN = { email: 'admin@ifc.edu.br', senha: process.env.DEFAULT_ADMIN_PASSWORD || 'admin123' };
-const SENHA_CAMPUS = process.env.DEFAULT_CAMPUS_PASSWORD || 'jifc2026';
+const ADMIN = { email: 'admin@ifc.edu.br', senha: process.env.DEFAULT_ADMIN_PASSWORD };
+const SENHA_CAMPUS = process.env.DEFAULT_CAMPUS_PASSWORD;
 const ESTADO_PATH = path.join(__dirname, '..', 'data', 'jifc-state.json');
 
 function dormir(ms) {
@@ -185,11 +185,11 @@ async function cadastrarNovoAtleta(jar, csrf, campusNome, genero, blocoModalidad
     modalidades: blocoModalidades,
     _csrf: csrf
   };
-  if (blocoModalidades.some((m) => m.includes('Tênis de Mesa'))) {
+  if (blocoModalidades.some((m) => m.includes('TÃªnis de Mesa'))) {
     corpo.tenisMesaParticipacoes = ['Individual e Duplas'];
   }
   if (blocoModalidades.some((m) => m.includes('Atletismo'))) {
-    corpo.atletismoProvas = ['100m rasos', 'Salto em distância'];
+    corpo.atletismoProvas = ['100m rasos', 'Salto em distÃ¢ncia'];
   }
 
   const resposta = await pedir(jar, '/campus/atletas/cadastrar', { metodo: 'POST', corpo });
@@ -208,7 +208,7 @@ async function atualizarAtletaExistente(jar, csrf, atleta, listaAlvo) {
     _csrf: csrf
   };
 
-  if (listaAlvo.some((m) => m.includes('Tênis de Mesa'))) {
+  if (listaAlvo.some((m) => m.includes('TÃªnis de Mesa'))) {
     const atuais = Array.isArray(atleta.tenisMesaParticipacoes) ? atleta.tenisMesaParticipacoes.filter(Boolean) : [];
     corpo.tenisMesaParticipacoes = atuais.length ? atuais : ['Individual e Duplas'];
   }

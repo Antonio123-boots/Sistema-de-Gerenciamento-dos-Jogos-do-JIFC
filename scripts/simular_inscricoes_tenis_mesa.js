@@ -1,9 +1,9 @@
-/**
- * Simula o fluxo real de inscrição no Tênis de Mesa:
- * 1. Admin reabre o período de inscrições (POST /admin/configurar/salvar).
+﻿/**
+ * Simula o fluxo real de inscriÃ§Ã£o no TÃªnis de Mesa:
+ * 1. Admin reabre o perÃ­odo de inscriÃ§Ãµes (POST /admin/configurar/salvar).
  * 2. Cada campus faz login e inscreve a modalidade (POST /campus/inscricoes/salvar),
- *    preservando as modalidades já salvas.
- * 3. Cada campus cadastra 2 atletas para o Tênis de Mesa (1 Masculino + 1 Feminino)
+ *    preservando as modalidades jÃ¡ salvas.
+ * 3. Cada campus cadastra 2 atletas para o TÃªnis de Mesa (1 Masculino + 1 Feminino)
  *    via POST /campus/atletas/cadastrar.
  *
  * Uso: node scripts/simular_inscricoes_tenis_mesa.js
@@ -11,8 +11,8 @@
 
 const BASE = process.env.BASE_URL || 'http://localhost:3000';
 const db = require('../config/db');
-const SENHA_CAMPUS = 'jifc2026';
-const ADMIN = { email: 'admin@ifc.edu.br', senha: 'admin123' };
+const SENHA_CAMPUS = process.env.DEFAULT_CAMPUS_PASSWORD;
+const ADMIN = { email: 'admin@ifc.edu.br', senha: process.env.DEFAULT_ADMIN_PASSWORD };
 
 const NOMES_MASCULINOS = [
   'Lucas Andrade Prado', 'Rafael Monteiro Costa', 'Bruno Carvalho Dias',
@@ -186,7 +186,7 @@ async function inscreverModalidadeDoCampus(jar) {
   const pagina = await pedir(jar, '/campus/inscricoes');
   const csrf = extrairCsrf(pagina.texto);
   const existentes = extrairModalidadesMarcadas(pagina.texto);
-  const alvo = ['Tênis de Mesa Masculino', 'Tênis de Mesa Feminino'];
+  const alvo = ['TÃªnis de Mesa Masculino', 'TÃªnis de Mesa Feminino'];
   const lista = [...new Set([...existentes, ...alvo])];
   const adicionados = alvo.filter((item) => !existentes.includes(item));
 
@@ -273,12 +273,12 @@ async function main() {
       {
         nome: NOMES_MASCULINOS[i % NOMES_MASCULINOS.length],
         genero: 'Masculino',
-        modalidades: ['Tênis de Mesa Masculino']
+        modalidades: ['TÃªnis de Mesa Masculino']
       },
       {
         nome: NOMES_FEMININOS[i % NOMES_FEMININOS.length],
         genero: 'Feminino',
-        modalidades: ['Tênis de Mesa Feminino']
+        modalidades: ['TÃªnis de Mesa Feminino']
       }
     ];
 

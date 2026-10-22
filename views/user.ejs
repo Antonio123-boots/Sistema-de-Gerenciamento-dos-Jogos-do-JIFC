@@ -67,11 +67,11 @@
 %>
 
 <% if (typeof boletimDisponivel !== 'undefined' && boletimDisponivel) { %>
-    <section class="panel-card" style="margin-top:1rem; border:1px solid rgba(75,255,135,0.35); background:linear-gradient(135deg, rgba(75,255,135,0.12), rgba(var(--fg-rgb),0.03));">
-        <div style="padding:1.1rem 1.25rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+    <section class="boletim-cta">
+        <div class="boletim-cta__row">
             <div>
-                <strong style="display:block; font-size:1.05rem;">JIFC <%= (typeof boletimDisponivel.ano_jifc !== 'undefined' ? boletimDisponivel.ano_jifc : (typeof anoJifcAtual !== 'undefined' ? anoJifcAtual : '')) %> encerrado! 🏆</strong>
-                <span class="panel-subtitle">Confira o boletim final completo com todos os jogos, resultados, tabelas e chaveamentos.</span>
+                <strong class="boletim-cta__titulo">JIFC <%= (typeof boletimDisponivel.ano_jifc !== 'undefined' ? boletimDisponivel.ano_jifc : (typeof anoJifcAtual !== 'undefined' ? anoJifcAtual : '')) %> encerrado!</strong>
+                <span class="boletim-cta__texto">Confira o boletim final completo com todos os jogos, resultados, tabelas e chaveamentos.</span>
             </div>
             <a href="/boletim/<%= boletimDisponivel.ano_jifc %>" class="btn btn-primary">Ver boletim final</a>
         </div>

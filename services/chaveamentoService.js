@@ -5,13 +5,15 @@ const { garantirSubCategoriaChavesJogos } = require('../config/ensureSchema');
 const mataMataService = require('./mataMataService');
 const { obterPadraoEliminatoria } = require('../utils/sportClassificationRules');
 const { statusEfetivo } = require('../utils/jogoStatus');
+const { STATUS_ATLETA_APROVADO } = require('../utils/statusAtleta');
+const { filtroAnoEvento, obterAnoEventoAtual } = require('../config/edicaoAtual');
 
 async function gerarEliminatoriaAposSorteio(modalidadeId, nomeModalidade, subEfetiva) {
   try {
     const padrao = obterPadraoEliminatoria(nomeModalidade, subEfetiva);
     if (!padrao) return;
     const [chavesExistentes] = await db.query(
-      'SELECT COUNT(*) AS total FROM chaves WHERE modalidade_id = ? AND sub_categoria = ?',
+      'SELECT COUNT(*) AS total FROM chaves WHERE modalidade_id = ? AND sub_categoria = ? AND ' + await filtroAnoEvento(),
       [modalidadeId, subEfetiva]
     );
     if (Number(chavesExistentes[0].total) < 2) return;
@@ -340,9 +342,9 @@ async function buscarParticipantesModalidade(modalidadeId, subCategoria = '') {
        FROM atletas a
        JOIN campus c ON c.id = a.campus_id
        JOIN atleta_modalidade am ON am.atleta_id = a.id
-       WHERE am.modalidade_id = ? ${modalidadeMista ? '' : 'AND a.genero = ?'}
+       WHERE am.modalidade_id = ? AND a.status = ? ${modalidadeMista ? '' : 'AND a.genero = ?'}
        ORDER BY c.id ASC, a.id ASC`,
-      modalidadeMista ? [id] : [id, modalidade.genero]
+      modalidadeMista ? [id, STATUS_ATLETA_APROVADO] : [id, STATUS_ATLETA_APROVADO, modalidade.genero]
     );
 
     const participantesPorCampus = new Map();
@@ -423,9 +425,9 @@ async function montarParesDuplasPorCampus(modalidadeId) {
     `SELECT a.id, a.nome AS nome_atleta, a.campus_id
      FROM atletas a
      JOIN atleta_modalidade am ON am.atleta_id = a.id
-     WHERE am.modalidade_id = ? AND (? IS NULL OR a.genero = ?)
+     WHERE am.modalidade_id = ? AND a.status = ? AND (? IS NULL OR a.genero = ?)
      ORDER BY a.campus_id ASC, a.nome ASC`,
-    [id, generoFiltravel, generoFiltravel]
+    [id, STATUS_ATLETA_APROVADO, generoFiltravel, generoFiltravel]
   );
 
   const atletasPorCampus = new Map();
@@ -573,8 +575,10 @@ async function efetuarChaveamentoMatematico(modalidadeId, subCategoria = '') {
     if (subEfetiva !== 'individual') {
       await db.query('UPDATE campus_modalidade SET chave_id = NULL, ordem_sorteio = NULL WHERE modalidade_id = ?', [id]);
     }
-    await db.query('DELETE FROM jogos WHERE modalidade_id = ? AND sub_categoria = ?', [id, subEfetiva]);
-    await db.query('DELETE FROM chaves WHERE modalidade_id = ? AND sub_categoria = ?', [id, subEfetiva]);
+    const anoEvento = await obterAnoEventoAtual();
+    const filtroAno = await filtroAnoEvento();
+    await db.query(`DELETE FROM jogos WHERE modalidade_id = ? AND sub_categoria = ? AND ${filtroAno}`, [id, subEfetiva]);
+    await db.query(`DELETE FROM chaves WHERE modalidade_id = ? AND sub_categoria = ? AND ${filtroAno}`, [id, subEfetiva]);
 
     if (usarRegraTenisIndividual) {
       const modalidadeMista = String(modalidade.genero || '').trim().toLowerCase() === 'misto';
@@ -583,9 +587,9 @@ async function efetuarChaveamentoMatematico(modalidadeId, subCategoria = '') {
          FROM atletas a
          JOIN campus c ON c.id = a.campus_id
          JOIN atleta_modalidade am ON am.atleta_id = a.id
-         WHERE am.modalidade_id = ? ${modalidadeMista ? '' : 'AND a.genero = ?'}
+         WHERE am.modalidade_id = ? AND a.status = ? ${modalidadeMista ? '' : 'AND a.genero = ?'}
          ORDER BY c.nome ASC, a.nome ASC`,
-        modalidadeMista ? [id] : [id, modalidade.genero]
+        modalidadeMista ? [id, STATUS_ATLETA_APROVADO] : [id, STATUS_ATLETA_APROVADO, modalidade.genero]
       );
 
       if (!participantes.length) {
@@ -612,8 +616,8 @@ async function efetuarChaveamentoMatematico(modalidadeId, subCategoria = '') {
       for (let index = 0; index < grupos.length; index += 1) {
         const grupo = grupos[index];
         const [resultadoChave] = await db.query(
-          'INSERT INTO chaves (modalidade_id, numero_chave, sub_categoria) VALUES (?, ?, ?)',
-          [id, index + 1, 'individual']
+          'INSERT INTO chaves (modalidade_id, numero_chave, sub_categoria, ano_evento) VALUES (?, ?, ?, ?)',
+          [id, index + 1, 'individual', anoEvento]
         );
         const chaveId = resultadoChave.insertId;
         chavesCriadas.push({ id: chaveId, numero_chave: index + 1 });
@@ -626,9 +630,9 @@ async function efetuarChaveamentoMatematico(modalidadeId, subCategoria = '') {
           const [resultadoJogo] = await db.query(
             `INSERT INTO jogos (
                modalidade_id, chave_id, fase, rodada, atleta_1_id, atleta_2_id,
-               data_hora, local_jogo, status, sub_categoria
-             ) VALUES (?, ?, ?, ?, ?, ?, ?, 'A definir', 'Agendado', 'individual')`,
-            [id, chaveId, faseJogo, confronto.rodada || 1, confronto.atleta1Id, confronto.atleta2Id, dataHoraSql]
+               data_hora, local_jogo, status, sub_categoria, ano_evento
+             ) VALUES (?, ?, ?, ?, ?, ?, ?, 'A definir', 'Agendado', 'individual', ?)`,
+            [id, chaveId, faseJogo, confronto.rodada || 1, confronto.atleta1Id, confronto.atleta2Id, dataHoraSql, anoEvento]
           );
           jogosGerados.push({ id: resultadoJogo.insertId, chaveId });
         }
@@ -657,8 +661,8 @@ async function efetuarChaveamentoMatematico(modalidadeId, subCategoria = '') {
     for (let index = 0; index < grupos.length; index += 1) {
       const grupo = grupos[index];
       const [resultadoChave] = await db.query(
-        'INSERT INTO chaves (modalidade_id, numero_chave, sub_categoria) VALUES (?, ?, ?)',
-        [id, index + 1, subEfetiva]
+        'INSERT INTO chaves (modalidade_id, numero_chave, sub_categoria, ano_evento) VALUES (?, ?, ?, ?)',
+        [id, index + 1, subEfetiva, anoEvento]
       );
       const chaveId = resultadoChave.insertId;
 
@@ -670,7 +674,7 @@ async function efetuarChaveamentoMatematico(modalidadeId, subCategoria = '') {
       }
     }
 
-    const [chavesCriadas] = await db.query('SELECT id, numero_chave FROM chaves WHERE modalidade_id = ? AND sub_categoria = ? ORDER BY numero_chave ASC', [id, subEfetiva]);
+    const [chavesCriadas] = await db.query(`SELECT id, numero_chave FROM chaves WHERE modalidade_id = ? AND sub_categoria = ? AND ${filtroAno} ORDER BY numero_chave ASC`, [id, subEfetiva]);
     const jogosGerados = [];
     for (const chave of chavesCriadas) {
       const [participantes] = await db.query(
@@ -691,9 +695,9 @@ async function efetuarChaveamentoMatematico(modalidadeId, subCategoria = '') {
         const [resultadoJogo] = await db.query(
           `INSERT INTO jogos (
              modalidade_id, chave_id, fase, rodada, campus_1_id, campus_2_id,
-             data_hora, local_jogo, status, sub_categoria
-           ) VALUES (?, ?, ?, ?, ?, ?, ?, 'A definir', 'Agendado', ?)`,
-          [id, chave.id, faseJogo, confronto.rodada || 1, confronto.campus1Id, confronto.campus2Id, dataHoraSql, subEfetiva]
+             data_hora, local_jogo, status, sub_categoria, ano_evento
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, 'A definir', 'Agendado', ?, ?)`,
+          [id, chave.id, faseJogo, confronto.rodada || 1, confronto.campus1Id, confronto.campus2Id, dataHoraSql, subEfetiva, anoEvento]
         );
         jogosGerados.push({ id: resultadoJogo.insertId, chaveId: chave.id });
       }
@@ -822,9 +826,10 @@ async function getChavesModalidade(modalidadeId, subCategoria = '') {
     const modalidadeIndividual = tipoConfronto === 'Individual' || /atletismo/i.test(nomeModalidade) || /xadrez/i.test(nomeModalidade) || isModalidadeTenisMesa(nomeModalidade) || subCategoriaNormalizada === 'individual' || subCategoriaNormalizada === 'dupla';
 
     const subFiltravel = isModalidadeTenisMesa(nomeModalidade) && ['individual', 'dupla'].includes(subCategoriaNormalizada);
+    const filtroAnoChaves = await filtroAnoEvento();
     const [chavesRows] = subFiltravel
-      ? await db.query('SELECT id, numero_chave, sub_categoria FROM chaves WHERE modalidade_id = ? AND sub_categoria = ? ORDER BY numero_chave ASC', [id, subCategoriaNormalizada])
-      : await db.query('SELECT id, numero_chave, sub_categoria FROM chaves WHERE modalidade_id = ? ORDER BY sub_categoria ASC, numero_chave ASC', [id]);
+      ? await db.query(`SELECT id, numero_chave, sub_categoria FROM chaves WHERE modalidade_id = ? AND sub_categoria = ? AND ${filtroAnoChaves} ORDER BY numero_chave ASC`, [id, subCategoriaNormalizada])
+      : await db.query(`SELECT id, numero_chave, sub_categoria FROM chaves WHERE modalidade_id = ? AND ${filtroAnoChaves} ORDER BY sub_categoria ASC, numero_chave ASC`, [id]);
     if (!chavesRows.length) {
       return [];
     }
@@ -841,7 +846,7 @@ async function getChavesModalidade(modalidadeId, subCategoria = '') {
              JOIN atletas a ON a.id = j.atleta_1_id OR a.id = j.atleta_2_id
              JOIN campus c ON c.id = a.campus_id
              JOIN modalidades m ON m.id = j.modalidade_id
-             WHERE j.modalidade_id = ? AND j.chave_id = ?
+             WHERE j.modalidade_id = ? AND j.chave_id = ? AND ${await filtroAnoEvento('j')}
                AND (m.genero IS NULL OR m.genero = '' OR m.genero = 'Misto' OR a.genero = m.genero)
              ORDER BY a.nome ASC`,
             [id, chave.id]
@@ -919,6 +924,7 @@ async function getJogosModalidade(modalidadeId, subCategoria = '') {
       ? 'AND j.sub_categoria = ?'
       : '';
     const paramsSubJogos = filtroSubJogos ? [id, subCategoriaNormalizada] : [id];
+    const filtroAnoJogos = await filtroAnoEvento('j');
 
     const [participantesPorChaveDados] = await db.query(
       tratarComoIndividual
@@ -927,7 +933,7 @@ async function getJogosModalidade(modalidadeId, subCategoria = '') {
            JOIN atletas a ON a.id = j.atleta_1_id OR a.id = j.atleta_2_id
            JOIN campus c ON c.id = a.campus_id
            JOIN modalidades m ON m.id = j.modalidade_id
-           WHERE j.modalidade_id = ? AND (m.genero IS NULL OR m.genero = '' OR m.genero = 'Misto' OR a.genero = m.genero) ${filtroSubJogos}
+           WHERE j.modalidade_id = ? AND ${filtroAnoJogos} AND (m.genero IS NULL OR m.genero = '' OR m.genero = 'Misto' OR a.genero = m.genero) ${filtroSubJogos}
            ORDER BY j.chave_id ASC, c.id ASC, a.nome ASC`
         : `SELECT cm.chave_id, c.id AS campus_id, c.nome AS nome, c.nome_exibicao, c.slug, cm.ordem_sorteio
            FROM campus_modalidade cm
@@ -1008,7 +1014,7 @@ async function getJogosModalidade(modalidadeId, subCategoria = '') {
       LEFT JOIN campus c1 ON c1.id = COALESCE(j.campus_1_id, a1.campus_id)
       LEFT JOIN campus c2 ON c2.id = COALESCE(j.campus_2_id, a2.campus_id)
        LEFT JOIN chaves chv ON chv.id = j.chave_id
-       WHERE j.modalidade_id = ? ${filtroSubJogos}
+        WHERE j.modalidade_id = ? AND ${filtroAnoJogos} ${filtroSubJogos}
        ORDER BY j.data_hora ASC, j.id ASC`,
       paramsSubJogos
     );

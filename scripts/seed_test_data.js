@@ -1,11 +1,20 @@
 const mysql = require('mysql2/promise');
 const dotenv = require('dotenv');
 const path = require('path');
+const argon2 = require('argon2');
 
 dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 
 let dbPassword = process.env.DB_PASSWORD;
 if (dbPassword === '""' || dbPassword === "''" || !dbPassword) dbPassword = '';
+
+/* A senha dos campi vem SEMPRE do ambiente e é gravada com hash argon2. */
+const SENHA_CAMPUS = String(process.env.DEFAULT_CAMPUS_PASSWORD || '').trim();
+if (!SENHA_CAMPUS) {
+  console.error('DEFAULT_CAMPUS_PASSWORD não definida no .env.');
+  process.exit(1);
+}
+let senhaCampus = null;
 
 const campusList = [
   'IFC Abelardo Luz','IFC Araquari','IFC Blumenau','IFC Brusque','IFC Camboriú','IFC Concórdia','IFC Fraiburgo','IFC Ibirama','IFC Luzerna','IFC Rio do Sul','IFC Santa Rosa do Sul','IFC São Bento do Sul','IFC São Francisco do Sul','IFC Sombrio','IFC Videira'
@@ -29,6 +38,7 @@ const modalidadesList = [
 ];
 
 (async () => {
+  senhaCampus = await argon2.hash(SENHA_CAMPUS);
   const conn = await mysql.createConnection({
     host: process.env.DB_HOST || '127.0.0.1',
     user: process.env.DB_USER || 'root',
@@ -64,7 +74,7 @@ const modalidadesList = [
       const email = `${slug}@ifc.edu.br`;
       const [existing] = await conn.query('SELECT id FROM campus WHERE nome = ? OR email = ?', [nomeCampus, email]);
       if (existing.length === 0) {
-        await conn.query('INSERT INTO campus (nome, nome_exibicao, cidade, email, senha, slug, cor, banned, ban_motivo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [nomeCampus, nomeCampus, nomeCampus, email, 'jifc2026', slug, '#2980b9', 0, '']);
+        await conn.query('INSERT INTO campus (nome, nome_exibicao, cidade, email, senha, slug, cor, banned, ban_motivo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', [nomeCampus, nomeCampus, nomeCampus, email, senhaCampus, slug, '#2980b9', 0, '']);
       }
     }
 

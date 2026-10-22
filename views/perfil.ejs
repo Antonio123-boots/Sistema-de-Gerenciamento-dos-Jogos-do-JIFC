@@ -45,53 +45,92 @@
               </div>
             <% } %>
             <div class="profile-edit-actions">
-              <button type="button" class="premium-upload-btn" onclick="document.getElementById('editProfilePanel').style.display = document.getElementById('editProfilePanel').style.display === 'none' ? 'block' : 'none'">Editar perfil</button>
+              <button
+                type="button"
+                class="premium-upload-btn"
+                data-modal-abrir="editProfileModal"
+                data-modal-view-inicial="dados">
+                Editar perfil
+              </button>
             </div>
-            <div id="editProfilePanel" class="profile-edit-panel" style="display:none;">
-              <form action="/perfil/editar" method="POST" class="profile-photo-form">
-                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                <div class="management-fields-row split-2" style="margin-bottom:0.8rem;">
-                  <label class="premium-input-wrapper">
-                    <span class="field-label-text">Nome completo</span>
-                    <input type="text" name="nome" class="premium-text-input" value="<%= campusVisual && campusVisual.nome ? campusVisual.nome : '' %>">
-                  </label>
-                  <label class="premium-input-wrapper">
-                    <span class="field-label-text">Nome de exibição</span>
-                    <input type="text" name="nomeExibicao" class="premium-text-input" value="<%= campusVisual && campusVisual.nomeExibicao ? campusVisual.nomeExibicao : '' %>">
-                  </label>
+
+            <div id="editProfileModal" class="confirm-modal-overlay profile-modal-overlay" hidden>
+              <div class="confirm-modal-card profile-modal-card" role="dialog" aria-modal="true" aria-labelledby="editProfileModalTitle">
+                <div class="profile-modal-header">
+                  <h3 id="editProfileModalTitle">Editar perfil</h3>
+                  <button type="button" class="profile-modal-close" data-modal-fechar aria-label="Fechar edição de perfil">Fechar</button>
                 </div>
-                <div class="management-fields-row split-2" style="margin-bottom:0.8rem;">
-                  <label class="premium-input-wrapper">
-                    <span class="field-label-text">E-mail</span>
-                    <input type="email" name="email" class="premium-text-input" value="<%= campusVisual && campusVisual.email ? campusVisual.email : '' %>">
-                  </label>
-                  <label class="premium-input-wrapper">
-                    <span class="field-label-text">Senha</span>
-                    <input type="password" name="senha" class="premium-text-input" placeholder="Deixe em branco para manter a atual">
-                  </label>
-                </div>
-                <div class="management-fields-row" style="margin-bottom:0.8rem;">
-                  <label class="premium-input-wrapper" style="width:100%;">
-                    <span class="field-label-text">Cidade</span>
-                    <input type="text" name="cidade" class="premium-text-input" value="<%= campusVisual && campusVisual.cidade ? campusVisual.cidade : '' %>">
-                  </label>
-                </div>
-                <input type="hidden" name="fotoPerfil" id="fotoPerfilValue" value="<%= fotoPerfil %>">
-                <div class="profile-photo-controls">
-                  <label class="premium-input-wrapper profile-photo-input-row">
-                    <span class="field-label-text">Foto de perfil</span>
-                    <div class="profile-photo-picker" style="display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center;">
-                      <input type="file" id="fotoPerfilInput" accept="image/*" class="hidden-input-state">
-                      <label for="fotoPerfilInput" class="premium-upload-btn">Escolher foto</label>
-                      <button type="button" id="removerFotoBtn" class="premium-upload-btn" style="background: rgba(var(--fg-rgb), 0.08); border-color: rgba(var(--fg-rgb), 0.16);">Remover foto</button>
+
+                <div class="profile-modal-view" data-modal-view="dados">
+                  <form action="/perfil/editar" method="POST" class="profile-photo-form">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <div class="profile-editor-layout">
+                      <section class="profile-editor-photo-card" aria-label="Foto de perfil">
+                        <img
+                          id="profilePhotoPreview"
+                          src="<%= fotoPerfil || '/imagens/avatar.svg' %>"
+                          alt="Foto de perfil"
+                          class="profile-editor-photo-preview">
+                        <div class="profile-editor-photo-controls">
+                          <div class="profile-photo-picker profile-photo-actions">
+                            <input type="file" id="fotoPerfilInput" accept="image/*" class="hidden-input-state">
+                            <label for="fotoPerfilInput" class="premium-upload-btn">Alterar foto</label>
+                            <button type="button" id="removerFotoBtn" class="profile-remove-photo-btn">Remover foto</button>
+                          </div>
+                          <p id="fotoPerfilStatus" class="profile-photo-status" role="status" aria-live="polite" hidden></p>
+                        </div>
+                      </section>
+                      <section class="profile-editor-fields" aria-label="Informações do perfil">
+                        <label class="premium-input-wrapper">
+                          <span class="field-label-text">Nome de exibição</span>
+                          <input type="text" name="nomeExibicao" class="premium-text-input" value="<%= campusVisual && campusVisual.nomeExibicao ? campusVisual.nomeExibicao : '' %>" maxlength="100" required>
+                        </label>
+                      </section>
+                      <input type="hidden" name="fotoPerfil" id="fotoPerfilValue" value="<%= fotoPerfil %>">
                     </div>
-                  </label>
+                    <div class="profile-modal-footer">
+                      <button type="button" class="profile-modal-secondary-action" data-modal-fechar>Cancelar</button>
+                      <button type="submit" class="profile-modal-primary-action">Salvar alterações</button>
+                    </div>
+                  </form>
+                  <button type="button" class="profile-modal-option" data-modal-view-alvo="senha">
+                    <span class="profile-modal-option-text"><strong>Alterar senha</strong></span>
+                    <span class="profile-modal-option-action">Alterar</span>
+                  </button>
                 </div>
-                <div class="profile-form-actions">
-                  <button type="submit" class="btn btn-primary">Salvar alterações</button>
-                  <button type="button" class="btn btn-secondary" onclick="document.getElementById('editProfilePanel').style.display='none'">Cancelar</button>
+
+                <div class="profile-modal-view" data-modal-view="senha" hidden>
+                  <div class="profile-password-content">
+                  <form action="/perfil/senha" method="POST" class="profile-photo-form">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <div class="management-fields-row split-2" style="margin-bottom:0.8rem;">
+                      <label class="premium-input-wrapper">
+                        <span class="field-label-text">Senha atual</span>
+                        <input type="password" name="senhaAtual" class="premium-text-input" autocomplete="current-password" required>
+                      </label>
+                      <label class="premium-input-wrapper">
+                        <span class="field-label-text">Nova senha (mínimo de 8 caracteres)</span>
+                        <input type="password" name="novaSenha" class="premium-text-input" autocomplete="new-password" minlength="8" required>
+                      </label>
+                    </div>
+                    <div class="management-fields-row" style="margin-bottom:0.8rem;">
+                      <label class="premium-input-wrapper" style="width:100%;">
+                        <span class="field-label-text">Confirmar nova senha</span>
+                        <input type="password" name="confirmarSenha" class="premium-text-input" autocomplete="new-password" minlength="8" required>
+                      </label>
+                    </div>
+                    <div class="profile-modal-footer">
+                      <% if (viewer.tipo === 'campus') { %>
+                        <button type="button" class="profile-modal-secondary-action" data-modal-view-alvo="dados">Voltar</button>
+                      <% } else { %>
+                        <button type="button" class="profile-modal-secondary-action" data-modal-fechar>Cancelar</button>
+                      <% } %>
+                      <button type="submit" class="profile-modal-primary-action">Alterar senha</button>
+                    </div>
+                  </form>
+                  </div>
                 </div>
-              </form>
+              </div>
             </div>
           <% } %>
           <script>
@@ -99,15 +138,24 @@
               const fileInput = document.getElementById('fotoPerfilInput');
               const hiddenField = document.getElementById('fotoPerfilValue');
               const removerBtn = document.getElementById('removerFotoBtn');
+              const statusFoto = document.getElementById('fotoPerfilStatus');
+              const previewFoto = document.getElementById('profilePhotoPreview');
               const form = fileInput ? fileInput.closest('form') : null;
 
               if (!fileInput || !hiddenField || !form) {
                 return;
               }
 
+              function mostrarErroFoto(mensagem) {
+                if (statusFoto) {
+                  statusFoto.textContent = mensagem;
+                  statusFoto.hidden = false;
+                }
+              }
+
               async function enviarFotoAutomaticamente(dataUrl) {
                 try {
-                  const resposta = await fetch(form.action, {
+                  const resposta = await fetch('/perfil/foto', {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
@@ -116,11 +164,15 @@
                     credentials: 'same-origin'
                   });
 
-                  if (resposta.ok || resposta.redirected) {
+                  if (resposta.redirected) {
                     window.location.reload();
+                    return;
                   }
+
+                  mostrarErroFoto('Não foi possível salvar a foto de perfil.');
                 } catch (error) {
                   console.error('Erro ao salvar foto automaticamente:', error);
+                  mostrarErroFoto('Não foi possível salvar a foto de perfil.');
                 }
               }
 
@@ -132,12 +184,19 @@
 
                 if (!file.type || !file.type.startsWith('image/')) {
                   this.value = '';
+                  mostrarErroFoto('Selecione um arquivo de imagem válido.');
                   return;
                 }
 
                 const reader = new FileReader();
+                reader.onerror = function () {
+                  mostrarErroFoto('Não foi possível ler o arquivo selecionado.');
+                };
                 reader.onload = function () {
                   const img = new Image();
+                  img.onerror = function () {
+                    mostrarErroFoto('Não foi possível abrir o arquivo selecionado.');
+                  };
                   img.onload = function () {
                     const maxSize = 1600;
                     const canvas = document.createElement('canvas');
@@ -154,11 +213,18 @@
                     canvas.height = height;
 
                     const context = canvas.getContext('2d');
+                    if (!context) {
+                      mostrarErroFoto('Não foi possível processar a foto selecionada.');
+                      return;
+                    }
                     context.clearRect(0, 0, canvas.width, canvas.height);
                     context.drawImage(img, 0, 0, width, height);
 
                     const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
                     hiddenField.value = dataUrl;
+                    if (previewFoto) {
+                      previewFoto.src = dataUrl;
+                    }
                     enviarFotoAutomaticamente(dataUrl);
                   };
                   img.src = String(reader.result || '');
@@ -169,8 +235,11 @@
               if (removerBtn) {
                 removerBtn.addEventListener('click', async function () {
                   hiddenField.value = '';
+                  if (previewFoto) {
+                    previewFoto.src = '/imagens/avatar.svg';
+                  }
                   try {
-                    const resposta = await fetch(form.action, {
+                    const resposta = await fetch('/perfil/foto', {
                       method: 'POST',
                       headers: {
                         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
@@ -181,12 +250,75 @@
 
                     if (resposta.ok || resposta.redirected) {
                       window.location.reload();
+                      return;
                     }
+
+                    mostrarErroFoto('Não foi possível remover a foto de perfil.');
                   } catch (error) {
                     console.error('Erro ao remover foto automaticamente:', error);
+                    mostrarErroFoto('Não foi possível remover a foto de perfil.');
                   }
                 });
               }
+            })();
+          </script>
+          <script>
+            (() => {
+              const modal = document.getElementById('editProfileModal');
+              if (!modal) {
+                return;
+              }
+
+              const titulo = modal.querySelector('#editProfileModalTitle');
+              const visoes = Array.from(modal.querySelectorAll('[data-modal-view]'));
+              const botoesAbertura = Array.from(document.querySelectorAll('[data-modal-abrir="editProfileModal"]'));
+              const botoesFechar = Array.from(modal.querySelectorAll('[data-modal-fechar]'));
+              const botoesTroca = Array.from(modal.querySelectorAll('[data-modal-view-alvo]'));
+
+              function mostrarView(nome) {
+                visoes.forEach((visao) => {
+                  visao.hidden = visao.getAttribute('data-modal-view') !== nome;
+                });
+                if (titulo) {
+                  titulo.textContent = nome === 'senha' ? 'Alterar senha' : 'Editar perfil';
+                }
+              }
+
+              function abrir(botaoOrigem) {
+                mostrarView(botaoOrigem.getAttribute('data-modal-view-inicial') || 'dados');
+                modal.hidden = false;
+                document.body.style.overflow = 'hidden';
+                const visaoAtiva = modal.querySelector('[data-modal-view]:not([hidden])');
+                const primeiroCampo = visaoAtiva && visaoAtiva.querySelector('input:not([type="hidden"])');
+                if (primeiroCampo) {
+                  primeiroCampo.focus();
+                }
+              }
+
+              function fechar() {
+                modal.hidden = true;
+                document.body.style.overflow = '';
+              }
+
+              botoesAbertura.forEach((botao) => botao.addEventListener('click', () => abrir(botao)));
+              botoesFechar.forEach((botao) => botao.addEventListener('click', fechar));
+              botoesTroca.forEach((botao) => {
+                botao.addEventListener('click', () => {
+                  mostrarView(botao.getAttribute('data-modal-view-alvo'));
+                });
+              });
+
+              modal.addEventListener('click', (evento) => {
+                if (evento.target === modal) {
+                  fechar();
+                }
+              });
+
+              document.addEventListener('keydown', (evento) => {
+                if (evento.key === 'Escape' && !modal.hidden) {
+                  fechar();
+                }
+              });
             })();
           </script>
         <% } %>

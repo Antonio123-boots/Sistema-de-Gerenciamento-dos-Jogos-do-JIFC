@@ -4,7 +4,8 @@ const adminModel = require('../models/adminModel');
 const db = require('../config/db');
 const campusModel = require('../models/campusModel');
 const { listarCampi, obterCampusPorSlug, atualizarCampus } = require('../models/campiCatalog');
-const { salvarFotoPerfilUsuario } = require('../models/authUsers');
+const { obterUsuarioPorEmail, construirPayloadJWT, salvarFotoPerfilUsuario, salvarNomeExibicaoUsuario, alterarSenhaUsuario } = require('../models/authUsers');
+const { gerarToken, construirCookieToken } = require('../middleware/auth');
 const { filtrarModalidadesParaHome } = require('../utils/homeFilters');
 const { ehTenisDeMesa, normalizarSubCategoriaFiltro } = require('../services/jogoService');
 const resultadosIndividuaisService = require('../services/resultadosIndividuaisService');
@@ -1087,10 +1088,17 @@ router.post('/perfil/foto', async function(req, res, next) {
             salvarFotoPerfilUsuario(req.user.email, fotoPerfil);
         }
 
+        const usuarioAtualizado = await obterUsuarioPorEmail(req.user.email);
+        if (!usuarioAtualizado) {
+            throw new Error('Não foi possível atualizar os dados da sessão.');
+        }
+
+        const tokenAtualizado = gerarToken(construirPayloadJWT(usuarioAtualizado));
+        res.setHeader('Set-Cookie', construirCookieToken(tokenAtualizado));
         return res.redirect('/perfil');
     } catch (error) {
         console.error('Erro ao salvar foto de perfil:', error);
-        return res.redirect('/perfil');
+        return res.redirect('/perfil?erro=' + encodeURIComponent(error.message || 'Não foi possível salvar a foto de perfil.'));
     }
 });
 
@@ -1099,24 +1107,66 @@ router.post('/perfil/editar', async function(req, res, next) {
         return res.redirect('/login');
     }
 
-    if (req.user.tipo !== 'campus' || !req.user.campusSlug) {
-        return res.redirect('/perfil?erro=' + encodeURIComponent('A edição de perfil está disponível apenas para campi.'));
-    }
-
     try {
-        await atualizarCampus(req.user.campusSlug, {
-            nome: req.body.nome,
-            nomeExibicao: req.body.nomeExibicao,
-            email: req.body.email,
-            senha: req.body.senha,
-            cidade: req.body.cidade,
-            fotoPerfil: req.body.fotoPerfil || '/imagens/avatar.svg'
-        });
+        let emailAtualizado = req.user.email;
+        if (req.user.tipo === 'campus' && req.user.campusSlug) {
+            const campusAtualizado = await atualizarCampus(req.user.campusSlug, {
+                nomeExibicao: req.body.nomeExibicao,
+                fotoPerfil: req.body.fotoPerfil
+            });
+            emailAtualizado = campusAtualizado.email;
+        } else {
+            salvarNomeExibicaoUsuario(req.user.email, req.body.nomeExibicao);
+            if (req.body.fotoPerfil) {
+                salvarFotoPerfilUsuario(req.user.email, req.body.fotoPerfil);
+            }
+        }
 
+        const usuarioAtualizado = await obterUsuarioPorEmail(emailAtualizado);
+        if (!usuarioAtualizado) {
+            throw new Error('Não foi possível atualizar os dados da sessão.');
+        }
+
+        const tokenAtualizado = gerarToken(construirPayloadJWT(usuarioAtualizado));
+        res.setHeader('Set-Cookie', construirCookieToken(tokenAtualizado));
         return res.redirect('/perfil?sucesso=' + encodeURIComponent('Perfil atualizado com sucesso.'));
     } catch (error) {
         console.error('Erro ao editar perfil do campus:', error);
         return res.redirect('/perfil?erro=' + encodeURIComponent(error.message || 'Não foi possível atualizar o perfil.'));
+    }
+});
+
+router.post('/perfil/senha', async function(req, res, next) {
+    if (!req.user) {
+        return res.redirect('/login');
+    }
+
+    const senhaAtual = String(req.body.senhaAtual || '');
+    const novaSenha = String(req.body.novaSenha || '');
+    const confirmacao = String(req.body.confirmarSenha || '');
+
+    if (!senhaAtual || !novaSenha) {
+        return res.redirect('/perfil?erro=' + encodeURIComponent('Informe a senha atual e a nova senha.'));
+    }
+
+    if (novaSenha.length < 8) {
+        return res.redirect('/perfil?erro=' + encodeURIComponent('A nova senha deve ter no mínimo 8 caracteres.'));
+    }
+
+    if (novaSenha !== confirmacao) {
+        return res.redirect('/perfil?erro=' + encodeURIComponent('A confirmação não confere com a nova senha.'));
+    }
+
+    if (novaSenha === senhaAtual) {
+        return res.redirect('/perfil?erro=' + encodeURIComponent('A nova senha deve ser diferente da senha atual.'));
+    }
+
+    try {
+        await alterarSenhaUsuario(req.user.email, senhaAtual, novaSenha);
+        return res.redirect('/perfil?sucesso=' + encodeURIComponent('Senha alterada com sucesso.'));
+    } catch (error) {
+        console.error('Erro ao alterar senha:', error);
+        return res.redirect('/perfil?erro=' + encodeURIComponent(error.message || 'Não foi possível alterar a senha.'));
     }
 });
 

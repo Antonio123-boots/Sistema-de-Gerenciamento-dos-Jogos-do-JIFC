@@ -1,3 +1,6 @@
+const STATUS_TERMINAL = ['Encerrado', 'Cancelado'];
+const STATUS_EM_CURSO = ['Em Andamento'];
+
 function statusEfetivo(status, dataHora) {
   let s = String(status || '').trim() || 'Agendado';
 
@@ -13,4 +16,12 @@ function statusEfetivo(status, dataHora) {
   return data.getTime() <= Date.now() ? 'Em Andamento' : 'Agendado';
 }
 
-module.exports = { statusEfetivo };
+function ehStatusTerminal(status) {
+  return STATUS_TERMINAL.includes(String(status || '').trim());
+}
+
+function ehStatusEmCurso(status) {
+  return STATUS_EM_CURSO.includes(String(status || '').trim());
+}
+
+module.exports = { statusEfetivo, ehStatusTerminal, ehStatusEmCurso, STATUS_TERMINAL };

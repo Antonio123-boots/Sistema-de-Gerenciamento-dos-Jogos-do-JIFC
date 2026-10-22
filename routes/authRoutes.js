@@ -2,20 +2,12 @@ const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const { obterUsuarioPorEmail, verificarSenha, construirPayloadJWT } = require('../models/authUsers');
-const { gerarToken } = require('../middleware/auth');
+const { gerarToken, construirCookieToken } = require('../middleware/auth');
 
 const loginValidation = [
     body('email').isEmail().withMessage('Informe um e-mail válido.').normalizeEmail(),
     body('senha').isLength({ min: 1 }).withMessage('Informe a senha.')
 ];
-
-function construirCookieToken(token) {
-    const partes = [`token=${encodeURIComponent(token)}`, 'Path=/', 'HttpOnly', 'SameSite=Lax'];
-    if (String(process.env.COOKIE_SECURE || '').trim().toLowerCase() === 'true') {
-        partes.push('Secure');
-    }
-    return partes.join('; ');
-}
 
 router.post('/login', loginValidation, async function(req, res, next) {
     try {

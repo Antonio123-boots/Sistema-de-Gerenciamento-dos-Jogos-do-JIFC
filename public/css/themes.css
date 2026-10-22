@@ -17,8 +17,6 @@
   --icon-filter: brightness(0) invert(1);
   --icon-filter-active: brightness(0) saturate(100%) invert(88%) sepia(35%) saturate(1200%) hue-rotate(5deg) brightness(105%) contrast(95%);
   --media-filter: none;
-  --media-filter-active: brightness(0) saturate(100%) invert(88%) sepia(35%) saturate(1200%) hue-rotate(5deg) brightness(105%) contrast(95%);
-  --photo-filter-active: sepia(0.75) saturate(3.5) hue-rotate(-8deg) brightness(1.02);
 }
 
 [data-theme="dark"] {
@@ -38,8 +36,6 @@
   --icon-filter: brightness(0) invert(1);
   --icon-filter-active: brightness(0) saturate(100%) invert(82%) sepia(77%) saturate(421%) hue-rotate(115deg) brightness(103%) contrast(99%);
   --media-filter: brightness(0) saturate(100%) invert(82%) sepia(77%) saturate(421%) hue-rotate(115deg) brightness(103%) contrast(99%);
-  --media-filter-active: brightness(0) saturate(100%) invert(82%) sepia(77%) saturate(421%) hue-rotate(115deg) brightness(120%) contrast(99%);
-  --photo-filter-active: sepia(0.9) saturate(4) hue-rotate(135deg) brightness(1.05);
 }
 
 [data-theme="light"] {
@@ -59,8 +55,6 @@
   --icon-filter: brightness(0);
   --icon-filter-active: brightness(0) saturate(100%) invert(88%) sepia(35%) saturate(1200%) hue-rotate(5deg) brightness(105%) contrast(95%);
   --media-filter: brightness(0);
-  --media-filter-active: brightness(0);
-  --photo-filter-active: grayscale(1) contrast(1.05) brightness(0.95);
 }
 
 /* Botão da paleta + dropdown de temas (menu superior) */

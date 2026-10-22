@@ -1,10 +1,19 @@
 const mysql = require('mysql2/promise');
 const dotenv = require('dotenv');
 const path = require('path');
+const argon2 = require('argon2');
 
 dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 
 const dbPassword = process.env.DB_PASSWORD === '""' || process.env.DB_PASSWORD === "''" || !process.env.DB_PASSWORD ? '' : process.env.DB_PASSWORD;
+
+/* A senha dos campi vem SEMPRE do ambiente e é gravada com hash argon2. */
+const SENHA_CAMPUS = String(process.env.DEFAULT_CAMPUS_PASSWORD || '').trim();
+if (!SENHA_CAMPUS) {
+  console.error('DEFAULT_CAMPUS_PASSWORD não definida no .env.');
+  process.exit(1);
+}
+let senhaCampus = null;
 
 const campusBase = [
   { nome: 'IFC Abelardo Luz', nomeExibicao: 'Abelardo Luz', cidade: 'Abelardo Luz', slug: 'abelardo-luz', cor: '#00bcd4' },
@@ -79,6 +88,7 @@ async function ensureTableColumns(conn) {
 }
 
 (async () => {
+  senhaCampus = await argon2.hash(SENHA_CAMPUS);
   const conn = await mysql.createConnection({
     host: process.env.DB_HOST || '127.0.0.1',
     user: process.env.DB_USER || 'root',
@@ -103,7 +113,7 @@ async function ensureTableColumns(conn) {
       if (existing.length === 0) {
         await conn.query(
           'INSERT INTO campus (nome, nome_exibicao, cidade, email, senha, slug, cor, banned, ban_motivo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          [campus.nome, nomeExibicao, campus.cidade || nomeExibicao, email, 'jifc2026', slug, campus.cor || '#2980b9', 0, '']
+          [campus.nome, nomeExibicao, campus.cidade || nomeExibicao, email, senhaCampus, slug, campus.cor || '#2980b9', 0, '']
         );
       } else {
         await conn.query(

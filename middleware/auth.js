@@ -53,4 +53,12 @@ function gerarToken(payload) {
     return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRATION });
 }
 
-module.exports = { requireAuth, requireRole, gerarToken, decodificarToken, extrairToken };
+function construirCookieToken(token) {
+    const partes = [`token=${encodeURIComponent(token)}`, 'Path=/', 'HttpOnly', 'SameSite=Lax'];
+    if (String(process.env.COOKIE_SECURE || '').trim().toLowerCase() === 'true') {
+        partes.push('Secure');
+    }
+    return partes.join('; ');
+}
+
+module.exports = { requireAuth, requireRole, gerarToken, decodificarToken, extrairToken, construirCookieToken };

@@ -1,16 +1,25 @@
 const db = require('../config/db');
+const { filtroAnoEvento } = require('../config/edicaoAtual');
 
-function detectarEncerramentoJifc({ totalJogos = 0, totalEncerrados = 0, totalAgendados = 0, totalEmAndamento = 0, totalCancelados = 0 } = {}) {
+/**
+ * Um jogo 'Cancelado' é terminal: ele não impede o encerramento do JIFC.
+ * Só bloqueia o encerramento se TODOS os jogos foram cancelados (não houve
+ * evento) ou se ainda existe jogo pendente (Agendado / Em Andamento).
+ */
+function detectarEncerramentoJifc({ totalJogos = 0, totalEncerrados = 0, totalAgendados = 0, totalEmAndamento = 0, totalCancelados = 0, totalPendentes = null } = {}) {
   const total = Number(totalJogos || 0);
   const encerrados = Number(totalEncerrados || 0);
   const agendados = Number(totalAgendados || 0);
   const emAndamento = Number(totalEmAndamento || 0);
   const cancelados = Number(totalCancelados || 0);
+  const pendentes = totalPendentes === null || totalPendentes === undefined
+    ? agendados + emAndamento
+    : Number(totalPendentes || 0);
 
   if (!total) return false;
   if (cancelados >= total) return false;
 
-  return encerrados === total && agendados === 0 && emAndamento === 0;
+  return encerrados + cancelados === total && pendentes === 0;
 }
 
 async function obterStatusJifc() {
@@ -20,8 +29,10 @@ async function obterStatusJifc() {
       SUM(CASE WHEN status = 'Encerrado' THEN 1 ELSE 0 END) AS total_encerrados,
       SUM(CASE WHEN status = 'Agendado' THEN 1 ELSE 0 END) AS total_agendados,
       SUM(CASE WHEN status = 'Em Andamento' THEN 1 ELSE 0 END) AS total_em_andamento,
-      SUM(CASE WHEN status = 'Cancelado' THEN 1 ELSE 0 END) AS total_cancelados
+      SUM(CASE WHEN status = 'Cancelado' THEN 1 ELSE 0 END) AS total_cancelados,
+      SUM(CASE WHEN status IS NULL OR status NOT IN ('Encerrado', 'Cancelado') THEN 1 ELSE 0 END) AS total_pendentes
     FROM jogos
+    WHERE ${await filtroAnoEvento()}
   `);
 
   const dados = linhas[0] || {};
@@ -30,7 +41,8 @@ async function obterStatusJifc() {
     totalEncerrados: Number(dados.total_encerrados || 0),
     totalAgendados: Number(dados.total_agendados || 0),
     totalEmAndamento: Number(dados.total_em_andamento || 0),
-    totalCancelados: Number(dados.total_cancelados || 0)
+    totalCancelados: Number(dados.total_cancelados || 0),
+    totalPendentes: Number(dados.total_pendentes || 0)
   });
 
   return {

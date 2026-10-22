@@ -13,7 +13,7 @@ router.use(requireAuth, requireRole('admin'));
 const campusValidation = [
     body('nome').trim().notEmpty().withMessage('Nome é obrigatório.').isLength({ max: 100 }),
     body('email').isEmail().withMessage('E-mail inválido.').normalizeEmail(),
-    body('senha').optional({ checkFalsy: true }).isLength({ min: 6 }).withMessage('Senha deve ter no mínimo 6 caracteres.')
+    body('senha').optional({ checkFalsy: true }).isLength({ min: 8 }).withMessage('Senha deve ter no mínimo 8 caracteres.')
 ];
 
 const slugParam = [
@@ -147,13 +147,13 @@ router.get('/juizes/cadastrar', juizController.renderCadastrar);
 router.post('/juizes/cadastrar', [
     body('nome').trim().notEmpty().withMessage('Nome é obrigatório.').isLength({ max: 100 }),
     body('email').isEmail().withMessage('E-mail inválido.').normalizeEmail(),
-    body('senha').isLength({ min: 6 }).withMessage('Senha deve ter no mínimo 6 caracteres.')
+    body('senha').isLength({ min: 8 }).withMessage('Senha deve ter no mínimo 8 caracteres.')
   ], juizController.handleCadastrar);
 router.get('/juizes/editar/:id', idParam, handleValidationForm, juizController.renderEditar);
 router.post('/juizes/editar/:id', [
     body('nome').trim().notEmpty().withMessage('Nome é obrigatório.').isLength({ max: 100 }),
     body('email').isEmail().withMessage('E-mail inválido.').normalizeEmail(),
-    body('senha').optional({ checkFalsy: true }).isLength({ min: 6 }).withMessage('Senha deve ter no mínimo 6 caracteres.')
+    body('senha').optional({ checkFalsy: true }).isLength({ min: 8 }).withMessage('Senha deve ter no mínimo 8 caracteres.')
   ], juizController.handleEditar);
 router.post('/juizes/excluir/:id', idParam, handleValidationForm, juizController.handleExcluir);
 

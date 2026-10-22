@@ -294,7 +294,7 @@
               <tbody>
                 <% if (atletasSalvos.length > 0) { %>
                   <% atletasSalvos.forEach(function(atleta) { %>
-                    <tr class="<%= atleta.status === 'Regular' ? 'row--regular' : (atleta.status === 'Pendente' || atleta.status === 'Pendente_Laudo') ? 'row--pending' : 'row--irregular' %>">
+                    <tr class="<%= atleta.status === 'Regular' ? 'row--regular' : (atleta.status === 'Analise' || atleta.status === 'Pendente' || atleta.status === 'Pendente_Laudo') ? 'row--pending' : 'row--irregular' %>">
                       <td style="padding: 0.75rem 0.5rem; font-weight: 600;"><%= atleta.nome %></td>
                       <td style="color: rgba(var(--fg-rgb), 0.7);"><%= atleta.matricula %></td>
                       <td style="color: rgba(var(--fg-rgb), 0.7);"><%= atleta.cpf || '-' %></td>
@@ -313,10 +313,10 @@
                       <td>
                         <% if (atleta.status === 'Regular') { %>
                           <span style="color: #00ff88; font-weight: bold;">✓ Regular</span>
-                        <% } else if (atleta.status === 'Pendente' || atleta.status === 'Pendente_Laudo') { %>
-                          <span style="color: #ffb700; font-weight: bold;">⏳ Pendente / Reserva</span>
+                        <% } else if (atleta.status === 'Analise' || atleta.status === 'Pendente' || atleta.status === 'Pendente_Laudo') { %>
+                          <span style="color: #ffb700; font-weight: bold;">⏳ Aguardando laudo</span>
                         <% } else { %>
-                          <span style="color: #ff4d4d; font-weight: bold;">⚠ Irregular</span>
+                          <span style="color: #ff4d4d; font-weight: bold;">⚠ Reprovado</span>
                         <% } %>
                       </td>
                       <td>

@@ -1,10 +1,10 @@
-const fs = require('fs');
+﻿const fs = require('fs');
 const path = require('path');
 const db = require('../config/db');
 
 const BASE = process.env.BASE_URL || 'http://localhost:3000';
-const ADMIN = { email: 'admin@ifc.edu.br', senha: process.env.DEFAULT_ADMIN_PASSWORD || 'admin123' };
-const SENHA_CAMPUS = process.env.DEFAULT_CAMPUS_PASSWORD || 'jifc2026';
+const ADMIN = { email: 'admin@ifc.edu.br', senha: process.env.DEFAULT_ADMIN_PASSWORD };
+const SENHA_CAMPUS = process.env.DEFAULT_CAMPUS_PASSWORD;
 const ESTADO_PATH = path.join(__dirname, '..', 'data', 'jifc-state.json');
 const MATRICULA_VALIDA = /^[0-9]{9,12}$/;
 
@@ -178,7 +178,7 @@ function montarCorpoAtleta(atletaOuNovo, listaAlvo, extras = {}) {
     _csrf: extras.csrf
   };
 
-  if (listaAlvo.some((m) => m.includes('Tênis de Mesa'))) {
+  if (listaAlvo.some((m) => m.includes('TÃªnis de Mesa'))) {
     const atuais = Array.isArray(atletaOuNovo.tenisMesaParticipacoes) ? atletaOuNovo.tenisMesaParticipacoes.filter(Boolean) : [];
     base.tenisMesaParticipacoes = atuais.length ? atuais : ['Individual e Duplas'];
   }

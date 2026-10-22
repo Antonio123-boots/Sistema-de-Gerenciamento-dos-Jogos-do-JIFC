@@ -1,4 +1,4 @@
-const fs = require('fs');
+﻿const fs = require('fs');
 const path = require('path');
 
 const statePath = path.join(process.cwd(), 'data', 'jifc-state.json');
@@ -28,10 +28,10 @@ pool.query = async (query) => {
   const q = String(query);
   if (q.includes('SELECT COUNT(*) AS total FROM campus')) return [[{ total: 1 }]];
   if (q.includes('SELECT id, nome, nome_exibicao, cidade, email, senha, slug, cor, foto_perfil, banned, ban_motivo FROM campus ORDER BY nome_exibicao ASC, nome ASC')) {
-    return [[{ id: 1, nome: 'IFC Abelardo Luz', nome_exibicao: 'IFC Abelardo Luz', cidade: 'Abelardo Luz', email: 'abelardo@ifc.edu.br', senha: 'jifc2026', slug: 'abelardo-luz', cor: '#2980b9', foto_perfil: '/imagens/avatar.svg', banned: 0, ban_motivo: '' }]];
+    return [[{ id: 1, nome: 'IFC Abelardo Luz', nome_exibicao: 'IFC Abelardo Luz', cidade: 'Abelardo Luz', email: 'abelardo@ifc.edu.br', senha: 'hash-argon2-fake-para-teste', slug: 'abelardo-luz', cor: '#2980b9', foto_perfil: '/imagens/avatar.svg', banned: 0, ban_motivo: '' }]];
   }
   if (q.includes('SELECT id, nome, nome_exibicao, cidade, email, senha, slug, cor, foto_perfil, banned, ban_motivo FROM campus ORDER BY id ASC')) {
-    return [[{ id: 1, nome: 'IFC Abelardo Luz', nome_exibicao: 'IFC Abelardo Luz', cidade: 'Abelardo Luz', email: 'abelardo@ifc.edu.br', senha: 'jifc2026', slug: 'abelardo-luz', cor: '#2980b9', foto_perfil: '/imagens/avatar.svg', banned: 0, ban_motivo: '' }]];
+    return [[{ id: 1, nome: 'IFC Abelardo Luz', nome_exibicao: 'IFC Abelardo Luz', cidade: 'Abelardo Luz', email: 'abelardo@ifc.edu.br', senha: 'hash-argon2-fake-para-teste', slug: 'abelardo-luz', cor: '#2980b9', foto_perfil: '/imagens/avatar.svg', banned: 0, ban_motivo: '' }]];
   }
   if (q.includes('SELECT COLUMN_NAME AS column_name')) return [[[]]];
   if (q.includes('SELECT id, nome, nome_exibicao, email, slug FROM campus WHERE')) return [[[]]];

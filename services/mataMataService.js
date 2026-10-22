@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const { ensureMataMataColumns } = require('../config/ensureSchema');
+const { filtroAnoEvento, obterAnoEventoAtual } = require('../config/edicaoAtual');
 const { obterPadraoEliminatoria, obterRegras } = require('../utils/sportClassificationRules');
 const { statusEfetivo } = require('../utils/jogoStatus');
 
@@ -142,7 +143,7 @@ async function classificarChaves(idModalidade, sub, colCasa, colFora) {
   const { getClassificacaoModalidade } = require('./classificacaoService');
 
   const [chaves] = await db.query(
-    'SELECT id, numero_chave FROM chaves WHERE modalidade_id = ? AND sub_categoria = ? ORDER BY numero_chave ASC',
+    `SELECT id, numero_chave FROM chaves WHERE modalidade_id = ? AND sub_categoria = ? AND ${await filtroAnoEvento()} ORDER BY numero_chave ASC`,
     [idModalidade, sub]
   );
   const resultado = new Map();
@@ -168,7 +169,8 @@ async function classificarChaves(idModalidade, sub, colCasa, colFora) {
     const [jogosChave] = await db.query(
       `SELECT j.${colCasa} AS id_casa, j.${colFora} AS id_fora, j.status
        FROM jogos j
-       WHERE j.modalidade_id = ? AND j.sub_categoria = ? AND j.chave_id = ? AND j.fase = 'Fase de Grupos'`,
+       WHERE j.modalidade_id = ? AND j.sub_categoria = ? AND j.chave_id = ? AND j.fase = 'Fase de Grupos'
+         AND ${await filtroAnoEvento('j')}`,
       [idModalidade, sub, chave.id]
     );
     let completa = jogosChave.length > 0;
@@ -236,6 +238,7 @@ async function resolverEliminatoria(modalidadeId, subCategoria) {
      LEFT JOIN resultados_coletivos rc ON rc.jogo_id = j.id
      WHERE j.modalidade_id = ? AND j.sub_categoria = ?
        AND j.fase IN ('Oitavas', 'Quartas', 'Semifinal', 'Final', 'Terceiro Lugar')
+       AND ${await filtroAnoEvento('j')}
      ORDER BY j.numero_jogo ASC`,
     [idModalidade, sub]
   );
@@ -356,7 +359,7 @@ async function gerarEliminatoria(modalidadeId, subCategoria) {
     }
 
     const [chaves] = await conn.query(
-      'SELECT id, numero_chave FROM chaves WHERE modalidade_id = ? AND sub_categoria = ? ORDER BY numero_chave ASC',
+      `SELECT id, numero_chave FROM chaves WHERE modalidade_id = ? AND sub_categoria = ? AND ${await filtroAnoEvento()} ORDER BY numero_chave ASC`,
       [idModalidade, sub]
     );
     if (chaves.length < 2) {
@@ -366,7 +369,8 @@ async function gerarEliminatoria(modalidadeId, subCategoria) {
     const [existentes] = await conn.query(
       `SELECT COUNT(*) AS total, COALESCE(SUM(status = 'Encerrado'), 0) AS encerrados
        FROM jogos
-       WHERE modalidade_id = ? AND sub_categoria = ? AND fase IN ('Oitavas', 'Quartas', 'Semifinal', 'Final', 'Terceiro Lugar')`,
+       WHERE modalidade_id = ? AND sub_categoria = ? AND fase IN ('Oitavas', 'Quartas', 'Semifinal', 'Final', 'Terceiro Lugar')
+         AND ${await filtroAnoEvento()}`,
       [idModalidade, sub]
     );
     if (Number(existentes[0].encerrados) > 0) {
@@ -374,28 +378,31 @@ async function gerarEliminatoria(modalidadeId, subCategoria) {
     }
     if (Number(existentes[0].total) > 0) {
       await conn.query(
-        `DELETE FROM jogos WHERE modalidade_id = ? AND sub_categoria = ? AND fase IN ('Oitavas', 'Quartas', 'Semifinal', 'Final', 'Terceiro Lugar')`,
+        `DELETE FROM jogos WHERE modalidade_id = ? AND sub_categoria = ? AND fase IN ('Oitavas', 'Quartas', 'Semifinal', 'Final', 'Terceiro Lugar')
+           AND ${await filtroAnoEvento()}`,
         [idModalidade, sub]
       );
     }
 
     const [grupos] = await conn.query(
-      "SELECT COUNT(*) AS total FROM jogos WHERE modalidade_id = ? AND sub_categoria = ? AND fase = 'Fase de Grupos'",
+      `SELECT COUNT(*) AS total FROM jogos WHERE modalidade_id = ? AND sub_categoria = ? AND fase = 'Fase de Grupos'
+         AND ${await filtroAnoEvento()}`,
       [idModalidade, sub]
     );
     const numeroInicial = Number(grupos[0].total) + 1;
 
     const estrutura = montarEstruturaEliminatoria(padrao, chaves.length);
 
+    const anoEvento = await obterAnoEventoAtual();
     for (const jogo of estrutura.jogos) {
       await conn.query(
         `INSERT INTO jogos
            (modalidade_id, chave_id, fase, rodada,
             campus_1_id, campus_2_id, atleta_1_id, atleta_2_id,
             data_hora, local_jogo, status, publicado,
-            sub_categoria, rotulo_casa, rotulo_fora, numero_jogo)
-         VALUES (?, NULL, ?, ?, NULL, NULL, NULL, NULL, NULL, 'A definir', 'Agendado', 0, ?, ?, ?, ?)`,
-        [idModalidade, jogo.fase, jogo.rodada, sub, jogo.rotuloCasa, jogo.rotuloFora, numeroInicial + jogo.numero - 1]
+            sub_categoria, rotulo_casa, rotulo_fora, numero_jogo, ano_evento)
+         VALUES (?, NULL, ?, ?, NULL, NULL, NULL, NULL, NULL, 'A definir', 'Agendado', 0, ?, ?, ?, ?, ?)`,
+        [idModalidade, jogo.fase, jogo.rodada, sub, jogo.rotuloCasa, jogo.rotuloFora, numeroInicial + jogo.numero - 1, anoEvento]
       );
     }
 
@@ -439,6 +446,7 @@ async function listarEliminatoria(modalidadeId, subCategoria) {
      LEFT JOIN resultados_coletivos rc ON rc.jogo_id = j.id
      WHERE j.modalidade_id = ? AND j.sub_categoria = ?
        AND j.fase IN ('Oitavas', 'Quartas', 'Semifinal', 'Final', 'Terceiro Lugar')
+       AND ${await filtroAnoEvento('j')}
      ORDER BY FIELD(j.fase, 'Oitavas', 'Quartas', 'Semifinal', 'Terceiro Lugar', 'Final'), j.numero_jogo ASC`,
     [idModalidade, sub]
   );
