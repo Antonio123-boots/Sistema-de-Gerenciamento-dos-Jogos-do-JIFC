@@ -1,7 +1,24 @@
 const db = require('../config/db');
 const { inferirGeneroModalidade, inferirTipoConfrontoModalidade, inferirFormatoDisputaModalidade } = require('../utils/modalidadeHelpers');
+const { registrarRegrasModalidade, limparCacheRegrasModalidade } = require('../utils/sportClassificationRules');
 
 let possuiColunaIcone = null;
+let possuiColunaRegras = null;
+
+async function verificarColunaRegrasModalidades() {
+  if (typeof possuiColunaRegras === 'boolean') {
+    return possuiColunaRegras;
+  }
+
+  try {
+    const [colunas] = await db.query("SHOW COLUMNS FROM modalidades LIKE 'regras_json'");
+    possuiColunaRegras = Array.isArray(colunas) && colunas.length > 0;
+  } catch (error) {
+    possuiColunaRegras = false;
+  }
+
+  return possuiColunaRegras;
+}
 
 async function verificarColunaIconeModalidades() {
   if (typeof possuiColunaIcone === 'boolean') {
@@ -78,7 +95,7 @@ async function listarModalidadesConfiguracao() {
   }
 }
 
-async function adicionarModalidade({ nome, tipoConfronto = '', formatoDisputa = '', genero = '', icone = null, limiteInscritos = null }) {
+async function adicionarModalidade({ nome, tipoConfronto = '', formatoDisputa = '', genero = '', icone = null, limiteInscritos = null, regras = null }) {
   const nomeLimpo = String(nome || '').trim();
   if (!nomeLimpo) {
     throw new Error('Informe o nome da modalidade esportiva.');
@@ -111,15 +128,28 @@ async function adicionarModalidade({ nome, tipoConfronto = '', formatoDisputa = 
         limite = null;
       }
     }
+    const temRegras = await verificarColunaRegrasModalidades();
+    const colunas = ['nome', 'genero', 'tipo_confronto', 'formato_disputa'];
+    const valores = [nomeNormalizado, generoFinal, tipo, formato];
+
+    if (temIcone) {
+      colunas.push('icone');
+      valores.push(icone || null);
+    }
+    if (temRegras) {
+      colunas.push('regras_json');
+      valores.push(regras ? JSON.stringify(regras) : null);
+    }
+    colunas.push('limite_inscritos');
+    valores.push(limite);
+
+    const placeholders = colunas.map(() => '?').join(', ');
     const [resultado] = await db.query(
-      temIcone
-        ? 'INSERT INTO modalidades (nome, genero, tipo_confronto, formato_disputa, icone, limite_inscritos) VALUES (?, ?, ?, ?, ?, ?)'
-        : 'INSERT INTO modalidades (nome, genero, tipo_confronto, formato_disputa, limite_inscritos) VALUES (?, ?, ?, ?, ?)',
-      temIcone
-        ? [nomeNormalizado, generoFinal, tipo, formato, icone || null, limite]
-        : [nomeNormalizado, generoFinal, tipo, formato, limite]
+      `INSERT INTO modalidades (${colunas.join(', ')}) VALUES (${placeholders})`,
+      valores
     );
 
+    registrarRegrasModalidade(resultado.insertId, nomeNormalizado, regras);
     return [resultado.insertId];
   }
 
@@ -138,6 +168,7 @@ async function removerModalidadePorId(modalidadeId) {
   }
 
   await db.query('DELETE FROM modalidades WHERE id = ?', [id]);
+  limparCacheRegrasModalidade(id, modalidade[0].nome);
   return modalidade[0];
 }
 

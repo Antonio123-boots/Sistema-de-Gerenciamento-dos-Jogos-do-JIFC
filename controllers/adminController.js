@@ -3,10 +3,13 @@ const campusModel = require('../models/campusModel');
 const resultadosIndividuaisService = require('../services/resultadosIndividuaisService');
 const mataMataService = require('../services/mataMataService');
 const db = require('../config/db');
+const path = require('path');
+const substitutionDocumentStore = require('../services/substitutionDocumentStore');
 const { listarCampi, adicionarCampus, atualizarCampus, banCampus, desbanirCampus, removerCampus } = require('../models/campiCatalog');
 const { obterStatusPrazos } = require('../utils/statusPrazos');
 const exemploEdicaoService = require('../services/exemploEdicaoService');
 const edicaoWizardService = require('../services/edicaoWizardService');
+const { gerarPlanilhaAtletas } = require('../services/exportAtletasExcelService');
 
 async function renderConfigurar(req, res) {
   try {
@@ -49,8 +52,37 @@ async function cadastrarModalidade(req, res) {
     const iconeData = String(req.body.icone_modalidade_data || '').trim();
     const limiteInscritos = req.body.limite_inscritos;
 
+    let regras = null;
+    try {
+      const tipoApuracao = String(req.body.tipo_apuracao || '').trim();
+      const usaSets = req.body.usa_sets === '1' || req.body.usa_sets === 'true';
+      const usaCartoes = req.body.usa_cartoes === '1' || req.body.usa_cartoes === 'true';
+      const pontosVitoria = req.body.pontos_vitoria;
+      const pontosEmpate = req.body.pontos_empate;
+      const pontosDerrota = req.body.pontos_derrota;
+      const padraoEliminatoria = String(req.body.padrao_eliminatoria || '').trim();
+      const criterios = Array.isArray(req.body.criterios_desempate) ? req.body.criterios_desempate : (req.body.criterios_desempate ? [req.body.criterios_desempate] : ['pontos', 'confronto_direto', 'vitorias', 'saldo_gols', 'sorteio']);
+      const temQualquer = tipoApuracao || usaSets || usaCartoes || pontosVitoria !== undefined || pontosEmpate !== undefined || padraoEliminatoria || criterios.length;
+      if (temQualquer) {
+        regras = {
+          tipoApuracao: tipoApuracao || (usaSets ? 'sets' : 'gols'),
+          usaSets,
+          usaCartoes,
+          pontuacao: {
+            vitoria: pontosVitoria !== undefined && pontosVitoria !== '' ? Number(pontosVitoria) : 3,
+            empate: pontosEmpate !== undefined && pontosEmpate !== '' ? Number(pontosEmpate) : 1,
+            derrota: pontosDerrota !== undefined && pontosDerrota !== '' ? Number(pontosDerrota) : 0
+          },
+          criteriosDesempate: criterios,
+          padraoEliminatoria: padraoEliminatoria || 'alternado'
+        };
+      }
+    } catch (e) {
+      regras = null;
+    }
+
     const icone = iconeData ? normalizarImagemUpload(iconeData, null, 'modalidades') : null;
-    await adminModel.adicionarModalidade({ nome, tipoConfronto, formatoDisputa, genero, icone, limiteInscritos });
+    await adminModel.adicionarModalidade({ nome, tipoConfronto, formatoDisputa, genero, icone, limiteInscritos, regras });
     res.redirect('/admin/configurar?sucesso=' + encodeURIComponent(`Modalidade "${nome}" adicionada com sucesso.`));
   } catch (error) {
     res.redirect('/admin/configurar?erro=' + encodeURIComponent(error.message));
@@ -223,14 +255,17 @@ async function salvarConfiguracoes(req, res) {
       fim_inscricao_modalidades: req.body.fimInscricoesModalidades,
       inicio_inscricao_atletas: req.body.inicioInscricoesAtletas,
       fim_inscricao_atletas: req.body.fimInscricoesAtletas,
+      inicio_substituicao_atletas: req.body.inicioSubstituicaoAtletas,
+      fim_substituicao_atletas: req.body.fimSubstituicaoAtletas,
       inicio_sorteio_chaves: req.body.inicioSorteio,
       fim_sorteio_chaves: req.body.fimSorteio,
       limite_atletas_total_campus: req.body.limite_atletas_total_campus
     });
     res.redirect('/admin/configurar?sucesso=' + encodeURIComponent('Configurações salvas com sucesso.'));
   } catch (error) {
-    console.error('Erro ao salvar configurações:', error.message);
-    res.redirect('/admin/configurar?erro=' + encodeURIComponent('Não foi possível salvar as configurações: ' + error.message));
+    console.error('Erro ao salvar configurações:', error);
+    const mensagem = error && error.message ? error.message : 'Erro inesperado ao salvar configurações.';
+    res.redirect('/admin/configurar?erro=' + encodeURIComponent('Não foi possível salvar as configurações: ' + mensagem));
   }
 }
 
@@ -631,6 +666,46 @@ async function exportResumoInscricoes(req, res) {
   }
 }
 
+function gerarSlugArquivo(valor) {
+  return String(valor || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+}
+
+async function exportarAtletasLaudos(req, res) {
+  const campus = String(req.query.campus || '').trim();
+
+  try {
+    const atletas = campusModel.getAtletasParaAnalise(campus || null);
+    const destino = campus
+      ? `/admin/laudos?campus=${encodeURIComponent(campus)}`
+      : '/admin/laudos';
+
+    if (!atletas.length) {
+      return res.redirect(destino + '&erro=' + encodeURIComponent('Nenhum atleta encontrado para exportar.'));
+    }
+
+    const buffer = await gerarPlanilhaAtletas(atletas, { campus });
+    const dataAtual = new Date().toISOString().slice(0, 10);
+    const nomeArquivo = `atletas-${gerarSlugArquivo(campus) || 'todos'}-${dataAtual}.xlsx`;
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${nomeArquivo}"`);
+    res.setHeader('Content-Length', buffer.length);
+    return res.send(Buffer.from(buffer));
+  } catch (error) {
+    console.error('Erro ao exportar atletas para Excel:', error);
+    const destino = campus
+      ? `/admin/laudos?campus=${encodeURIComponent(campus)}`
+      : '/admin/laudos';
+    return res.redirect(destino + '&erro=' + encodeURIComponent('Não foi possível exportar a planilha de atletas.'));
+  }
+}
+
 function montarDestinoChaveamento(modalidadeId, subCategoria) {
   const id = Number(modalidadeId || 0);
   if (!id) return '';
@@ -850,6 +925,23 @@ async function cancelarSorteio(req, res) {
 async function renderAnalise(req, res) {
   const campusSelecionado = req.query.campus || '';
   const atletas = campusModel.getAtletasParaAnalise(campusSelecionado || null);
+  const documentoSubstituicaoPorAtleta = {};
+
+  if (atletas.length) {
+    const atletaIds = atletas.map((atleta) => Number(atleta.id)).filter((id) => Number.isInteger(id) && id > 0);
+    if (atletaIds.length) {
+      const placeholders = atletaIds.map(() => '?').join(', ');
+      const [documentos] = await db.query(
+        `SELECT id, atleta_novo_id
+         FROM substituicoes_atletas
+         WHERE documento_path IS NOT NULL AND atleta_novo_id IN (${placeholders})`,
+        atletaIds
+      );
+      documentos.forEach((documento) => {
+        documentoSubstituicaoPorAtleta[Number(documento.atleta_novo_id)] = Number(documento.id);
+      });
+    }
+  }
 
   res.render('adm/analiseAtletas', {
     title: 'Análise de Atletas',
@@ -857,8 +949,39 @@ async function renderAnalise(req, res) {
     mostrarFiltros: false,
     campi: await listarCampi(),
     campusSelecionado,
-    atletas
+    atletas,
+    documentoSubstituicaoPorAtleta,
+    mensagemErro: req.query.erro || '',
+    mensagemSucesso: req.query.sucesso || ''
   });
+}
+
+async function baixarComprovanteSubstituicao(req, res) {
+  const substituicaoId = Number(req.params.id);
+  if (!Number.isInteger(substituicaoId) || substituicaoId <= 0) {
+    return res.status(400).send('Identificador de substituição inválido.');
+  }
+
+  try {
+    const [linhas] = await db.query(
+      'SELECT documento_path FROM substituicoes_atletas WHERE id = ? LIMIT 1',
+      [substituicaoId]
+    );
+    const caminho = substitutionDocumentStore.resolverDocumento(linhas[0]?.documento_path);
+    if (!caminho) return res.status(404).send('Comprovante não encontrado.');
+
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'private, no-store');
+    return res.download(caminho, `comprovante-substituicao-${substituicaoId}${path.extname(caminho)}`, (error) => {
+      if (error && !res.headersSent) {
+        console.error('Erro ao entregar comprovante de substituição:', error.message);
+        res.status(404).send('Comprovante não encontrado.');
+      }
+    });
+  } catch (error) {
+    console.error('Erro ao consultar comprovante de substituição:', error.message);
+    return res.status(500).send('Não foi possível carregar o comprovante.');
+  }
 }
 
 async function validarAtleta(req, res) {
@@ -877,6 +1000,42 @@ async function marcarIrregular(req, res) {
   }
 
   res.redirect('/admin/laudos?campus=' + encodeURIComponent(atleta.campus) + '&sucesso=' + encodeURIComponent('Atleta reprovado com sucesso.') + '#lista-atletas');
+}
+
+async function validarAtletasLote(req, res) {
+  const ids = Array.isArray(req.body.atletaIds) ? req.body.atletaIds : [req.body.atletaIds];
+  const atletaIds = [...new Set(ids.map((id) => Number(id)).filter((id) => Number.isInteger(id) && id > 0))];
+
+  if (!atletaIds.length) {
+    return res.redirect('/admin/laudos?erro=' + encodeURIComponent('Selecione ao menos um atleta para validar.') + '#lista-atletas');
+  }
+
+  let validados = 0;
+  let ignorados = 0;
+  let campus = '';
+
+  for (const atletaId of atletaIds) {
+    const atleta = await campusModel.atualizarStatusAtleta(atletaId, 'Regular');
+    if (!atleta) {
+      ignorados += 1;
+      continue;
+    }
+    validados += 1;
+    if (!campus) {
+      campus = atleta.campus || '';
+    }
+  }
+
+  let mensagem = `${validados} atleta(s) validado(s) com sucesso.`;
+  if (ignorados) {
+    mensagem += ` ${ignorados} não puderam ser validados (fora da categoria Sub-19 ou não encontrados).`;
+  }
+
+  const params = new URLSearchParams();
+  if (campus) params.set('campus', campus);
+  params.set('sucesso', mensagem);
+
+  res.redirect(`/admin/laudos?${params.toString()}#lista-atletas`);
 }
 
 async function renderResumoCampus(req, res) {
@@ -1145,8 +1304,11 @@ module.exports = {
   gerarEliminatoria,
   cancelarSorteio,
   exportResumoInscricoes,
+  exportarAtletasLaudos,
   renderAnalise,
+  baixarComprovanteSubstituicao,
   validarAtleta,
+  validarAtletasLote,
   marcarIrregular,
   salvarJogoChaveamento,
   recalcularClassificacoes,

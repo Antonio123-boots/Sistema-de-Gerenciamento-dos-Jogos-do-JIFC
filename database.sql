@@ -62,9 +62,14 @@ CREATE TABLE atletas (
     campus_id INT NOT NULL,
     nome VARCHAR(100) NOT NULL,
     cpf CHAR(11) NOT NULL UNIQUE,          -- CPF obrigatório para segurança e seguro dos atletas 
+    rg VARCHAR(30) DEFAULT NULL,
     matricula VARCHAR(30) NOT NULL UNIQUE,
     genero ENUM('Masculino', 'Feminino') NOT NULL, -- Gênero biológico para as categorias correspondentes
     data_nascimento DATE NOT NULL,
+    status VARCHAR(20) DEFAULT 'Analise',
+    substituido TINYINT(1) NOT NULL DEFAULT 0,
+    substituido_por INT DEFAULT NULL,
+    substituido_em DATETIME DEFAULT NULL,
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (campus_id) REFERENCES campus(id) ON DELETE CASCADE
 );
@@ -226,19 +231,11 @@ CREATE TABLE configuracoes_evento (
     fim_inscricao_modalidades DATE NULL,
     inicio_inscricao_atletas DATE NULL,
     fim_inscricao_atletas DATE NULL,
+    inicio_substituicao_atletas DATE NULL,
+    fim_substituicao_atletas DATE NULL,
     inicio_sorteio_chaves DATE NULL,
     fim_sorteio_chaves DATE NULL,
-    limite_atletas_total_campus INT NOT NULL DEFAULT 0,
-
-    -- Garante que as etapas respeitem uma ordem de datas lógica no fluxo do evento.
-    -- Estados parciais (datas NULL) passam pelo CHECK do MySQL, que apenas falha com FALSE.
-    CONSTRAINT chk_fluxo_cronologico CHECK (
-        inicio_inscricao_modalidades <= fim_inscricao_modalidades AND
-        fim_inscricao_modalidades <= inicio_inscricao_atletas AND
-        inicio_inscricao_atletas <= fim_inscricao_atletas AND
-        fim_inscricao_atletas <= inicio_sorteio_chaves AND
-        inicio_sorteio_chaves <= fim_sorteio_chaves
-    )
+    limite_atletas_total_campus INT NOT NULL DEFAULT 0
 );
 
 -- =========================================================================
@@ -293,4 +290,18 @@ CREATE TABLE cartoes (
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (jogo_id) REFERENCES jogos(id) ON DELETE CASCADE,
     FOREIGN KEY (campus_id) REFERENCES campus(id) ON DELETE CASCADE
+);
+
+CREATE TABLE substituicoes_atletas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    campus_id INT NOT NULL,
+    atleta_substituido_id INT NOT NULL,
+    atleta_novo_id INT NOT NULL,
+    motivo VARCHAR(255) DEFAULT NULL,
+    documento_path VARCHAR(255) DEFAULT NULL,
+    dados_novo_atleta JSON DEFAULT NULL,
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (campus_id) REFERENCES campus(id) ON DELETE CASCADE,
+    FOREIGN KEY (atleta_substituido_id) REFERENCES atletas(id) ON DELETE CASCADE,
+    FOREIGN KEY (atleta_novo_id) REFERENCES atletas(id) ON DELETE CASCADE
 );

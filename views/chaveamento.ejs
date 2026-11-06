@@ -151,8 +151,16 @@
                 const temPlacar = ehEncerrado && jogo.placar_1 != null && jogo.placar_2 != null;
                 const temDisputa = jogo.disputa_pontos_1 != null && jogo.disputa_pontos_2 != null
                                   && Number(jogo.disputa_pontos_1) !== Number(jogo.disputa_pontos_2);
+                const dataHoraJogo = jogo.data_hora ? new Date(jogo.data_hora) : null;
+                const dataJogo = dataHoraJogo
+                  ? `${String(dataHoraJogo.getDate()).padStart(2, '0')}/${String(dataHoraJogo.getMonth() + 1).padStart(2, '0')}`
+                  : 'Data a definir';
+                const horarioJogo = dataHoraJogo
+                  ? `${String(dataHoraJogo.getHours()).padStart(2, '0')}:${String(dataHoraJogo.getMinutes()).padStart(2, '0')}`
+                  : 'Horário a definir';
               %>
               <div class="chave-card" style="margin: 0; padding: 0.75rem 1rem;">
+                <p class="panel-subtitle" style="margin:0 0 0.65rem; text-align:center;">📅 <%= dataJogo %> · ⏰ <%= horarioJogo %> · 📍 <%= jogo.local_jogo || 'Local a definir' %></p>
                 <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 0.75rem; align-items: center;">
                   <div style="text-align: right; min-width: 0;">
                     <span style="font-size: 0.8rem; font-weight: 600; color: var(--text); word-break: break-word; <%= !nomeCasa ? 'color:var(--text-muted); font-style:italic;' : '' %>"><%= labelCasa %></span>

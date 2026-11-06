@@ -150,6 +150,16 @@ async function ensureMataMataColumns() {
   mataMataGarantido = true;
 }
 
+async function ensureModalidadeRegrasColumn() {
+  try {
+    await pool.query('ALTER TABLE modalidades ADD COLUMN regras_json LONGTEXT NULL');
+  } catch (error) {
+    if (!/Duplicate column|already exists/i.test(error.message || '')) {
+      throw error;
+    }
+  }
+}
+
 async function ensureModalidadeLimiteColumn() {
   try {
     await pool.query('ALTER TABLE modalidades ADD COLUMN limite_inscritos INT DEFAULT NULL');
@@ -539,7 +549,11 @@ async function ensureAtletasProvasColumn() {
 async function ensureAtletasStatusColumns() {
   const novasColunas = [
     ['status', "ALTER TABLE atletas ADD COLUMN status VARCHAR(20) DEFAULT 'Analise'"],
-    ['tenis_mesa_participacoes', 'ALTER TABLE atletas ADD COLUMN tenis_mesa_participacoes TEXT DEFAULT NULL']
+    ['tenis_mesa_participacoes', 'ALTER TABLE atletas ADD COLUMN tenis_mesa_participacoes TEXT DEFAULT NULL'],
+    ['rg', 'ALTER TABLE atletas ADD COLUMN rg VARCHAR(30) DEFAULT NULL'],
+    ['substituido', 'ALTER TABLE atletas ADD COLUMN substituido TINYINT(1) NOT NULL DEFAULT 0'],
+    ['substituido_por', 'ALTER TABLE atletas ADD COLUMN substituido_por INT DEFAULT NULL'],
+    ['substituido_em', 'ALTER TABLE atletas ADD COLUMN substituido_em DATETIME DEFAULT NULL']
   ];
 
   const [columns] = await pool.query(
@@ -562,6 +576,71 @@ async function ensureAtletasStatusColumns() {
   }
 }
 
+async function ensureSubstituicoesAtletasTable() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS substituicoes_atletas (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      campus_id INT NOT NULL,
+      atleta_substituido_id INT NOT NULL,
+      atleta_novo_id INT NOT NULL,
+      motivo VARCHAR(255) DEFAULT NULL,
+      documento_path VARCHAR(255) DEFAULT NULL,
+      dados_novo_atleta JSON DEFAULT NULL,
+      criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (campus_id) REFERENCES campus(id) ON DELETE CASCADE,
+      FOREIGN KEY (atleta_substituido_id) REFERENCES atletas(id) ON DELETE CASCADE,
+      FOREIGN KEY (atleta_novo_id) REFERENCES atletas(id) ON DELETE CASCADE
+    )
+  `);
+
+  const [colunas] = await pool.query(
+    "SELECT COLUMN_NAME AS column_name FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'substituicoes_atletas'"
+  );
+  if (!colunas.some((coluna) => coluna.column_name === 'documento_path')) {
+    await pool.query('ALTER TABLE substituicoes_atletas ADD COLUMN documento_path VARCHAR(255) DEFAULT NULL');
+  }
+}
+
+/* Normaliza matrículas legadas que foram gravadas com prefixo/letras
+   (ex.: "MAT000002"). A matrícula do atleta deve conter apenas números,
+   com 9 a 12 dígitos. */
+async function ensureAtletasMatriculaNumerica() {
+  try {
+    const [linhas] = await pool.query('SELECT id, matricula FROM atletas ORDER BY id');
+    const matriculasUsadas = new Set();
+    const pendentes = [];
+
+    linhas.forEach((linha) => {
+      const matricula = String(linha.matricula || '').trim();
+      if (/^\d{9,12}$/.test(matricula)) {
+        matriculasUsadas.add(matricula);
+      } else if (matricula) {
+        pendentes.push(linha);
+      }
+    });
+
+    for (const linha of pendentes) {
+      const apenasDigitos = String(linha.matricula || '').replace(/\D/g, '');
+      let matriculaNormalizada = apenasDigitos.padStart(9, '0').slice(0, 12);
+
+      if (!apenasDigitos || matriculasUsadas.has(matriculaNormalizada)) {
+        let numero = Number(linha.id);
+        matriculaNormalizada = String(numero).padStart(9, '0').slice(-12);
+
+        while (matriculasUsadas.has(matriculaNormalizada)) {
+          numero += 1;
+          matriculaNormalizada = String(numero).padStart(9, '0').slice(-12);
+        }
+      }
+
+      matriculasUsadas.add(matriculaNormalizada);
+      await pool.query('UPDATE atletas SET matricula = ? WHERE id = ?', [matriculaNormalizada, linha.id]);
+    }
+  } catch (error) {
+    console.error('Erro ao normalizar matrículas dos atletas:', error.message);
+  }
+}
+
 /* Cria a tabela de configurações do evento (se ainda não existir) com as
    colunas legadas do state store, e relaxa datas de inscrição p/ estados
    parciais em bancos que já tenham a tabela com NOT NULL. */
@@ -581,16 +660,11 @@ async function ensureConfiguracoesEventoTable() {
         fim_inscricao_modalidades DATE NULL,
         inicio_inscricao_atletas DATE NULL,
         fim_inscricao_atletas DATE NULL,
+        inicio_substituicao_atletas DATE NULL,
+        fim_substituicao_atletas DATE NULL,
         inicio_sorteio_chaves DATE NULL,
         fim_sorteio_chaves DATE NULL,
-        limite_atletas_total_campus INT NOT NULL DEFAULT 0,
-        CONSTRAINT chk_fluxo_cronologico CHECK (
-          inicio_inscricao_modalidades <= fim_inscricao_modalidades AND
-          fim_inscricao_modalidades <= inicio_inscricao_atletas AND
-          inicio_inscricao_atletas <= fim_inscricao_atletas AND
-          fim_inscricao_atletas <= inicio_sorteio_chaves AND
-          inicio_sorteio_chaves <= fim_sorteio_chaves
-        )
+        limite_atletas_total_campus INT NOT NULL DEFAULT 0
       )
     `);
     return;
@@ -604,6 +678,8 @@ async function ensureConfiguracoesEventoTable() {
   const novasColunas = [
     ['inicio_evento', 'ALTER TABLE configuracoes_evento ADD COLUMN inicio_evento DATE NULL'],
     ['fim_evento', 'ALTER TABLE configuracoes_evento ADD COLUMN fim_evento DATE NULL'],
+    ['inicio_substituicao_atletas', 'ALTER TABLE configuracoes_evento ADD COLUMN inicio_substituicao_atletas DATE NULL'],
+    ['fim_substituicao_atletas', 'ALTER TABLE configuracoes_evento ADD COLUMN fim_substituicao_atletas DATE NULL'],
     ['limite_atletas_total_campus', 'ALTER TABLE configuracoes_evento ADD COLUMN limite_atletas_total_campus INT NOT NULL DEFAULT 0']
   ];
 
@@ -624,6 +700,7 @@ async function ensureConfiguracoesEventoTable() {
   const colunasDatas = [
     'inicio_inscricao_modalidades', 'fim_inscricao_modalidades',
     'inicio_inscricao_atletas', 'fim_inscricao_atletas',
+    'inicio_substituicao_atletas', 'fim_substituicao_atletas',
     'inicio_sorteio_chaves', 'fim_sorteio_chaves'
   ];
 
@@ -636,6 +713,13 @@ async function ensureConfiguracoesEventoTable() {
         // coluna ausente ou já alterada; ignora
       }
     }
+  }
+
+  const [restricoesCronologicas] = await pool.query(
+    "SELECT CONSTRAINT_NAME AS constraint_name FROM information_schema.table_constraints WHERE table_schema = DATABASE() AND table_name = 'configuracoes_evento' AND constraint_type = 'CHECK' AND constraint_name = 'chk_fluxo_cronologico'"
+  );
+  if (restricoesCronologicas.length) {
+    await pool.query('ALTER TABLE configuracoes_evento DROP CHECK chk_fluxo_cronologico');
   }
 }
 
@@ -778,6 +862,7 @@ async function ensureSchema() {
   await ensureConfiguracoesEventoTable();
   await ensureJogoPublicadoColumn();
   await ensureJogoWoColumn();
+  await ensureModalidadeRegrasColumn();
   await ensureModalidadeLimiteColumn();
   await garantirAnoEventoChavesJogos();
   await garantirSubCategoriaChavesJogos();
@@ -797,6 +882,8 @@ async function ensureSchema() {
   await ensureEdicoesAnterioresTable();
   await ensureAtletasProvasColumn();
   await ensureAtletasStatusColumns();
+  await ensureSubstituicoesAtletasTable();
+  await ensureAtletasMatriculaNumerica();
   await sincronizarProvasPadraoAtletismo();
 
   // Migração única de dados legados do state store -> MySQL e carga do cache
@@ -813,11 +900,18 @@ async function ensureSchema() {
   }
 
   try {
+    const { carregarRegrasModalidades } = require('../utils/sportClassificationRules');
+    await carregarRegrasModalidades();
+  } catch (error) {
+    console.error('Erro ao carregar regras personalizadas das modalidades:', error.message);
+  }
+
+  try {
     const { recalcularTodasClassificacoes } = require('../services/classificacaoService');
     await recalcularTodasClassificacoes();
   } catch (error) {
-    console.error('Erro ao recalcular classificações no startup:', error.message);
+    console.error('Erro ao recalcular classifica����es no startup:', error.message);
   }
 }
 
-module.exports = { ensureSchema, ensureCampusTable, ensureConfiguracoesEventoTable, ensureJogoPublicadoColumn, ensureJogoWoColumn, ensureMataMataColumns, garantirSubCategoriaChavesJogos, garantirAnoEventoChavesJogos, ensureJuizModalidadeTable, ensureCartoesTable, ensureResultadosPorSetsTable, ensureClassificacaoCartoesColumns, ensureProvasTable, ensureResultadosAtletismoTable, ensureResultadosXadrezTable, ensureAtletasProvasColumn, ensureProvasPublicadoColumn, ensureResultadosXadrezPublicadoColumn, ensureEdicoesAnterioresTable, ensureRascunhoEdicoesTable, sincronizarProvasAtletismoDoState, sincronizarProvasPadraoAtletismo };
+module.exports = { ensureSchema, ensureCampusTable, ensureConfiguracoesEventoTable, ensureJogoPublicadoColumn, ensureJogoWoColumn, ensureMataMataColumns, garantirSubCategoriaChavesJogos, garantirAnoEventoChavesJogos, ensureJuizModalidadeTable, ensureCartoesTable, ensureResultadosPorSetsTable, ensureClassificacaoCartoesColumns, ensureProvasTable, ensureResultadosAtletismoTable, ensureResultadosXadrezTable, ensureAtletasProvasColumn, ensureAtletasMatriculaNumerica, ensureProvasPublicadoColumn, ensureResultadosXadrezPublicadoColumn, ensureEdicoesAnterioresTable, ensureRascunhoEdicoesTable, ensureSubstituicoesAtletasTable, sincronizarProvasAtletismoDoState, sincronizarProvasPadraoAtletismo };

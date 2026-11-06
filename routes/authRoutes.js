@@ -22,7 +22,7 @@ router.post('/login', loginValidation, async function(req, res, next) {
         }
 
         const email = String(req.body.email || '').trim().toLowerCase();
-        const senha = String(req.body.senha || '').trim();
+        const senha = String(req.body.senha || '');
         const usuario = await obterUsuarioPorEmail(email);
 
         if (!usuario || !(await verificarSenha(usuario, senha))) {

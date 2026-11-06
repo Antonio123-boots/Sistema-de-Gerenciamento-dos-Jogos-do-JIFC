@@ -536,6 +536,9 @@
                         <span><%= jogo.data %> · <%= jogo.horario %></span>
                         <span class="agc-chave">Chave <%= typeof jogo.chaveLabel !== 'undefined' && jogo.chaveLabel ? jogo.chaveLabel : '—' %></span>
                       </div>
+                      <div class="agc-meta" style="margin-top:0.25rem;">
+                        <span>📍 <%= jogo.localJogo || 'A definir' %></span>
+                      </div>
                       <div class="agc-confronto">
                         <span class="agc-nome"><%= jogo.tipoIndividual ? jogo.atletaCasa : jogo.casa %></span>
                         <span class="agc-placar <%= jogo.placar ? 'com-placar' : '' %>"><%= jogo.placar || 'vs' %></span>
@@ -592,8 +595,12 @@
                          const nomeForaKo = jogo.campus_2_nome || jogo.atleta_2_nome || null; %>
                       <article class="game-card admin-game-card">
                         <div class="agc-meta">
-                          <span>#<%= jogo.numero_jogo %> · <%= jogo.status || 'Agendado' %></span>
+                          <span><%= dataInputKo2 ? dataInputKo2.split('-').reverse().join('/') : 'Data a definir' %> · <%= horarioInputKo || 'Horário a definir' %></span>
                           <span class="agc-chave"><%= fase.fase %></span>
+                        </div>
+                        <div class="agc-meta" style="margin-top:0.25rem;">
+                          <span>📍 <%= jogo.local_jogo || 'Local a definir' %></span>
+                          <span>#<%= jogo.numero_jogo %> · <%= jogo.status || 'Agendado' %></span>
                         </div>
                         <div class="agc-confronto">
                           <span class="agc-nome"><%= nomeCasaKo || jogo.rotulo_casa || 'A definir' %></span>

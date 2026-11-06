@@ -94,6 +94,20 @@ router.post('/banirCampus/desbanir/:slug', slugParam, handleValidationForm, admi
 router.post('/banirCampus/excluir/:slug', slugParam, handleValidationForm, adminController.excluirCampus);
 
 router.get('/laudos', adminController.renderAnalise);
+router.get('/laudos/exportar', adminController.exportarAtletasLaudos);
+router.get('/laudos/substituicoes/:id/documento', idParam, handleValidationForm, adminController.baixarComprovanteSubstituicao);
+
+const atletasLoteValidation = [
+    body('atletaIds')
+        .customSanitizer((valor) => {
+            if (valor === undefined || valor === null || valor === '') return [];
+            return Array.isArray(valor) ? valor : [valor];
+        })
+        .custom((lista) => Array.isArray(lista) && lista.length > 0)
+        .withMessage('Selecione ao menos um atleta para validar.')
+];
+
+router.post('/laudos/validar-lote', atletasLoteValidation, handleValidationForm, adminController.validarAtletasLote);
 router.post('/laudos/validar/:atletaId', atletaIdParam, handleValidationForm, adminController.validarAtleta);
 router.post('/laudos/reprovar/:atletaId', atletaIdParam, handleValidationForm, adminController.marcarIrregular);
 

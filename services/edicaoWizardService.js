@@ -244,12 +244,12 @@ function aplicarResultadoJogoNoMapa(mapa, jogo, regras) {
 
   function calcularPontosVolei(setsVencidos, setsPerdidos, isVencedor) {
     if (isVencedor) {
-      if (setsPerdidos <= 1) return regras.pontuacaoVitoria3_0_3_1 || 3;
-      if (setsPerdidos === 2) return regras.pontuacaoVitoria3_2 || 2;
-      return regras.pontuacaoVitoria3_0_3_1 || 3;
+      if (setsPerdidos <= 1) return regras.pontuacaoVitoria3_0_3_1 ?? 3;
+      if (setsPerdidos === 2) return regras.pontuacaoVitoria3_2 ?? 2;
+      return regras.pontuacaoVitoria3_0_3_1 ?? 3;
     }
-    if (setsVencidos >= 1 && setsPerdidos === 2) return regras.pontuacaoDerrota2_3 || 1;
-    return regras.pontuacaoDerrota0_3_1_3 || 0;
+    if (setsVencidos >= 1 && setsPerdidos === 2) return regras.pontuacaoDerrota2_3 ?? 0;
+    return regras.pontuacaoDerrota0_3_1_3 ?? 0;
   }
 
   let res1;
@@ -258,11 +258,11 @@ function aplicarResultadoJogoNoMapa(mapa, jogo, regras) {
   if (regras.tipo === 'sets') {
     if (ehWO && vencedorId) {
       res1 = id1Venceu
-        ? { pontos: regras.pontuacaoVitoria3_0_3_1 || 3, vitorias: 1, empates: 0, derrotas: 0 }
-        : { pontos: regras.pontuacaoDerrota0_3_1_3 || 0, vitorias: 0, empates: 0, derrotas: 1 };
+        ? { pontos: regras.pontuacaoVitoria3_0_3_1 ?? 3, vitorias: 1, empates: 0, derrotas: 0 }
+        : { pontos: regras.pontuacaoDerrota0_3_1_3 ?? 0, vitorias: 0, empates: 0, derrotas: 1 };
       res2 = id1Venceu
-        ? { pontos: regras.pontuacaoDerrota0_3_1_3 || 0, vitorias: 0, empates: 0, derrotas: 1 }
-        : { pontos: regras.pontuacaoVitoria3_0_3_1 || 3, vitorias: 1, empates: 0, derrotas: 0 };
+        ? { pontos: regras.pontuacaoDerrota0_3_1_3 ?? 0, vitorias: 0, empates: 0, derrotas: 1 }
+        : { pontos: regras.pontuacaoVitoria3_0_3_1 ?? 3, vitorias: 1, empates: 0, derrotas: 0 };
     } else if (sets1 > sets2) {
       res1 = { pontos: calcularPontosVolei(sets1, sets2, true), vitorias: 1, empates: 0, derrotas: 0 };
       res2 = { pontos: calcularPontosVolei(sets2, sets1, false), vitorias: 0, empates: 0, derrotas: 1 };

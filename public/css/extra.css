@@ -300,7 +300,7 @@
 .primary-save-btn {
     background: var(--accent);
     color: var(--accent-ink);
-    padding: 15 2.0rem;
+    padding: 0 2rem;
     box-shadow: 0 4px 15px rgba(var(--accent-rgb), 0.2);
 
 }

@@ -99,7 +99,7 @@ async function ensureTableColumns(conn) {
   try {
     await conn.query('CREATE TABLE IF NOT EXISTS campus (id INT AUTO_INCREMENT PRIMARY KEY, nome VARCHAR(100) NOT NULL UNIQUE, nome_exibicao VARCHAR(100) DEFAULT NULL, cidade VARCHAR(100) DEFAULT NULL, email VARCHAR(100) NOT NULL UNIQUE, senha VARCHAR(255) NOT NULL, slug VARCHAR(100) DEFAULT NULL, cor VARCHAR(20) DEFAULT "#2980b9", foto_perfil VARCHAR(255) DEFAULT "/imagens/avatar.svg", banned TINYINT(1) DEFAULT 0, ban_motivo TEXT DEFAULT NULL, criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP)');
     await conn.query('CREATE TABLE IF NOT EXISTS modalidades (id INT AUTO_INCREMENT PRIMARY KEY, nome VARCHAR(100) NOT NULL, genero ENUM("Masculino", "Feminino") NOT NULL, tipo_confronto ENUM("Coletivo", "Individual") NOT NULL, formato_disputa ENUM("Grupos + Mata-Mata", "Sistema Suico", "Baterias por Tempo") NOT NULL, icone VARCHAR(255) DEFAULT NULL, UNIQUE KEY uq_modalidade_genero (nome, genero))');
-    await conn.query('CREATE TABLE IF NOT EXISTS atletas (id INT AUTO_INCREMENT PRIMARY KEY, campus_id INT NOT NULL, nome VARCHAR(100) NOT NULL, cpf CHAR(11) NOT NULL UNIQUE, matricula VARCHAR(30) NOT NULL UNIQUE, genero ENUM("Masculino", "Feminino") NOT NULL, data_nascimento DATE NOT NULL, criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (campus_id) REFERENCES campus(id) ON DELETE CASCADE)');
+    await conn.query('CREATE TABLE IF NOT EXISTS atletas (id INT AUTO_INCREMENT PRIMARY KEY, campus_id INT NOT NULL, nome VARCHAR(100) NOT NULL, cpf CHAR(11) NOT NULL UNIQUE, rg VARCHAR(30) DEFAULT NULL, matricula VARCHAR(30) NOT NULL UNIQUE, genero ENUM("Masculino", "Feminino") NOT NULL, data_nascimento DATE NOT NULL, criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (campus_id) REFERENCES campus(id) ON DELETE CASCADE)');
     await conn.query('CREATE TABLE IF NOT EXISTS atleta_modalidade (atleta_id INT NOT NULL, modalidade_id INT NOT NULL, PRIMARY KEY (atleta_id, modalidade_id), FOREIGN KEY (atleta_id) REFERENCES atletas(id) ON DELETE CASCADE, FOREIGN KEY (modalidade_id) REFERENCES modalidades(id) ON DELETE CASCADE)');
     await conn.query('CREATE TABLE IF NOT EXISTS campus_modalidade (campus_id INT NOT NULL, modalidade_id INT NOT NULL, chave_id INT DEFAULT NULL, PRIMARY KEY (campus_id, modalidade_id), FOREIGN KEY (campus_id) REFERENCES campus(id) ON DELETE CASCADE, FOREIGN KEY (modalidade_id) REFERENCES modalidades(id) ON DELETE CASCADE)');
 
@@ -147,7 +147,7 @@ async function ensureTableColumns(conn) {
       const genero = atletaCounter % 2 === 0 ? 'Feminino' : 'Masculino';
       const atletaNome = `${campus.nome.replace('IFC ', '')} Atleta ${atletaCounter}`;
       const cpf = String(10000000000 + atletaCounter).slice(-11);
-      const matricula = `MAT${String(atletaCounter).padStart(4, '0')}`;
+      const matricula = String(atletaCounter).padStart(9, '0');
       const [existingAtleta] = await conn.query('SELECT id FROM atletas WHERE cpf = ? OR matricula = ?', [cpf, matricula]);
       if (existingAtleta.length === 0) {
         const [insertResult] = await conn.query('INSERT INTO atletas (campus_id, nome, cpf, matricula, genero, data_nascimento) VALUES (?, ?, ?, ?, ?, ?)', [campus.id, atletaNome, cpf, matricula, genero, '2006-01-01']);

@@ -16,12 +16,14 @@
   ],
   "license": "ISC",
   "dependencies": {
+    "@ngrok/ngrok": "^1.7.0",
     "argon2": "^0.45.1",
     "body-parser": "^1.20.2",
     "cookie-parser": "^1.4.7",
     "csurf": "^1.11.0",
     "dotenv": "^16.4.5",
     "ejs": "^3.1.10",
+    "exceljs": "^4.4.0",
     "express": "^4.19.2",
     "express-ejs-layouts": "^2.5.1",
     "express-rate-limit": "^8.6.2",
@@ -29,6 +31,7 @@
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
     "method-override": "^3.0.0",
+    "multer": "^2.5.0",
     "mysql2": "^3.11.0",
     "pdfkit": "^0.20.2"
   },

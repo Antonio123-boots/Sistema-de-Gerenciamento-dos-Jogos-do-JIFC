@@ -29,7 +29,13 @@ Sistema web para gerenciar os Jogos Internos entre Campus do IFC: inscrições d
 npm install
 ```
 
-1. Crie um banco MySQL (por padrão, `jifc`) — o schema é criado/atualizado automaticamente ao iniciar
+1. Crie e inicialize o banco MySQL antes de iniciar a aplicação. Para usar o banco padrão `jifc`, execute na raiz do projeto:
+
+   ```bash
+   mysql -u <usuario> -p < database.sql
+   ```
+
+   O arquivo cria o banco `jifc`; se `DB_NAME` tiver outro nome, ajuste as instruções `CREATE DATABASE` e `USE` no início do SQL. Na inicialização, a aplicação atualiza tabelas e colunas existentes, mas não cria todo o schema base.
 2. Copie `.env.example` para `.env` e preencha:
    - `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
    - `JWT_SECRET` (mínimo 32 caracteres — gere com `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`)

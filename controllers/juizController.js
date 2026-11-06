@@ -507,6 +507,10 @@ async function renderResultados(req, res) {
       return res.redirect('/juiz/' + encodeURIComponent(esporte));
     }
 
+    if (!juizPodeEditarModalidade(esportesDoJuiz, modalidadeAlvo.nome, modalidadeAlvo.genero)) {
+      return res.status(403).send('Modalidade fora das suas atribuições.');
+    }
+
     const ehAtl = resultadosIndividuaisService.ehAtletismo(esporte + ' ' + (genero || ''));
     const ehXad = resultadosIndividuaisService.ehXadrez(esporte + ' ' + (genero || ''));
 
@@ -594,13 +598,17 @@ async function renderResultadosProva(req, res) {
     const esportesDoJuiz = await juizService.obterEsportesDoJuiz(req.user.juizId);
 
     const [provaRows] = await require('../config/db').query(
-      'SELECT p.*, m.nome AS modalidade_nome FROM provas p JOIN modalidades m ON p.modalidade_id = m.id WHERE p.id = ?',
+      'SELECT p.*, m.nome AS modalidade_nome, m.genero FROM provas p JOIN modalidades m ON p.modalidade_id = m.id WHERE p.id = ?',
       [provaId]
     );
     if (!provaRows.length) {
       return res.redirect('/juiz/' + encodeURIComponent(esporte) + '/resultados');
     }
     const prova = provaRows[0];
+    if (!juizPodeEditarModalidade(esportesDoJuiz, prova.modalidade_nome, prova.genero)) {
+      return res.status(403).send('Prova fora das suas atribuições.');
+    }
+
     const formatoProva = resultadosIndividuaisService.normalizarFormato(prova.formato);
 
     const todosAtletas = await resultadosIndividuaisService.obterAtletasPorModalidade(prova.modalidade_id);

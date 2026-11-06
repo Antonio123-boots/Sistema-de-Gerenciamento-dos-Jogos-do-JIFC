@@ -1,6 +1,6 @@
 /* Estilos específicos da view de cadastro de campus */
 @import url('./components.css');
-@import url('./extra.css');
+@import url('./extra.css?v=2');
 @import url('./admin.css');
 
 .modern-config-form .management-fields-row {
@@ -9,7 +9,7 @@
 
 .modern-config-form .config-submit-bar {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   gap: 1rem;
   padding-top: 1rem;
   margin-top: 2rem;

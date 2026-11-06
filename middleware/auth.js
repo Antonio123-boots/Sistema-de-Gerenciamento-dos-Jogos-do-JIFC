@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const db = require('../config/db');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -35,7 +36,7 @@ function requireAuth(req, res, next) {
 }
 
 function requireRole(...roles) {
-    return (req, res, next) => {
+    return async (req, res, next) => {
         const payload = decodificarToken(req);
         if (!payload) {
             return res.redirect('/login');
@@ -43,6 +44,22 @@ function requireRole(...roles) {
         if (!roles.includes(payload.tipo)) {
             return res.status(403).send('Acesso negado.');
         }
+
+        if (payload.tipo === 'campus' && roles.includes('campus') && payload.campusSlug) {
+            try {
+                const [campi] = await db.query(
+                    'SELECT banned FROM campus WHERE email = ? AND slug = ? LIMIT 1',
+                    [payload.email, payload.campusSlug]
+                );
+                if (!campi.length || Boolean(campi[0].banned)) {
+                    res.setHeader('Set-Cookie', construirCookieToken('') + '; Max-Age=0');
+                    return res.status(403).send('Acesso negado. Campus não encontrado ou banido.');
+                }
+            } catch (_) {
+                return res.status(503).send('Não foi possível validar o acesso do campus.');
+            }
+        }
+
         req.user = payload;
         res.locals.usuarioLogado = payload;
         next();

@@ -28,14 +28,27 @@
       const modalidadesSalvas = Array.isArray(modalidadesInscritas) ? modalidadesInscritas : [];
       const atletasSalvos = Array.isArray(atletas) ? atletas : [];
       const mostrarModalidades = typeof prazoModalidadesAberto !== 'undefined' && prazoModalidadesAberto;
-      const mostrarAtletas = typeof prazoAtletasAberto !== 'undefined' && prazoAtletasAberto;
+      const mostrarCadastroAtletas = typeof prazoAtletasAberto !== 'undefined' && prazoAtletasAberto;
+      const mostrarSubstituicao = typeof prazoSubstituicaoAberto !== 'undefined' && prazoSubstituicaoAberto;
+      const mostrarAtletas = mostrarCadastroAtletas || mostrarSubstituicao;
+      const modalidadesCatalogo = modalidadesDisponiveisList.map((modalidade) => {
+        const nome = String(modalidade.nome || '').trim();
+        const genero = String(modalidade.genero || '').trim();
+        return /\s+(Masculino|Feminino|Misto)$/i.test(nome) ? nome : `${nome} ${genero}`.trim();
+      }).filter(Boolean);
+      const modalidadesParaFormulario = mostrarSubstituicao && !mostrarCadastroAtletas
+        ? modalidadesCatalogo
+        : modalidadesSalvas;
       const totalAbas = (mostrarModalidades ? 1 : 0) + (mostrarAtletas ? 1 : 0);
       const limiteCampus = typeof limiteAtletasTotalCampus !== 'undefined' ? limiteAtletasTotalCampus : 0;
       const abaAtivaAtual = typeof abaAtiva !== 'undefined' && abaAtiva === 'atletas' ? 'atletas' : 'modalidades';
-      const atletaEmEdicaoLocal = typeof atletaEmEdicao !== 'undefined' ? atletaEmEdicao : null;
+      const atletaEmEdicaoLocal = mostrarCadastroAtletas && typeof atletaEmEdicao !== 'undefined' ? atletaEmEdicao : null;
       const isEditandoAtleta = !!(atletaEmEdicaoLocal && atletaEmEdicaoLocal.id);
-      const rotaFormularioAtleta = isEditandoAtleta ? `/campus/atletas/atualizar/${atletaEmEdicaoLocal.id}` : '/campus/atletas/cadastrar';
-      const textoFormularioAtleta = isEditandoAtleta ? 'Salvar alterações' : 'Adicionar Atleta';
+      const modoSubstituicaoExclusiva = mostrarSubstituicao && !mostrarCadastroAtletas && !isEditandoAtleta;
+      const rotaFormularioAtleta = isEditandoAtleta
+        ? `/campus/atletas/atualizar/${atletaEmEdicaoLocal.id}`
+        : (mostrarCadastroAtletas ? '/campus/atletas/cadastrar' : '/campus/atletas/substituir');
+      const textoFormularioAtleta = isEditandoAtleta ? 'Salvar alterações' : (mostrarCadastroAtletas ? 'Adicionar Atleta' : 'Substituir Atleta');
       const generoFormulario = isEditandoAtleta
         ? (String(atletaEmEdicaoLocal.genero || '').toLowerCase() === 'feminino' ? 'Feminino' : 'Masculino')
         : (typeof atletaFormDraft !== 'undefined' && atletaFormDraft && atletaFormDraft.genero === 'Feminino' ? 'Feminino' : 'Masculino');
@@ -51,6 +64,9 @@
       const cpfFormulario = isEditandoAtleta
         ? (atletaEmEdicaoLocal.cpf || '')
         : (typeof atletaFormDraft !== 'undefined' && atletaFormDraft && atletaFormDraft.cpf ? atletaFormDraft.cpf : '');
+      const rgFormulario = isEditandoAtleta
+        ? (atletaEmEdicaoLocal.rg || '')
+        : (typeof atletaFormDraft !== 'undefined' && atletaFormDraft && atletaFormDraft.rg ? atletaFormDraft.rg : '');
       const statusFormulario = isEditandoAtleta
         ? (atletaEmEdicaoLocal.status || 'Analise')
         : (typeof atletaFormDraft !== 'undefined' && atletaFormDraft && atletaFormDraft.status ? atletaFormDraft.status : 'Analise');
@@ -63,20 +79,30 @@
       const participacoesTenisMesaFormulario = isEditandoAtleta
         ? (Array.isArray(atletaEmEdicaoLocal.tenisMesaParticipacoes) ? atletaEmEdicaoLocal.tenisMesaParticipacoes : [])
         : (typeof atletaFormDraft !== 'undefined' && atletaFormDraft && Array.isArray(atletaFormDraft.tenisMesaParticipacoes) ? atletaFormDraft.tenisMesaParticipacoes : []);
-      const modalidadesMistas = modalidadesSalvas.filter((modalidade) => /misto/i.test(modalidade));
+      const modalidadesMistas = modalidadesParaFormulario.filter((modalidade) => /misto/i.test(modalidade));
       const modalidadesPorGenero = {
-        Masculino: [...modalidadesSalvas.filter((modalidade) => /masculino/i.test(modalidade)), ...modalidadesMistas],
-        Feminino: [...modalidadesSalvas.filter((modalidade) => /feminino/i.test(modalidade)), ...modalidadesMistas]
+        Masculino: [...modalidadesParaFormulario.filter((modalidade) => /masculino/i.test(modalidade)), ...modalidadesMistas],
+        Feminino: [...modalidadesParaFormulario.filter((modalidade) => /feminino/i.test(modalidade)), ...modalidadesMistas]
       };
       const generoSelecionadoPadrao = modalidadesPorGenero.Masculino.length ? 'Masculino' : 'Feminino';
     %>
 
-    <% if (!mostrarModalidades && !mostrarAtletas) { %>
+    <% if (typeof prazoSubstituicaoAberto !== 'undefined' && prazoSubstituicaoAberto) { %>
+    <div style="background: rgba(0, 191, 255, 0.12); border: 1px solid rgba(0, 191, 255, 0.6); color: #7dd3fc; padding: 1rem 1.25rem; border-radius: 12px; margin-bottom: 1.5rem; font-weight: 600; text-align: center; width: 100%;">
+        Prazo de substituições de atletas aberto
+        <% if (typeof prazosSubstituicao !== 'undefined' && prazosSubstituicao.inicio && prazosSubstituicao.fim) { %>
+          <span style="display:block; font-weight: normal; margin-top: 0.25rem; color: rgba(125, 211, 252, 0.9);">De <%= prazosSubstituicao.inicio %> até <%= prazosSubstituicao.fim %></span>
+        <% } %>
+        <small style="display:block; font-weight: normal; margin-top: 0.35rem; color: rgba(255,255,255,0.7);">O atleta substituído não aparecerá mais nesta edição. Ele poderá ser inscrito novamente em edições futuras.</small>
+    </div>
+    <% } %>
+
+    <% if (!mostrarModalidades && !mostrarAtletas && !(typeof prazoSubstituicaoAberto !== 'undefined' && prazoSubstituicaoAberto)) { %>
     <div style="background: rgba(255, 77, 77, 0.1); border: 1px solid #ff4d4d; color: #ff4d4d; padding: 1rem; border-radius: 12px; margin-bottom: 2rem; font-weight: bold; text-align: center; width: 100%;">
-        ⚠ Fora do período de cadastro.
+        �s� Fora do per��odo de cadastro.
         <br>
         <small style="font-weight: normal; color: rgba(var(--fg-rgb), 0.6);">
-        Nenhuma etapa está disponível no período cadastrado globalmente.
+        Nenhuma etapa estǭ dispon��vel no per��odo cadastrado globalmente.
         </small>
     </div>
     <% } %>
@@ -183,11 +209,23 @@
       <% if (mostrarAtletas) { %>
       <div class="dashboard-view <%= abaAtivaAtual === 'atletas' ? 'is-active' : '' %>" id="atletas">
         <section style="background: rgba(var(--fg-rgb), 0.02); padding: 1.5rem; border-radius: 16px; border: 1px solid rgba(var(--accent-rgb), 0.12); margin-bottom: 2rem;">
-          <h3 style="color: var(--text); margin-bottom: 0.75rem; font-size: 1.1rem;">Cadastro de Atletas do Campus</h3>
-          <p style="margin: 0 0 0.75rem; color: rgba(var(--fg-rgb), 0.68);">Escolha o gênero do atleta e veja somente os esportes compatíveis para inscrição.</p>
+          <h3 style="color: var(--text); margin-bottom: 0.75rem; font-size: 1.1rem;"><%= mostrarCadastroAtletas ? 'Cadastro de Atletas do Campus' : 'Substituição de Atleta' %></h3>
+          <p style="margin: 0 0 0.75rem; color: rgba(var(--fg-rgb), 0.68);"><%= mostrarCadastroAtletas ? 'Escolha o gênero do atleta e veja somente os esportes compatíveis para inscrição.' : 'Selecione quem não poderá participar e informe os dados do atleta substituto.' %></p>
 
-          <form action="<%= rotaFormularioAtleta %>" method="POST" class="form-grid" style="align-items: flex-end; margin-bottom: 1.5rem;">
+          <form action="<%= rotaFormularioAtleta %>" method="POST" enctype="multipart/form-data" class="form-grid" style="align-items: flex-end; margin-bottom: 1.5rem;">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <% if (mostrarSubstituicao && !isEditandoAtleta) { %>
+              <label style="grid-column: 1 / -1;">
+                Atleta que será substituído
+                <select name="atletaSubstituidoId" class="premium-text-input" style="height: 43px; background: var(--bg); color: var(--text); color-scheme: light;" <%= mostrarCadastroAtletas ? '' : 'required' %>>
+                  <option value="" style="color:#141414; background-color:#fff;">Selecione o atleta que não poderá jogar</option>
+                  <% atletasSalvos.filter((atleta) => !atleta.substituido).forEach(function(atleta) { %>
+                    <option value="<%= atleta.id %>" style="color:#141414; background-color:#fff;"><%= atleta.nome %> · <%= atleta.status %> · <%= Array.isArray(atleta.modalidades) ? atleta.modalidades.join(', ') : (atleta.modalidade || 'sem modalidade') %></option>
+                  <% }); %>
+                </select>
+                <small style="display:block; margin-top:0.4rem; color:rgba(var(--fg-rgb),0.65);">Informe os dados esportivos próprios do novo atleta. O comprovante será analisado pelo administrador.</small>
+              </label>
+            <% } %>
             <label>
               Nome do Atleta
               <input type="text" name="nome" placeholder="Ex: Gabriel Silva" value="<%= nomeFormulario %>" required class="premium-text-input">
@@ -207,18 +245,23 @@
             </label>
 
             <label>
-              Matrícula
-              <input type="text" name="matricula" placeholder="Ex: 20261102" value="<%= matriculaFormulario %>" required class="premium-text-input" inputmode="numeric" maxlength="12" pattern="[0-9]{9,12}">
+              Matrícula (somente números)
+              <input type="text" name="matricula" placeholder="Ex: 202611020" value="<%= matriculaFormulario %>" required class="premium-text-input" inputmode="numeric" autocomplete="off" maxlength="12" pattern="[0-9]{9,12}" title="Digite apenas números, de 9 a 12 dígitos.">
             </label>
 
             <label>
               CPF
-              <input type="text" name="cpf" placeholder="Ex: 123.456.789-00" value="<%= cpfFormulario %>" class="premium-text-input" inputmode="numeric" maxlength="14" autocomplete="off">
+              <input type="text" name="cpf" placeholder="Ex: 123.456.789-00" value="<%= cpfFormulario %>" required class="premium-text-input" inputmode="numeric" maxlength="14" autocomplete="off">
+            </label>
+
+            <label>
+              RG
+              <input type="text" name="rg" placeholder="Ex: 12.345.678-9" value="<%= rgFormulario %>" class="premium-text-input" maxlength="30" autocomplete="off">
             </label>
 
             <div style="grid-column: 1 / -1;">
-              <span style="display:block; margin-bottom: 0.5rem;">Modalidades</span>
-              <% if (modalidadesSalvas.length > 0) { %>
+                <span style="display:block; margin-bottom: 0.5rem;">Modalidades</span>
+                <% if (modalidadesParaFormulario.length > 0) { %>
                 <div class="modalidades-checkbox-grid" data-gender-grid="Masculino">
                   <% modalidadesPorGenero.Masculino.forEach(function(modalidade) { %>
                     <label class="modalidade-checkbox-card">
@@ -235,12 +278,12 @@
                     </label>
                   <% }); %>
                 </div>
-              <% } else { %>
+                <% } else { %>
                 <div style="padding: 1rem; border-radius: 14px; border: 1px dashed rgba(var(--fg-rgb), 0.18); color: rgba(var(--fg-rgb), 0.7);">
-                  Salve as inscrições de modalidades para liberar esta seleção.
+                  Não há modalidades disponíveis para o gênero selecionado.
                 </div>
-              <% } %>
-              <small style="display:block; margin-top: 0.55rem; color: rgba(var(--fg-rgb), 0.6);">Preencha todos os campos e marque no máximo 3 opções.</small>
+                <% } %>
+                <small style="display:block; margin-top: 0.55rem; color: rgba(var(--fg-rgb), 0.6);">Preencha todos os campos e marque no máximo 3 opções.</small>
             </div>
 
             <div id="detalhes-atleta" style="display: none; grid-column: 1 / -1; margin-top: 0.25rem; padding: 1rem; border-radius: 14px; border: 1px solid rgba(var(--accent-rgb), 0.16); background: rgba(var(--fg-rgb), 0.03);">
@@ -269,15 +312,71 @@
               </div>
             </div>
 
+            <% if (mostrarSubstituicao && !isEditandoAtleta) { %>
+              <label style="grid-column: 1 / -1;">
+                Comprovante da substituição
+                <input type="file" name="documentoSubstituicao" accept="application/pdf,image/jpeg,image/png" <%= modoSubstituicaoExclusiva ? 'required' : '' %> class="substitution-document-input">
+                <small style="font-weight:400; color:rgba(var(--fg-rgb),0.62);">PDF, JPG ou PNG · até 5 MB</small>
+              </label>
+              <style>
+                .substitution-document-input {
+                  width: 100%;
+                  min-height: 48px;
+                  padding: 6px;
+                  border: 1px solid rgba(var(--accent-rgb), 0.4);
+                  border-radius: 8px;
+                  background: rgba(var(--fg-rgb), 0.06);
+                  color: var(--text);
+                  font: inherit;
+                }
+                .substitution-document-input::file-selector-button {
+                  min-height: 34px;
+                  margin-right: 12px;
+                  padding: 0.45rem 0.85rem;
+                  border: 0;
+                  border-radius: 6px;
+                  background: var(--accent);
+                  color: var(--accent-ink);
+                  font: inherit;
+                  font-weight: 700;
+                  cursor: pointer;
+                }
+                .substitution-document-input::file-selector-button:hover {
+                  background: var(--accent-hover);
+                }
+                .substitution-document-input:focus-visible {
+                  outline: 2px solid var(--accent);
+                  outline-offset: 2px;
+                }
+              </style>
+            <% } %>
+
             <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center; grid-column: 1 / -1;">
-              <button type="submit" class="btn btn-success primary-save-btn" style="border: none; height: 43px; align-self: end;">
-                <%= textoFormularioAtleta %>
-              </button>
+              <% if (isEditandoAtleta) { %>
+                <button type="submit" class="btn btn-success primary-save-btn" style="border: none; height: 43px; align-self: end;">Salvar alterações</button>
+              <% } else { %>
+                <% if (mostrarCadastroAtletas) { %>
+                  <button type="submit" formaction="/campus/atletas/cadastrar" onclick="this.form.elements.documentoSubstituicao.required = false" class="btn btn-success primary-save-btn" style="border: none; height: 43px; align-self: end;">Adicionar Atleta</button>
+                <% } %>
+                <% if (mostrarSubstituicao && atletasSalvos.some((atleta) => !atleta.substituido)) { %>
+                  <button type="submit" formaction="/campus/atletas/substituir" onclick="this.form.elements.documentoSubstituicao.required = true" class="btn btn-secondary" style="height: 43px; align-self: end;">Substituir Atleta</button>
+                <% } %>
+                <% if (mostrarSubstituicao && !atletasSalvos.some((atleta) => !atleta.substituido)) { %>
+                  <p style="margin:0; color: rgba(var(--fg-rgb), 0.65);">Não há atletas ativos para substituir.</p>
+                <% } %>
+              <% } %>
               <% if (isEditandoAtleta) { %>
                 <a class="btn btn-secondary" href="/campus/inscricoes?aba=atletas#atletas" style="height: 43px; display: inline-flex; align-items: center; text-decoration: none;">Cancelar</a>
               <% } %>
             </div>
           </form>
+
+          <% if (atletasSalvos.length > 0) { %>
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; margin-bottom:0.75rem;">
+              <h3 style="color: var(--text); margin:0; font-size:1.05rem;">Atletas cadastrados</h3>
+              <a class="btn btn-success" href="/campus/atletas/exportar">Exportar para Excel</a>
+            </div>
+          <% } %>
 
           <div style="overflow-x: auto;">
             <table class="score-table">
@@ -320,13 +419,17 @@
                         <% } %>
                       </td>
                       <td>
-                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                          <a class="btn btn-secondary" href="/campus/inscricoes?aba=atletas&editar=<%= atleta.id %>#atletas">Editar</a>
-                          <form action="/campus/atletas/excluir/<%= atleta.id %>" method="POST" onsubmit="return confirm('Deseja excluir este atleta?');">
-                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                            <button type="submit" class="btn btn-danger">Excluir</button>
-                          </form>
-                        </div>
+                        <% if (atleta.status === 'Analise') { %>
+                          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <a class="btn btn-secondary" href="/campus/inscricoes?aba=atletas&editar=<%= atleta.id %>#atletas">Editar</a>
+                            <form action="/campus/atletas/excluir/<%= atleta.id %>" method="POST" onsubmit="return confirm('Deseja excluir este atleta?');">
+                              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                              <button type="submit" class="btn btn-danger">Excluir</button>
+                            </form>
+                          </div>
+                        <% } else { %>
+                          <span style="color: rgba(var(--fg-rgb), 0.6); font-size: 0.85rem;">Bloqueado após a análise do admin.</span>
+                        <% } %>
                       </td>
                     </tr>
                   <% }); %>
@@ -371,6 +474,12 @@
           }
 
           if (campoMatricula) {
+            campoMatricula.addEventListener('keydown', function (event) {
+              if (event.ctrlKey || event.metaKey || event.altKey) return;
+              if (event.key.length === 1 && /\D/.test(event.key)) {
+                event.preventDefault();
+              }
+            });
             campoMatricula.addEventListener('input', function () {
               campoMatricula.value = aplicarMascaraMatricula(campoMatricula.value);
             });
@@ -383,9 +492,7 @@
       <% if (mostrarAtletas && modalidadesSalvas.length > 0) { %>
       <script>
         (function () {
-          const formAtletas = document.querySelector('#atletas form[action="/campus/atletas/cadastrar"]');
-          const formAtletasEdicao = document.querySelector('#atletas form[action^="/campus/atletas/atualizar/"]');
-          const formAtletaAtivo = formAtletasEdicao || formAtletas;
+          const formAtletaAtivo = document.querySelector('#atletas form.form-grid');
           const generoSelect = formAtletaAtivo ? formAtletaAtivo.querySelector('#genero-atleta') : null;
           const checkboxGrids = formAtletaAtivo ? Array.from(formAtletaAtivo.querySelectorAll('[data-gender-grid]')) : [];
           const checkboxes = formAtletaAtivo ? Array.from(formAtletaAtivo.querySelectorAll('input[name="modalidades"]')) : [];

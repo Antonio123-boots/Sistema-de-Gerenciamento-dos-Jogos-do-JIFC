@@ -1,7 +1,7 @@
 /* CSS compartilhado entre várias views */
 @import url('./base.css');
 @import url('./components.css');
-@import url('./profile.css');
+@import url('./profile.css?v=2');
 @import url('./extra.css');
 @import url('./responsive.css');
 

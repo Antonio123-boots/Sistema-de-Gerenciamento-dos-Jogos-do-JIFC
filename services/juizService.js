@@ -285,7 +285,7 @@ async function obterJogosPorEsporte(esporteNome, genero = null) {
      LEFT JOIN chaves chv ON chv.id = j.chave_id
      WHERE ${whereClause}
      AND ${filtroAno}
-     AND ${filtroChave}
+     AND (j.chave_id IS NULL OR ${filtroChave})
      ORDER BY CASE WHEN j.fase IN ('Oitavas','Quartas','Semifinal','Final','Terceiro Lugar') THEN 1 ELSE 0 END,
               j.numero_jogo ASC, j.data_hora ASC, j.id ASC`,
     params

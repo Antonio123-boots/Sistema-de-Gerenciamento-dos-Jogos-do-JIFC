@@ -2,6 +2,10 @@ const mysql = require('mysql2/promise');
 const dotenv = require('dotenv');
 const path = require('path');
 const fs = require('fs');
+const {
+  TOTAL_ATLETAS_ATLETISMO,
+  distribuirProvasAtletismo
+} = require('../utils/atletismoSeed');
 
 dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 
@@ -52,9 +56,10 @@ const MATRIZ = {
 const ATLETISMO_POR_GENERO = 20; // por campus
 const XADREZ_M = 30;
 const XADREZ_F = 30;
-const TENIS_M = 32;
-const TENIS_F = 26;
-const CAMPUS_DUPLAS = 8; // campi com >=2 atletas de tênis por gênero
+const TENIS_M = 24;
+const TENIS_F = 24;
+const CAMPUS_CHAVES_TENIS = 8;
+const TENIS_ATLETAS_POR_CHAVE = 3;
 
 function gerarCpf(seed) {
   const base = String(10000000000 + seed).slice(-11);
@@ -157,13 +162,27 @@ function gerarNome(s1idx, num) {
     let seed = 1;
     const MODALIDADES_MASC = [M.futsalM, M.voleiM, M.basqueteM, M.handebolM, M.vpraiaM];
     const MODALIDADES_FEM = [M.futsalF, M.voleiF, M.basqueteF, M.handebolF, M.vpraiaF];
+    const provasAtletismoPorAtleta = new Map();
+    for (const [generoIndex, genero] of ['Masculino', 'Feminino'].entries()) {
+      const candidatos = Array.from(
+        { length: CAMPUS_IDS.length * ATLETISMO_POR_GENERO },
+        (_, indice) => ({
+          campusId: Math.floor(indice / ATLETISMO_POR_GENERO) + 1,
+          indice: (indice % ATLETISMO_POR_GENERO) + 1
+        })
+      );
+      const distribuicao = distribuirProvasAtletismo(candidatos, 2026 + generoIndex);
+      distribuicao.forEach((provas, atleta) => {
+        provasAtletismoPorAtleta.set(`${atleta.campusId}|${genero}|${atleta.indice}`, provas);
+      });
+    }
 
     // inserir no banco em lote via helper
-    async function inserirAtleta(campusId, nome, cpfMascarado, matricula, genero, modalidadeIds) {
+    async function inserirAtleta(campusId, nome, cpfMascarado, matricula, genero, modalidadeIds, provasAtletismo = null) {
       const cpfBanco = String(cpfMascarado).replace(/[^0-9]/g, '');
       const [res] = await conn.query(
-        'INSERT INTO atletas (campus_id, nome, cpf, matricula, genero, data_nascimento) VALUES (?,?,?,?,?,?)',
-        [campusId, nome, cpfBanco, matricula, genero, '2006-03-15']
+        'INSERT INTO atletas (campus_id, nome, cpf, matricula, genero, data_nascimento, provas_atletismo) VALUES (?,?,?,?,?,?,?)',
+        [campusId, nome, cpfBanco, matricula, genero, '2006-03-15', provasAtletismo?.length ? JSON.stringify(provasAtletismo) : null]
       );
       const atletaId = res.insertId;
       const am = [];
@@ -183,10 +202,11 @@ function gerarNome(s1idx, num) {
         const atletismoMod = genero === 'Masculino' ? M.atletismoM : M.atletismoF;
         const coletivos = (genero === 'Masculino' ? MODALIDADES_MASC : MODALIDADES_FEM).filter((mid) => MATRIZ[mid].includes(i));
 
-        // 20 atletas de atletismo que também cobrem coletivos (máx 3 modalidades)
+        // Elenco do campus; apenas 40 atletas por gênero participam do atletismo.
         for (let k = 0; k < ATLETISMO_POR_GENERO; k++) {
           seed += 1;
-          const modalidades = [atletismoMod];
+          const atletismoProvas = provasAtletismoPorAtleta.get(`${campusId}|${genero}|${k + 1}`);
+          const modalidades = atletismoProvas.length ? [atletismoMod] : [];
           if (coletivos.length) {
             // cada atleta cobre até 2 coletivos para garantir cobertura
             const c1 = coletivos[(k * 2) % coletivos.length];
@@ -196,8 +216,8 @@ function gerarNome(s1idx, num) {
           }
           const nome = gerarNome(i * 31 + genero.length, k);
           const cpf = gerarCpf(seed);
-          const matricula = `MAT${String(seed).padStart(6, '0')}`;
-          const atletaId = await inserirAtleta(campusId, nome, cpf, matricula, genero, modalidades);
+          const matricula = String(seed).padStart(9, '0');
+          const atletaId = await inserirAtleta(campusId, nome, cpf, matricula, genero, modalidades, atletismoProvas);
           atletasJSON.push({
             id: seed,
             nome,
@@ -209,7 +229,7 @@ function gerarNome(s1idx, num) {
             campus: campusNome,
             genero,
             status: 'Regular',
-            atletismoProvas: [],
+            atletismoProvas,
             tenisMesaParticipacoes: [],
             _dbId: atletaId
           });
@@ -232,7 +252,7 @@ function gerarNome(s1idx, num) {
           seed += 1;
           const nome = gerarNome(i * 51 + (genero === 'Feminino' ? 7 : 1), 100 + k);
           const cpf = gerarCpf(seed);
-          const matricula = `MAT${String(seed).padStart(6, '0')}`;
+          const matricula = String(seed).padStart(9, '0');
           const atletaId = await inserirAtleta(i + 1, nome, cpf, matricula, genero, [modId]);
           atletasJSON.push({
             id: seed,
@@ -247,30 +267,24 @@ function gerarNome(s1idx, num) {
     await distribuirIndividuais(XADREZ_M, 'Masculino', M.xadrezM, 'x');
     await distribuirIndividuais(XADREZ_F, 'Feminino', M.xadrezF, 'x');
 
-    // TÊNIS DE MESA: 32M / 26F, garantindo >=8 campi com >=2 atletas por gênero (duplas)
+    // TÊNIS DE MESA: até 8 chaves de 3 atletas por gênero.
     async function distribuirTenis(total, genero, modId) {
-      // distribui equitativamente entre CAMPUS_DUPLAS campi (>=2 cada)
-      const alvo = CAMPUS_DUPLAS;
+      const alvo = CAMPUS_CHAVES_TENIS;
+      if (total > alvo * TENIS_ATLETAS_POR_CHAVE) {
+        throw new Error(`O tênis de mesa ${genero} excede o limite de ${alvo} chaves com ${TENIS_ATLETAS_POR_CHAVE} atletas.`);
+      }
       const base = Math.floor(total / alvo);
       const resto = total % alvo;
       const porCampus = Array.from({ length: CAMPUS_IDS.length }, () => 0);
       for (let c = 0; c < alvo; c++) {
-        porCampus[c] = base + (c < resto ? 1 : 0);
-      }
-      // redespacha qualquer sobra para os demais, mantendo >=2 nos alvo
-      let soma = porCampus.reduce((a, b) => a + b, 0);
-      let idxSobra = alvo;
-      while (soma < total) {
-        porCampus[idxSobra % CAMPUS_IDS.length] += 1;
-        soma += 1;
-        idxSobra += 1;
+        porCampus[c] = Math.min(TENIS_ATLETAS_POR_CHAVE, base + (c < resto ? 1 : 0));
       }
       for (let i = 0; i < CAMPUS_IDS.length; i++) {
         for (let k = 0; k < porCampus[i]; k++) {
           seed += 1;
           const nome = gerarNome(i * 71 + (genero === 'Feminino' ? 5 : 3), 200 + k);
           const cpf = gerarCpf(seed);
-          const matricula = `MAT${String(seed).padStart(6, '0')}`;
+          const matricula = String(seed).padStart(9, '0');
           const atletaId = await inserirAtleta(i + 1, nome, cpf, matricula, genero, [modId]);
           atletasJSON.push({
             id: seed,
@@ -292,7 +306,7 @@ function gerarNome(s1idx, num) {
     fs.writeFileSync(STATE_PATH, JSON.stringify(state, null, 2), 'utf8');
 
     console.log('Total atletas gerados:', atletasGravar.length);
-    console.log('Atletismo M por campus:', ATLETISMO_POR_GENERO, 'x', CAMPUS_IDS.length);
+    console.log('Atletismo M/F:', TOTAL_ATLETAS_ATLETISMO, TOTAL_ATLETAS_ATLETISMO);
     console.log('Xadrez M/F:', XADREZ_M, XADREZ_F);
     console.log('Tênis M/F:', TENIS_M, TENIS_F);
     console.log('seed-fase1-ok');

@@ -1,5 +1,5 @@
 /* Estilos específicos da view de perfil */
-@import url('./profile.css');
+@import url('./profile.css?v=3');
 @import url('./components.css');
 
 .institution-header {

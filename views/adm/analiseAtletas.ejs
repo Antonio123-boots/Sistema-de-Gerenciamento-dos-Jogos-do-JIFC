@@ -2,48 +2,105 @@
   <h1>Verificação de atletas</h1>
   <p class="panel-subtitle">Escolha um campus para ver os atletas. Em análise fica amarelo, validado fica verde e reprovado fica vermelho.</p>
 
+  <% if (typeof mensagemErro !== 'undefined' && mensagemErro) { %>
+    <div class="auto-dismiss" style="background: rgba(255, 77, 77, 0.1); border: 1px solid #ff4d4d; color: #ff4d4d; padding: 0.8rem 0.9rem; border-radius: 10px; margin: 0.8rem 0 1rem; font-weight: 600;">
+      <%= mensagemErro %>
+    </div>
+  <% } %>
+  <% if (typeof mensagemSucesso !== 'undefined' && mensagemSucesso) { %>
+    <div class="auto-dismiss" style="background: rgba(0, 255, 136, 0.1); border: 1px solid #00ff88; color: #00ff88; padding: 0.8rem 0.9rem; border-radius: 10px; margin: 0.8rem 0 1rem; font-weight: 600;">
+      <%= mensagemSucesso %>
+    </div>
+  <% } %>
+
   <% if (typeof campusSelecionado === 'string' && campusSelecionado) { %>
     <div style="margin: 0 0 1rem; display:flex; justify-content:space-between; gap:1rem; align-items:center; flex-wrap:wrap;">
       <div>
         <strong style="color:var(--accent);">Campus selecionado:</strong>
         <span style="color: var(--text);"><%= campusSelecionado %></span>
       </div>
-      <a class="btn btn-ghost" href="/admin/laudos">Voltar aos campi</a>
+      <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+        <a class="btn btn-success" href="/admin/laudos/exportar?campus=<%= encodeURIComponent(campusSelecionado) %>">Exportar para Excel</a>
+        <a class="btn btn-ghost" href="/admin/laudos">Voltar aos campi</a>
+      </div>
     </div>
 
     <div id="lista-atletas" class="mini-card">
       <% if (atletas.length) { %>
-        <ul class="profile-list" style="display:grid; gap:0.75rem;">
-          <% atletas.forEach((atleta) => { %>
-            <% const modalidadesAtleta = Array.isArray(atleta.modalidades) ? atleta.modalidades : String(atleta.modalidade || '').split(',').map((item) => item.trim()).filter(Boolean); %>
-            <li style="display:flex; justify-content:space-between; gap:1rem; align-items:center; flex-wrap:wrap; padding:0.85rem 0.95rem; border-radius:14px; background:rgba(var(--fg-rgb), 0.03); border:1px solid rgba(var(--fg-rgb), 0.06);">
-              <span style="display:block; min-width: 220px;">
-                <strong><%= atleta.nome %></strong><br>
-                <small><%= modalidadesAtleta.join(', ') %> · <%= atleta.dataNascimento || '-' %></small><br>
-                <small>CPF: <%= atleta.cpf || '-' %></small><br>
-                <% if (atleta.status === 'Regular') { %>
-                  <small style="color:#00ff88; font-weight:700;">● Validado</small>
-                <% } else if (atleta.status === 'Analise') { %>
-                  <small style="color:#ffb700; font-weight:700;">● Em análise</small>
-                <% } else if (atleta.status === 'Reprovado') { %>
-                  <small style="color:#ff4d4d; font-weight:700;">● Reprovado</small>
-                <% } else { %>
-                  <small style="color:#ff4d4d; font-weight:700;">● Reprovado</small>
-                <% } %>
-              </span>
-              <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-                <form action="/admin/laudos/validar/<%= atleta.id %>" method="POST">
-                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                  <button class="btn btn-success" type="submit">Validar</button>
-                </form>
-                <form action="/admin/laudos/reprovar/<%= atleta.id %>" method="POST">
-                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                  <button class="btn btn-danger" type="submit">Reprovar</button>
-                </form>
-              </div>
-            </li>
-          <% }) %>
-        </ul>
+        <form action="/admin/laudos/validar-lote" method="POST" id="form-validar-lote">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div style="display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center; margin-bottom:1rem;">
+            <button class="btn btn-ghost" type="button" id="btn-selecionar-todos">Selecionar todos</button>
+            <button class="btn btn-success" type="submit" id="btn-validar-lote" disabled>Validar selecionados</button>
+            <small id="contador-selecionados" style="color:var(--text); opacity:0.8;">0 de <%= atletas.length %> selecionado(s)</small>
+          </div>
+
+          <ul class="profile-list" style="display:grid; gap:0.75rem;">
+            <% atletas.forEach((atleta) => { %>
+              <% const modalidadesAtleta = Array.isArray(atleta.modalidades) ? atleta.modalidades : String(atleta.modalidade || '').split(',').map((item) => item.trim()).filter(Boolean); %>
+              <li style="display:flex; justify-content:space-between; gap:1rem; align-items:center; flex-wrap:wrap; padding:0.85rem 0.95rem; border-radius:14px; background:rgba(var(--fg-rgb), 0.03); border:1px solid rgba(var(--fg-rgb), 0.06);">
+                <span style="display:flex; align-items:flex-start; gap:0.65rem; min-width: 220px;">
+                  <input class="checkbox-atleta" type="checkbox" name="atletaIds" value="<%= atleta.id %>" style="margin-top:0.35rem;">
+                  <span>
+                    <strong><%= atleta.nome %></strong><br>
+                    <small><%= modalidadesAtleta.join(', ') %> · <%= atleta.dataNascimento || '-' %></small><br>
+                    <small>CPF: <%= atleta.cpf || '-' %></small><br>
+                    <% const substituicaoId = documentoSubstituicaoPorAtleta && documentoSubstituicaoPorAtleta[Number(atleta.id)]; %>
+                    <% if (substituicaoId) { %>
+                      <a href="/admin/laudos/substituicoes/<%= substituicaoId %>/documento" style="display:inline-block; margin:0.35rem 0; color:var(--accent); text-decoration:underline;">Baixar comprovante de substituição</a><br>
+                    <% } %>
+                    <% if (atleta.status === 'Regular') { %>
+                      <small style="color:#00ff88; font-weight:700;">● Validado</small>
+                    <% } else if (atleta.status === 'Analise') { %>
+                      <small style="color:#ffb700; font-weight:700;">● Em análise</small>
+                    <% } else if (atleta.status === 'Reprovado') { %>
+                      <small style="color:#ff4d4d; font-weight:700;">● Reprovado</small>
+                    <% } else { %>
+                      <small style="color:#ff4d4d; font-weight:700;">● Reprovado</small>
+                    <% } %>
+                  </span>
+                </span>
+                <div style="display:flex; gap:0.5rem; flex-wrap:wrap; opacity:0.5; pointer-events:none;">
+                  <button class="btn btn-success" type="button" disabled>Validar</button>
+                  <button class="btn btn-danger" type="button" disabled>Reprovar</button>
+                </div>
+              </li>
+            <% }) %>
+          </ul>
+        </form>
+
+        <script>
+          (function () {
+            var form = document.getElementById('form-validar-lote');
+            if (!form) return;
+            var botaoTodos = document.getElementById('btn-selecionar-todos');
+            var botaoValidar = document.getElementById('btn-validar-lote');
+            var contador = document.getElementById('contador-selecionados');
+            var caixas = Array.prototype.slice.call(form.querySelectorAll('.checkbox-atleta'));
+
+            function todosMarcados() {
+              return caixas.length > 0 && caixas.every(function (caixa) { return caixa.checked; });
+            }
+
+            function atualizar() {
+              var marcados = caixas.filter(function (caixa) { return caixa.checked; }).length;
+              if (contador) contador.textContent = marcados + ' de ' + caixas.length + ' selecionado(s)';
+              if (botaoValidar) botaoValidar.disabled = marcados === 0;
+              if (botaoTodos) botaoTodos.textContent = todosMarcados() ? 'Limpar seleção' : 'Selecionar todos';
+            }
+
+            if (botaoTodos) {
+              botaoTodos.addEventListener('click', function () {
+                var marcar = !todosMarcados();
+                caixas.forEach(function (caixa) { caixa.checked = marcar; });
+                atualizar();
+              });
+            }
+
+            caixas.forEach(function (caixa) { caixa.addEventListener('change', atualizar); });
+            atualizar();
+          })();
+        </script>
       <% } else { %>
         <p class="panel-subtitle">Nenhum atleta cadastrado neste campus.</p>
       <% } %>

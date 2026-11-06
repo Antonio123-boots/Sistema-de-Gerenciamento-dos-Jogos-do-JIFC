@@ -52,6 +52,16 @@
       </div>
     <% } %>
 
+    <% if (typeof prazoSubstituicaoAberto !== 'undefined' && prazoSubstituicaoAberto) { %>
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; background:rgba(0,191,255,0.1); border:1px solid rgba(0,191,255,0.45); padding:1rem 1.25rem; border-radius:8px; margin-bottom:1.5rem;">
+        <div>
+          <strong>Prazo de substituição aberto</strong>
+          <div style="margin-top:0.25rem; color:rgba(var(--fg-rgb),0.7);">Selecione um atleta indisponível e cadastre quem ocupará a vaga.</div>
+        </div>
+        <a class="btn btn-success" href="/campus/inscricoes?aba=atletas">Substituir atleta</a>
+      </div>
+    <% } %>
+
     <% if (totalReprovados > 0) { %>
       <div style="background: rgba(255, 77, 77, 0.1); border: 1px solid #ff4d4d; color: #ff4d4d; padding: 1rem; border-radius: 12px; margin-bottom: 1.5rem; font-weight: 700;">
         <%= totalReprovados %> atleta(s) foram reprovados e não podem participar do JIFC.

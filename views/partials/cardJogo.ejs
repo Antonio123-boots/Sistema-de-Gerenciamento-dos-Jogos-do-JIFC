@@ -20,6 +20,9 @@
       <span class="fase-badge"><%= jogo.fase %></span>
     </div>
   </div>
+  <% if (jogo.local_jogo && jogo.local_jogo !== 'A definir') { %>
+    <p class="game-time" style="margin-top:-0.35rem;">📍 <%= jogo.local_jogo %></p>
+  <% } %>
 
   <div class="game-matchup">
     <div class="match-team text-right">

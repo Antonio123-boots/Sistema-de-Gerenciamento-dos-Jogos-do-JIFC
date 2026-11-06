@@ -17,7 +17,7 @@ function inferirTipoConfrontoModalidade(nome, tipoInformado = '') {
   if (tipo) return tipo;
 
   const nomeNormalizado = String(nome || '').trim().toLowerCase();
-  if (/(atletismo|natação|natacao|corrida|salto|lançamento|lancamento|esgrima|xadrez|tênis de mesa|tenis de mesa)/i.test(nomeNormalizado)) {
+  if (/(atletismo|natação|natacao|corrida|salto|lançamento|lancamento|esgrima|xadrez|tênis de mesa|tenis de mesa|badminton)/i.test(nomeNormalizado)) {
     return 'Individual';
   }
   return 'Coletivo';

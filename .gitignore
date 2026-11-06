@@ -12,6 +12,7 @@ tests/debug_*.js
 # Dados sensíveis e estado de runtime
 cookies.txt
 data/jifc-state.json
+data/private/
 
 # Logs
 logs

@@ -52,6 +52,21 @@ function restaurarEstado() {
     const estadoPosOk = JSON.parse(fs.readFileSync(caminhoState, 'utf8'));
     assert.strictEqual(estadoPosOk.configuracoes.inicio_evento, '2026-08-26');
     assert.strictEqual(estadoPosOk.configuracoes.ano_evento, 2026);
+
+    let prazosPersistidos;
+    await configService.salvarConfiguracoes({
+      inicio_inscricao_modalidades: '2026-03-20',
+      fim_inscricao_modalidades: '2026-03-25',
+      inicio_inscricao_atletas: '2026-03-01',
+      fim_inscricao_atletas: '2026-03-05',
+      inicio_substituicao_atletas: '2026-02-20',
+      fim_substituicao_atletas: '2026-02-22',
+      inicio_sorteio_chaves: '2026-01-15',
+      fim_sorteio_chaves: '2026-01-18'
+    }, async (config) => { prazosPersistidos = config; });
+    assert.strictEqual(prazosPersistidos.inicio_inscricao_atletas, '2026-03-01');
+    assert.strictEqual(prazosPersistidos.inicio_substituicao_atletas, '2026-02-20');
+    assert.strictEqual(prazosPersistidos.inicio_sorteio_chaves, '2026-01-15');
   } finally {
     restaurarEstado();
   }

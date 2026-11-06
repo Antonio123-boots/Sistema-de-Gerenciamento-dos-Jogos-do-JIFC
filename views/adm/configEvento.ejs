@@ -73,6 +73,17 @@
 
         <div class="management-fields-row split-2" style="margin-top: 1.25rem;">
           <label class="premium-input-wrapper">
+            <span class="field-label-text">Abertura (Substituição de Atletas)</span>
+            <input type="date" class="premium-date-input" name="inicioSubstituicaoAtletas" value="<%= (typeof configuracoes !== 'undefined' && configuracoes.inicio_substituicao_atletas) ? configuracoes.inicio_substituicao_atletas : '' %>">
+          </label>
+          <label class="premium-input-wrapper">
+            <span class="field-label-text">Fechamento (Substituição de Atletas)</span>
+            <input type="date" class="premium-date-input" name="fimSubstituicaoAtletas" value="<%= (typeof configuracoes !== 'undefined' && configuracoes.fim_substituicao_atletas) ? configuracoes.fim_substituicao_atletas : '' %>">
+          </label>
+        </div>
+
+        <div class="management-fields-row split-2" style="margin-top: 1.25rem;">
+          <label class="premium-input-wrapper">
             <span class="field-label-text">Início do Sorteio de Chaves</span>
             <input type="date" class="premium-date-input" name="inicioSorteio" value="<%= (typeof configuracoes !== 'undefined' && configuracoes.inicio_sorteio_chaves) ? configuracoes.inicio_sorteio_chaves : '' %>" required>
           </label>
@@ -117,7 +128,7 @@
         <div class="dynamic-registration-flow">
           <div class="flow-element input-container">
             <span class="field-label-text">Nome do Esporte</span>
-            <input type="text" name="nome_modalidade" class="premium-text-input" placeholder="Ex: Badminton" required>
+            <input type="text" name="nome_modalidade" class="premium-text-input" placeholder="Ex: Fut7" required>
           </div>
 
           <div class="flow-element input-container">
@@ -137,6 +148,99 @@
               <option value="Coletivo">Coletivo</option>
               <option value="Individual">Individual</option>
             </select>
+          </div>
+
+          <div style="flex: 1 1 100%; border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; padding: 1.25rem 1.25rem 1.4rem; margin-top: 0.75rem; background: radial-gradient(circle at top, rgba(255,255,255,0.05), transparent), linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.01) 100%); box-shadow: 0 18px 40px -28px rgba(255,255,255,0.4);">
+            <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
+              <div>
+                <strong style="color: var(--text); font-size: 1rem; display:block;">Regras do esporte</strong>
+                <span style="font-size:0.88rem; color:rgba(255,255,255,0.65); display:block; margin-top:0.25rem;">Defina como esse esporte vai funcionar. Opcional — se não preencher, o sistema usa o padrão por nome.</span>
+              </div>
+              <span style="display:inline-flex; align-items:center; gap:0.4rem; padding:0.35rem 0.7rem; border-radius:999px; border:1px solid rgba(255,255,255,0.16); font-size:0.82rem; color:rgba(255,255,255,0.8);">Configuração avançada</span>
+            </div>
+            <div class="dynamic-registration-flow" style="gap:1rem; align-items:stretch;">
+              <div class="flow-element input-container" style="flex:1 1 260px;">
+                <span class="field-label-text">Tipo de apuração</span>
+                <select name="tipo_apuracao" class="premium-text-input" style="color:#fff;">
+                  <option value="" style="color:#000;">Padrão</option>
+                  <option value="gols" style="color:#000;">Por gols/placar</option>
+                  <option value="pontos" style="color:#000;">Por pontos</option>
+                  <option value="sets" style="color:#000;">Por sets</option>
+                  <option value="medida" style="color:#000;">Por resultado individual (tempo/distância)</option>
+                  <option value="pontuacao_individual" style="color:#000;">Por pontuação individual</option>
+                </select>
+              </div>
+              <div class="flow-element input-container" style="flex:1 1 240px;">
+                <span class="field-label-text">Padrão da eliminatória</span>
+                <select name="padrao_eliminatoria" class="premium-text-input" style="color:#fff;">
+                  <option value="alternado" style="color:#000;">Alternado (mando alternado)</option>
+                  <option value="sequencial" style="color:#000;">Sequencial (mesmo lado)</option>
+                </select>
+              </div>
+              <div class="flow-element input-container" style="flex:1 1 220px; display:flex; flex-direction:column; gap:0.6rem;">
+                <span class="field-label-text">Regras extras</span>
+                <label style="display:flex; align-items:center; gap:0.6rem; padding:0.6rem 0.8rem; border-radius:10px; border:1px solid rgba(255,255,255,0.14); background:rgba(255,255,255,0.01); color:#fff; cursor:pointer;">
+                  <input type="checkbox" name="usa_sets" value="1" style="accent-color: var(--primary);"> Usa sets (divide em sets)
+                </label>
+                <label style="display:flex; align-items:center; gap:0.6rem; padding:0.6rem 0.8rem; border-radius:10px; border:1px solid rgba(255,255,255,0.14); background:rgba(255,255,255,0.01); color:#fff; cursor:pointer;">
+                  <input type="checkbox" name="usa_cartoes" value="1" style="accent-color: var(--primary);"> Usa cartões/sanções
+                </label>
+              </div>
+              <div class="flow-element input-container" style="flex:1 1 200px;">
+                <span class="field-label-text">Pontos por vitória</span>
+                <input type="number" name="pontos_vitoria" class="premium-text-input" value="3" min="0" style="color:#fff;">
+              </div>
+              <div class="flow-element input-container" style="flex:1 1 200px;">
+                <span class="field-label-text">Pontos por empate</span>
+                <input type="number" name="pontos_empate" class="premium-text-input" value="1" min="0" style="color:#fff;">
+              </div>
+              <div class="flow-element input-container" style="flex:1 1 200px;">
+                <span class="field-label-text">Pontos por derrota</span>
+                <input type="number" name="pontos_derrota" class="premium-text-input" value="0" min="0" style="color:#fff;">
+              </div>
+              <div class="flow-element input-container" style="flex:1 1 100%;">
+                <span class="field-label-text">Critérios de desempate</span>
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:0.7rem; padding:0.9rem 1rem; border-radius:12px; border:1px solid rgba(255,255,255,0.14); background:rgba(15,15,20,0.9);">
+                  <label style="display:flex; align-items:center; gap:0.6rem; color:#fff; cursor:pointer;">
+                    <input type="checkbox" name="criterios_desempate" value="pontos" checked style="accent-color: var(--primary);"> Pontos
+                  </label>
+                  <label style="display:flex; align-items:center; gap:0.6rem; color:#fff; cursor:pointer;">
+                    <input type="checkbox" name="criterios_desempate" value="confronto_direto" checked style="accent-color: var(--primary);"> Confronto direto
+                  </label>
+                  <label style="display:flex; align-items:center; gap:0.6rem; color:#fff; cursor:pointer;">
+                    <input type="checkbox" name="criterios_desempate" value="vitorias" checked style="accent-color: var(--primary);"> Vitórias
+                  </label>
+                  <label style="display:flex; align-items:center; gap:0.6rem; color:#fff; cursor:pointer;">
+                    <input type="checkbox" name="criterios_desempate" value="saldo_gols" checked style="accent-color: var(--primary);"> Saldo de gols/pontos
+                  </label>
+                  <label style="display:flex; align-items:center; gap:0.6rem; color:#fff; cursor:pointer;">
+                    <input type="checkbox" name="criterios_desempate" value="maior_gols_feitos" style="accent-color: var(--primary);"> Maior gols/feitos
+                  </label>
+                  <label style="display:flex; align-items:center; gap:0.6rem; color:#fff; cursor:pointer;">
+                    <input type="checkbox" name="criterios_desempate" value="menor_gols_sofridos" style="accent-color: var(--primary);"> Menor sofridos
+                  </label>
+                  <label style="display:flex; align-items:center; gap:0.6rem; color:#fff; cursor:pointer;">
+                    <input type="checkbox" name="criterios_desempate" value="sets_average" style="accent-color: var(--primary);"> Sets average (se usa sets)
+                  </label>
+                  <label style="display:flex; align-items:center; gap:0.6rem; color:#fff; cursor:pointer;">
+                    <input type="checkbox" name="criterios_desempate" value="pontos_average" style="accent-color: var(--primary);"> Pontos average (se usa sets)
+                  </label>
+                  <label style="display:flex; align-items:center; gap:0.6rem; color:#fff; cursor:pointer;">
+                    <input type="checkbox" name="criterios_desempate" value="menor_cartoes_vermelhos" style="accent-color: var(--primary);"> Menor cartões vermelhos
+                  </label>
+                  <label style="display:flex; align-items:center; gap:0.6rem; color:#fff; cursor:pointer;">
+                    <input type="checkbox" name="criterios_desempate" value="menor_cartoes_amarelos" style="accent-color: var(--primary);"> Menor cartões amarelos
+                  </label>
+                  <label style="display:flex; align-items:center; gap:0.6rem; color:#fff; cursor:pointer;">
+                    <input type="checkbox" name="criterios_desempate" value="sancoes" style="accent-color: var(--primary);"> Sanções (total)
+                  </label>
+                  <label style="display:flex; align-items:center; gap:0.6rem; color:#fff; cursor:pointer;">
+                    <input type="checkbox" name="criterios_desempate" value="sorteio" checked style="accent-color: var(--primary);"> Sorteio
+                  </label>
+                </div>
+                <small style="color:rgba(255,255,255,0.6);">Pode marcar um ou vários. A ordem é definida pela lista acima.</small>
+              </div>
+            </div>
           </div>
 
           <div class="flow-element input-container">

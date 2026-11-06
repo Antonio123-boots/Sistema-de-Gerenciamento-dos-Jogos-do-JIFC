@@ -77,6 +77,26 @@ app.use('/campus', campusRoutes);
 app.use('/admin', adminRoutes);
 app.use('/juiz', juizRoutes);
 
+// Middleware de tratamento de erros
+app.use((err, req, res, next) => {
+  console.error('Erro não tratado:', err);
+  if (res.headersSent) {
+    return next(err);
+  }
+  const mensagem = err && err.message ? err.message : 'Ocorreu um erro inesperado.';
+  if (req.method === 'POST') {
+    const referer = req.get('referer') || '/';
+    try {
+      const url = new URL(referer);
+      const destino = url.pathname + url.search;
+      return res.redirect(`${destino}${destino.includes('?') ? '&' : '?'}erro=${encodeURIComponent(mensagem)}`);
+    } catch (e) {
+      return res.redirect('/?erro=' + encodeURIComponent(mensagem));
+    }
+  }
+  res.status(500).send('Erro interno do servidor.');
+});
+
 function startServer(port) {
     const server = app.listen(port, '0.0.0.0', () => {
         console.log(`Server is running on port ${port}`);

@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const adminModel = require('../models/adminModel');
-const { obterRegras, colunasParaExibicao } = require('../utils/sportClassificationRules');
+const { obterRegras, colunasParaExibicao, registrarRegrasModalidade, limparCacheRegrasModalidade, converterRegrasJsonParaInterno } = require('../utils/sportClassificationRules');
 
 const tipoAtletismo = adminModel.getTipoTabelaModalidade('Atletismo');
 assert.equal(tipoAtletismo, 'atletismo');
@@ -77,5 +77,43 @@ assert.deepEqual(colunasFutsal, ['Pts', 'PJ', 'V', 'E', 'D', 'GP', 'GC', 'SG', '
 
 const colunasVoleibol = colunasParaExibicao('Voleibol');
 assert.deepEqual(colunasVoleibol, ['Pts', 'PJ', 'V', 'D', 'SG', 'SP', 'SA', 'PA']);
+
+const regrasBadminton = obterRegras('Badminton Masculino');
+assert.equal(regrasBadminton.tipo, 'sets');
+assert.equal(regrasBadminton.temSets, true);
+assert.equal(regrasBadminton.temCartoes, false);
+assert.deepEqual(regrasBadminton.colunasTabela, ['Pts', 'PJ', 'V', 'D', 'SG', 'SP', 'SA', 'PA']);
+assert.deepEqual(regrasBadminton.criteriosDesempate, ['vitorias', 'confronto_direto', 'sets_average', 'pontos_average', 'sorteio']);
+
+registrarRegrasModalidade(999999, 'Badminton Personalizado', {
+  tipoApuracao: 'sets',
+  usaSets: true,
+  criteriosDesempate: ['sets_average', 'sorteio'],
+  padraoEliminatoria: 'alternado'
+});
+const regrasBadmintonPersonalizadas = obterRegras('Badminton Personalizado', 999999);
+assert.deepEqual(regrasBadmintonPersonalizadas.criteriosDesempate, ['sets_average', 'sorteio']);
+assert.equal(regrasBadmintonPersonalizadas.padraoEliminatoria, 'alternado');
+limparCacheRegrasModalidade(999999, 'Badminton Personalizado');
+assert.deepEqual(obterRegras('Badminton Personalizado').criteriosDesempate, regrasBadminton.criteriosDesempate);
+
+const regrasSetsGenericas = converterRegrasJsonParaInterno({
+  tipoApuracao: 'sets',
+  usaSets: true,
+  pontuacao: { vitoria: 3, empate: 0, derrota: 0 }
+});
+assert.equal(regrasSetsGenericas.pontuacaoVitoria3_0_3_1, 3);
+assert.equal(regrasSetsGenericas.pontuacaoVitoria3_2, 3);
+assert.equal(regrasSetsGenericas.pontuacaoDerrota2_3, 0);
+assert.equal(regrasSetsGenericas.pontuacaoDerrota0_3_1_3, 0);
+
+const regrasSetsEspecificas = converterRegrasJsonParaInterno({
+  tipoApuracao: 'sets',
+  usaSets: true,
+  pontuacao: { vitoria: 3, derrota: 0 },
+  pontuacaoSets: { vitoria3_0_3_1: 3, vitoria3_2: 2, derrota2_3: 1, derrota0_3_1_3: 0 }
+});
+assert.equal(regrasSetsEspecificas.pontuacaoVitoria3_2, 2);
+assert.equal(regrasSetsEspecificas.pontuacaoDerrota2_3, 1);
 
 console.log('Teste de regras de tabela por esporte concluído com sucesso.');

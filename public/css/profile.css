@@ -33,9 +33,9 @@
 
 /* Painel inicial do juiz: a pagina ocupa a largura disponivel sem um card externo. */
 .juiz-dashboard-page {
-    width: calc(100% + 4rem);
-    max-width: none;
-    margin: 0 -2rem;
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
     padding: 1.5rem 0 3rem;
 }
 
@@ -45,60 +45,160 @@
     justify-content: space-between;
     gap: 1rem;
     flex-wrap: wrap;
-    padding: 0.5rem 0 1.5rem;
-    border-bottom: 1px solid rgba(var(--accent-rgb), 0.4);
+    padding: 1.15rem 1.35rem;
+    border: 1px solid rgba(var(--accent-rgb), 0.28);
+    border-radius: 16px;
+    background:
+        linear-gradient(120deg, rgba(var(--accent-rgb), 0.12), rgba(var(--fg-rgb), 0.02) 62%);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16);
+}
+
+.juiz-dashboard-header h1 {
+    color: var(--text);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.juiz-dashboard-header .panel-subtitle {
+    margin: 0.2rem 0 0;
 }
 
 .juiz-dashboard-status {
-    font-size: 0.78rem;
-    background: rgba(var(--accent-rgb), 0.15);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
     color: var(--accent);
-    padding: 0.3rem 0.7rem;
-    border-radius: 8px;
+    background: rgba(var(--accent-rgb), 0.12);
+    border: 1px solid rgba(var(--accent-rgb), 0.35);
+    padding: 0.4rem 0.8rem;
+    border-radius: 999px;
+    white-space: nowrap;
 }
 
 .juiz-sports-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 1.1rem;
     margin-top: 1.5rem;
 }
 
 .juiz-sport-card {
-    display: block;
-    min-height: 132px;
-    padding: 1.8rem 1rem;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    min-height: 150px;
+    margin-top: 0;
+    padding: 1.6rem 1.1rem;
     text-align: center;
     text-decoration: none;
-    transition: transform 0.15s ease, border-color 0.15s ease;
+    overflow: hidden;
+    border-radius: 18px;
+    border: 1px solid rgba(var(--fg-rgb), 0.1);
+    background:
+        linear-gradient(160deg, rgba(var(--accent-rgb), 0.08), rgba(var(--fg-rgb), 0.03));
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.14);
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
-.juiz-sport-card:hover {
-    transform: translateY(-3px);
-    border-color: rgba(var(--accent-rgb), 0.65);
+.juiz-sport-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 4px;
+    background: linear-gradient(90deg, var(--accent), rgba(var(--accent-rgb), 0.15));
+    opacity: 0.55;
+    transition: opacity 0.2s ease;
+}
+
+.juiz-sport-card:hover,
+.juiz-sport-card:focus-visible {
+    transform: translateY(-4px);
+    border-color: rgba(var(--accent-rgb), 0.6);
+    background:
+        linear-gradient(160deg, rgba(var(--accent-rgb), 0.16), rgba(var(--fg-rgb), 0.04));
+    box-shadow: 0 16px 34px rgba(0, 0, 0, 0.24);
+    outline: none;
+}
+
+.juiz-sport-card:hover::before,
+.juiz-sport-card:focus-visible::before {
+    opacity: 1;
 }
 
 .juiz-sport-card h3 {
     margin: 0;
-    font-size: 1.05rem;
+    font-size: 1.1rem;
+    font-weight: 750;
     color: var(--text);
+    letter-spacing: -0.01em;
 }
 
 .juiz-sport-card p {
-    margin: 0.3rem 0 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0;
     font-size: 0.78rem;
-    color: rgba(var(--fg-rgb), 0.5);
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: var(--accent);
+}
+
+.juiz-sport-card p span {
+    transition: transform 0.2s ease;
+}
+
+.juiz-sport-card:hover p span {
+    transform: translateX(3px);
 }
 
 .juiz-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
     margin-top: 1.5rem;
+    padding: 2.75rem 1.5rem;
+    text-align: center;
+    border-style: dashed;
+    border-color: rgba(var(--accent-rgb), 0.3);
+    background: rgba(var(--fg-rgb), 0.03);
+}
+
+.juiz-empty-state h2 {
+    margin: 0;
+    color: var(--text);
+}
+
+.juiz-empty-state .panel-subtitle {
+    margin: 0;
 }
 
 @media (max-width: 700px) {
     .juiz-dashboard-page {
-        width: 100%;
-        margin: 0;
         padding: 1rem 0 2rem;
+    }
+
+    .juiz-dashboard-header {
+        padding: 1rem 1.05rem;
+    }
+
+    .juiz-sports-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 0.8rem;
+    }
+
+    .juiz-sport-card {
+        min-height: 128px;
+        padding: 1.25rem 0.85rem;
     }
 }
 

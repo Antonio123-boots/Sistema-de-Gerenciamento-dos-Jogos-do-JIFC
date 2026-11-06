@@ -9,6 +9,8 @@ const configuracoesPadrao = {
   fim_inscricao_modalidades: '',
   inicio_inscricao_atletas: '',
   fim_inscricao_atletas: '',
+  inicio_substituicao_atletas: '',
+  fim_substituicao_atletas: '',
   inicio_sorteio_chaves: '',
   fim_sorteio_chaves: '',
   limite_atletas_total_campus: 0
@@ -23,89 +25,38 @@ function getConfiguracoes() {
   return cloneState(carregarConfiguracoes());
 }
 
-function normalizarFluxoCronologico(config = {}) {
-  const dataOuNull = (valor) => {
-    const texto = String(valor || '').trim();
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(texto)) return null;
-    const data = new Date(`${texto}T00:00:00`);
-    return Number.isNaN(data.getTime()) ? null : texto;
-  };
-
-  const maiorData = (primeira, segunda) => {
-    if (!primeira) return segunda;
-    if (!segunda) return primeira;
-    return primeira >= segunda ? primeira : segunda;
-  };
-
-  const ajustarIntervalo = (inicio, fim, limiteInicio = null) => {
-    let inicioAjustado = dataOuNull(inicio);
-    let fimAjustado = dataOuNull(fim);
-
-    if (limiteInicio) {
-      inicioAjustado = maiorData(inicioAjustado, limiteInicio);
-    }
-    if (!inicioAjustado && fimAjustado) inicioAjustado = fimAjustado;
-    if (inicioAjustado && (!fimAjustado || fimAjustado < inicioAjustado)) {
-      fimAjustado = inicioAjustado;
-    }
-
-    return [inicioAjustado, fimAjustado];
-  };
-
-  const [inicioModalidades, fimModalidades] = ajustarIntervalo(
-    config.inicio_inscricao_modalidades,
-    config.fim_inscricao_modalidades
-  );
-  const [inicioAtletas, fimAtletas] = ajustarIntervalo(
-    config.inicio_inscricao_atletas,
-    config.fim_inscricao_atletas,
-    fimModalidades
-  );
-  const [inicioSorteio, fimSorteio] = ajustarIntervalo(
-    config.inicio_sorteio_chaves,
-    config.fim_sorteio_chaves,
-    fimAtletas
-  );
-
-  return {
-    ...config,
-    inicio_inscricao_modalidades: inicioModalidades,
-    fim_inscricao_modalidades: fimModalidades,
-    inicio_inscricao_atletas: inicioAtletas,
-    fim_inscricao_atletas: fimAtletas,
-    inicio_sorteio_chaves: inicioSorteio,
-    fim_sorteio_chaves: fimSorteio
-  };
-}
-
 async function salvarConfiguracoes(novosDados, persistirFn = persistirConfiguracoesNoBanco) {
-  const estadoAtual = readState();
-  const configuracoesAtuais = { ...configuracoesPadrao, ...(estadoAtual.configuracoes || {}) };
-  const inicioEvento = novosDados.inicio_evento || configuracoesAtuais.inicio_evento || '';
-  const anoDerivado = Number(
-    novosDados.ano_evento ||
-    novosDados.anoEvento ||
-    (inicioEvento ? new Date(`${inicioEvento}T00:00:00`).getFullYear() : configuracoesAtuais.ano_evento)
-  );
+  try {
+    const estadoAtual = readState();
+    const configuracoesAtuais = { ...configuracoesPadrao, ...(estadoAtual.configuracoes || {}) };
+    const inicioEvento = novosDados.inicio_evento || configuracoesAtuais.inicio_evento || '';
+    const anoDerivado = Number(
+      novosDados.ano_evento ||
+      novosDados.anoEvento ||
+      (inicioEvento ? new Date(`${inicioEvento}T00:00:00`).getFullYear() : configuracoesAtuais.ano_evento)
+    );
 
-  const novasConfiguracoes = normalizarFluxoCronologico({
-    ...configuracoesAtuais,
-    ...novosDados,
-    ano_evento: Number.isFinite(anoDerivado) ? anoDerivado : configuracoesAtuais.ano_evento,
-    limite_atletas_total_campus: Number(
-      novosDados.limite_atletas_total_campus ?? configuracoesAtuais.limite_atletas_total_campus ?? 0
-    )
-  });
+    const novasConfiguracoes = {
+      ...configuracoesAtuais,
+      ...novosDados,
+      ano_evento: Number.isFinite(anoDerivado) ? anoDerivado : configuracoesAtuais.ano_evento,
+      limite_atletas_total_campus: Number(
+        novosDados.limite_atletas_total_campus ?? configuracoesAtuais.limite_atletas_total_campus ?? 0
+      )
+    };
 
-  // Fonte única: grava primeiro no MySQL. O JSON é apenas um cache síncrono de
-  // leitura — só é atualizado depois que o banco aceitar a gravação. Se o banco
-  // falhar, a exceção é propagada e o JSON permanece inalterado (nada diverge).
-  await persistirFn(novasConfiguracoes);
-  const estadoParaGravar = readState();
-  estadoParaGravar.configuracoes = novasConfiguracoes;
-  writeState(estadoParaGravar);
+    // Fonte única: grava primeiro no MySQL. O JSON é apenas um cache síncrono de
+    // leitura — só é atualizado depois que o banco aceitar a gravação. Se o banco
+    // falhar, a exceção é propagada e o JSON permanece inalterado (nada diverge).
+    await persistirFn(novasConfiguracoes);
+    const estadoParaGravar = readState();
+    estadoParaGravar.configuracoes = novasConfiguracoes;
+    writeState(estadoParaGravar);
 
-  return getConfiguracoes();
+    return getConfiguracoes();
+  } catch (error) {
+    throw error;
+  }
 }
 
 /* Espelha as configurações do state store na tabela configuracoes_evento.
@@ -116,7 +67,7 @@ async function persistirConfiguracoesNoBanco(config) {
     return /^\d{4}-\d{2}-\d{2}$/.test(texto) ? texto : null;
   };
 
-  const configNormalizada = normalizarFluxoCronologico(config);
+  const configNormalizada = { ...config };
   const valores = {
     ano_evento: Number(configNormalizada.ano_evento) || new Date().getFullYear(),
     inicio_evento: dataOuNull(configNormalizada.inicio_evento),
@@ -125,6 +76,8 @@ async function persistirConfiguracoesNoBanco(config) {
     fim_inscricao_modalidades: dataOuNull(configNormalizada.fim_inscricao_modalidades),
     inicio_inscricao_atletas: dataOuNull(configNormalizada.inicio_inscricao_atletas),
     fim_inscricao_atletas: dataOuNull(configNormalizada.fim_inscricao_atletas),
+    inicio_substituicao_atletas: dataOuNull(configNormalizada.inicio_substituicao_atletas),
+    fim_substituicao_atletas: dataOuNull(configNormalizada.fim_substituicao_atletas),
     inicio_sorteio_chaves: dataOuNull(configNormalizada.inicio_sorteio_chaves),
     fim_sorteio_chaves: dataOuNull(configNormalizada.fim_sorteio_chaves),
     limite_atletas_total_campus: Number(configNormalizada.limite_atletas_total_campus) || 0
@@ -134,6 +87,7 @@ async function persistirConfiguracoesNoBanco(config) {
     'ano_evento', 'inicio_evento', 'fim_evento',
     'inicio_inscricao_modalidades', 'fim_inscricao_modalidades',
     'inicio_inscricao_atletas', 'fim_inscricao_atletas',
+    'inicio_substituicao_atletas', 'fim_substituicao_atletas',
     'inicio_sorteio_chaves', 'fim_sorteio_chaves',
     'limite_atletas_total_campus'
   ];
@@ -185,6 +139,7 @@ async function getConfiguracoesBanco() {
       'inicio_evento', 'fim_evento',
       'inicio_inscricao_modalidades', 'fim_inscricao_modalidades',
       'inicio_inscricao_atletas', 'fim_inscricao_atletas',
+      'inicio_substituicao_atletas', 'fim_substituicao_atletas',
       'inicio_sorteio_chaves', 'fim_sorteio_chaves'
     ];
     for (const campo of camposData) {
@@ -248,7 +203,7 @@ async function persistirConfiguracoesParaBanco() {
   if (!estado.configuracoes || typeof estado.configuracoes !== 'object') {
     return;
   }
-  const configuracoes = normalizarFluxoCronologico({ ...configuracoesPadrao, ...estado.configuracoes });
+  const configuracoes = { ...configuracoesPadrao, ...estado.configuracoes };
   const estadoAnterior = JSON.stringify(estado.configuracoes);
   const estadoAtualizado = JSON.stringify(configuracoes);
   if (estadoAnterior !== estadoAtualizado) {
