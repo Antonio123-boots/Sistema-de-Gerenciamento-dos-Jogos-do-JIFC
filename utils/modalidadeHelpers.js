@@ -1,3 +1,35 @@
+function normalizarNomeModalidade(valor = '') {
+  return String(valor || '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
+function removerGeneroDoNomeModalidade(valor = '') {
+  return normalizarNomeModalidade(valor)
+    .replace(/\b(masculino|feminino|misto)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function nomeBaseExibicaoModalidade(valor = '') {
+  return String(valor || '')
+    .trim()
+    .replace(/\b(masculino|feminino|misto)\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function generoDoNomeModalidade(valor = '') {
+  const nome = normalizarNomeModalidade(valor);
+  if (/\bmasculino\b/.test(nome)) return 'Masculino';
+  if (/\bfeminino\b/.test(nome)) return 'Feminino';
+  if (/\bmisto\b/.test(nome)) return 'Misto';
+  return '';
+}
+
 function inferirGeneroModalidade(nome, generoInformado = '') {
   const generoNormalizado = String(generoInformado || '').trim();
   if (generoNormalizado === 'Masculino' || generoNormalizado === 'Feminino' || generoNormalizado === 'Misto') {
@@ -34,4 +66,12 @@ function inferirFormatoDisputaModalidade(nome, formatoInformado = '') {
   return 'Grupos + Mata-Mata';
 }
 
-module.exports = { inferirGeneroModalidade, inferirTipoConfrontoModalidade, inferirFormatoDisputaModalidade };
+module.exports = {
+  normalizarNomeModalidade,
+  removerGeneroDoNomeModalidade,
+  nomeBaseExibicaoModalidade,
+  generoDoNomeModalidade,
+  inferirGeneroModalidade,
+  inferirTipoConfrontoModalidade,
+  inferirFormatoDisputaModalidade
+};

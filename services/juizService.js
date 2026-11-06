@@ -57,6 +57,11 @@ const { atualizarClassificacaoAposJogo } = require('./classificacaoService');
 const { obterRegras, obterPlacarWo } = require('../utils/sportClassificationRules');
 const { statusEfetivo } = require('../utils/jogoStatus');
 const { ensureMataMataColumns } = require('../config/ensureSchema');
+const {
+  removerGeneroDoNomeModalidade,
+  nomeBaseExibicaoModalidade,
+  generoDoNomeModalidade
+} = require('../utils/modalidadeHelpers');
 
 function normalizarEsportes(esportes) {
   if (!esportes) return [];
@@ -181,16 +186,24 @@ async function obterEsportesDoJuiz(juizId) {
 }
 
 async function obterEsportesUnicos() {
-  const [rows] = await db.query(
-    `SELECT DISTINCT
-       CASE
-         WHEN nome LIKE '%Masculino%' THEN TRIM(REPLACE(nome, 'Masculino', ''))
-         WHEN nome LIKE '%Feminino%' THEN TRIM(REPLACE(nome, 'Feminino', ''))
-         ELSE nome
-       END AS esporte
-     FROM modalidades ORDER BY esporte ASC`
-  );
-  return rows.map((r) => r.esporte);
+  const [rows] = await db.query('SELECT nome FROM modalidades ORDER BY nome ASC');
+
+  const porBase = new Map();
+  for (const linha of rows) {
+    const nome = String(linha.nome || '').trim();
+    const chave = removerGeneroDoNomeModalidade(nome);
+    if (!chave) continue;
+
+    const exibicao = nomeBaseExibicaoModalidade(nome);
+    const atual = porBase.get(chave);
+    const pontuarAcento = (texto) => (String(texto).match(/[^\x00-\x7F]/g) || []).length;
+
+    if (!atual || pontuarAcento(exibicao) > pontuarAcento(atual)) {
+      porBase.set(chave, exibicao);
+    }
+  }
+
+  return Array.from(porBase.values()).sort((a, b) => a.localeCompare(b, 'pt-BR'));
 }
 
 async function mapearJogoParaExibicao(j, sets) {
@@ -248,16 +261,25 @@ async function mapearJogoParaExibicao(j, sets) {
 }
 
 async function obterJogosPorEsporte(esporteNome, genero = null) {
-  let whereClause = `(
-       m.nome = ? OR
-       m.nome = CONCAT(?, ' Masculino') OR
-       m.nome = CONCAT(?, ' Feminino')
-     )`;
-  const params = [esporteNome, esporteNome, esporteNome];
+  const esporteBase = removerGeneroDoNomeModalidade(esporteNome);
+  if (!esporteBase) {
+    return [];
+  }
 
-  if (genero && genero !== 'Todos') {
+  const nomeSemGenero = `TRIM(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(m.nome,
+       'Masculino', ''), 'Feminino', ''), 'Misto', ''),
+       'masculino', ''), 'feminino', ''), 'misto', ''))`;
+
+  let whereClause = `${nomeSemGenero} = ?`;
+  const params = [esporteBase];
+
+  const generoEfetivo = (genero && genero !== 'Todos')
+    ? genero
+    : generoDoNomeModalidade(esporteNome);
+
+  if (generoEfetivo) {
     whereClause += ` AND m.genero = ?`;
-    params.push(genero);
+    params.push(generoEfetivo);
   }
 
   const filtroAno = await filtroAnoEvento('j');

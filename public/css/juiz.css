@@ -1,0 +1,1100 @@
+/* ==========================================================================
+   Área do juiz — resultados, provas e placar
+   ========================================================================== */
+
+.juiz-page,
+.juiz-page * {
+  box-sizing: border-box;
+}
+
+.juiz-page [hidden] {
+  display: none !important;
+}
+
+.juiz-page {
+  width: 100%;
+  max-width: 1080px;
+  margin: 1rem auto 3rem;
+  color: var(--text);
+}
+
+/* ---------- Cabeçalho ---------- */
+.juiz-page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1.15rem 1.35rem;
+  border-radius: 18px;
+  border: 1px solid rgba(var(--accent-rgb), 0.28);
+  background: linear-gradient(120deg, rgba(var(--accent-rgb), 0.12), rgba(var(--fg-rgb), 0.02) 65%);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16);
+}
+
+.juiz-page-head h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.juiz-page-kicker {
+  margin: 0 0 0.2rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.juiz-page-subtitle {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.juiz-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--text-muted);
+  background: rgba(var(--fg-rgb), 0.06);
+  border: 1px solid rgba(var(--fg-rgb), 0.1);
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
+.juiz-back-link:hover {
+  background: rgba(var(--fg-rgb), 0.1);
+  color: var(--text);
+  border-color: rgba(var(--fg-rgb), 0.18);
+}
+
+/* ---------- Toolbar e filtros ---------- */
+.juiz-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.juiz-toolbar-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.juiz-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.95rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+  color: rgba(var(--fg-rgb), 0.7);
+  background: rgba(var(--fg-rgb), 0.05);
+  border: 1px solid rgba(var(--fg-rgb), 0.1);
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.juiz-chip:hover {
+  background: rgba(var(--fg-rgb), 0.1);
+  color: var(--text);
+}
+
+.juiz-chip.is-active {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+  box-shadow: 0 4px 14px rgba(var(--accent-rgb), 0.25);
+}
+
+/* ---------- Botões ---------- */
+.juiz-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 750;
+  line-height: 1.2;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.juiz-btn--primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+  box-shadow: 0 6px 16px rgba(var(--accent-rgb), 0.2);
+}
+
+.juiz-btn--primary:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+.juiz-btn--ghost {
+  background: rgba(var(--fg-rgb), 0.06);
+  color: var(--text);
+  border-color: rgba(var(--fg-rgb), 0.14);
+}
+
+.juiz-btn--ghost:hover {
+  background: rgba(var(--fg-rgb), 0.1);
+}
+
+.juiz-btn--success {
+  background: rgba(88, 214, 141, 0.16);
+  color: #58d68d;
+  border-color: rgba(88, 214, 141, 0.35);
+}
+
+.juiz-btn--success:hover {
+  background: rgba(88, 214, 141, 0.26);
+}
+
+.juiz-btn--warning {
+  background: rgba(245, 176, 65, 0.14);
+  color: #f5b041;
+  border-color: rgba(245, 176, 65, 0.35);
+}
+
+.juiz-btn--warning:hover {
+  background: rgba(245, 176, 65, 0.24);
+}
+
+.juiz-btn--danger {
+  background: rgba(231, 76, 60, 0.14);
+  color: #ff6b6b;
+  border-color: rgba(231, 76, 60, 0.3);
+}
+
+.juiz-btn--danger:hover {
+  background: rgba(231, 76, 60, 0.24);
+}
+
+.juiz-btn--sm {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.74rem;
+  border-radius: 8px;
+}
+
+.juiz-btn--block {
+  width: 100%;
+}
+
+/* ---------- Alertas ---------- */
+.juiz-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.75rem 0.95rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.juiz-alert--success {
+  background: rgba(88, 214, 141, 0.1);
+  border-color: rgba(88, 214, 141, 0.35);
+  color: #58d68d;
+}
+
+.juiz-alert--danger {
+  background: rgba(231, 76, 60, 0.1);
+  border-color: rgba(231, 76, 60, 0.35);
+  color: #ff6b6b;
+}
+
+/* ---------- Seções e cards ---------- */
+.juiz-section {
+  margin-top: 1.6rem;
+}
+
+.juiz-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.9rem;
+}
+
+.juiz-section-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 750;
+  color: var(--text);
+}
+
+.juiz-section-head p {
+  margin: 0.15rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.juiz-card {
+  padding: 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(var(--fg-rgb), 0.09);
+  background: rgba(var(--fg-rgb), 0.03);
+}
+
+/* ---------- Grade de provas ---------- */
+.juiz-provas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.85rem;
+}
+
+.juiz-prova-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.95rem 1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(var(--fg-rgb), 0.09);
+  background: rgba(var(--fg-rgb), 0.03);
+  transition: border-color 0.18s ease, transform 0.18s ease, background 0.18s ease;
+}
+
+.juiz-prova-card:hover {
+  border-color: rgba(var(--accent-rgb), 0.45);
+  background: rgba(var(--fg-rgb), 0.05);
+  transform: translateY(-2px);
+}
+
+.juiz-prova-card__title {
+  font-size: 0.95rem;
+  font-weight: 750;
+  color: var(--text);
+}
+
+.juiz-prova-card__meta {
+  margin-top: 0.15rem;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.juiz-prova-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+/* ---------- Estado vazio ---------- */
+.juiz-empty {
+  padding: 2.5rem 1.25rem;
+  text-align: center;
+  border-radius: 14px;
+  border: 1px dashed rgba(var(--accent-rgb), 0.3);
+  background: rgba(var(--fg-rgb), 0.03);
+}
+
+.juiz-empty h2 {
+  margin: 0 0 0.3rem;
+  font-size: 1.05rem;
+  color: var(--text);
+}
+
+.juiz-empty p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* ---------- Formulário de criação de prova ---------- */
+.juiz-form-inline {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin-top: 0.85rem;
+  padding: 1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(var(--fg-rgb), 0.09);
+  background: rgba(var(--fg-rgb), 0.03);
+}
+
+.juiz-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 120px;
+}
+
+.juiz-field--grow {
+  flex: 1;
+  min-width: 170px;
+}
+
+.juiz-field label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ---------- Inputs e selects ---------- */
+.juiz-input,
+.juiz-select,
+.juiz-table input,
+.juiz-table select {
+  width: 100%;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--text);
+  background: rgba(var(--fg-rgb), 0.06);
+  border: 1px solid rgba(var(--fg-rgb), 0.16);
+  border-radius: 9px;
+  padding: 0.45rem 0.55rem;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.juiz-input:focus,
+.juiz-select:focus,
+.juiz-table input:focus,
+.juiz-table select:focus {
+  border-color: rgba(var(--accent-rgb), 0.6);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15);
+}
+
+.juiz-select option {
+  color: #141414;
+}
+
+.juiz-table input[type="number"] {
+  text-align: center;
+}
+
+.juiz-input--center {
+  text-align: center;
+}
+
+/* ---------- Tabelas ---------- */
+.juiz-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 14px;
+  border: 1px solid rgba(var(--fg-rgb), 0.08);
+  background: rgba(var(--fg-rgb), 0.02);
+}
+
+.juiz-table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.juiz-table thead th {
+  padding: 0.7rem 0.65rem;
+  text-align: left;
+  font-size: 0.66rem;
+  font-weight: 750;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid rgba(var(--fg-rgb), 0.1);
+  white-space: nowrap;
+}
+
+.juiz-table tbody td {
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid rgba(var(--fg-rgb), 0.06);
+  vertical-align: middle;
+}
+
+.juiz-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.juiz-table tbody tr:hover {
+  background: rgba(var(--fg-rgb), 0.03);
+}
+
+.juiz-table .is-center {
+  text-align: center;
+}
+
+.juiz-table .is-accent {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.juiz-table .cell-name {
+  font-weight: 650;
+  color: var(--text);
+}
+
+.juiz-table .cell-muted {
+  color: rgba(var(--fg-rgb), 0.68);
+}
+
+.juiz-table .cell-num,
+.juiz-table .cell-rank,
+.juiz-table .cell-pts {
+  text-align: center;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.juiz-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.65rem;
+  height: 1.65rem;
+  padding: 0 0.35rem;
+  border-radius: 8px;
+  background: rgba(var(--fg-rgb), 0.06);
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--text-muted);
+}
+
+.juiz-table tbody tr:nth-child(1) .juiz-rank-badge {
+  background: rgba(var(--accent-rgb), 0.2);
+  color: var(--accent);
+}
+
+.juiz-table tbody tr:nth-child(2) .juiz-rank-badge,
+.juiz-table tbody tr:nth-child(3) .juiz-rank-badge {
+  background: rgba(var(--fg-rgb), 0.1);
+  color: var(--text);
+}
+
+.juiz-table input {
+  padding: 0.35rem 0.4rem;
+  font-size: 0.82rem;
+}
+
+.juiz-table input.juiz-time {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  letter-spacing: 0.03em;
+}
+
+.juiz-tempo-hint {
+  display: block;
+  min-height: 0.8rem;
+  margin-top: 0.15rem;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.6rem;
+  color: rgba(var(--fg-rgb), 0.45);
+}
+
+/* ---------- Rodapé de formulário ---------- */
+.juiz-form-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 1.25rem;
+}
+
+.juiz-hint {
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.juiz-hint strong {
+  color: var(--text);
+}
+
+/* ---------- Jogos (lista) ---------- */
+.juiz-matches-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.juiz-match-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 18px;
+  border: 1px solid rgba(var(--fg-rgb), 0.09);
+  background: linear-gradient(160deg, rgba(var(--fg-rgb), 0.04), rgba(var(--fg-rgb), 0.015));
+  transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.juiz-match-card:hover {
+  border-color: rgba(var(--accent-rgb), 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.18);
+}
+
+.juiz-match-card.is-done {
+  opacity: 0.78;
+}
+
+.juiz-match-card__meta {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.juiz-match-card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding-top: 0.75rem;
+  margin-top: auto;
+  border-top: 1px solid rgba(var(--fg-rgb), 0.07);
+}
+
+.juiz-versus {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.juiz-team {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  text-align: center;
+}
+
+.juiz-team img {
+  width: 64px;
+  height: 64px;
+  padding: 0.35rem;
+  object-fit: contain;
+  object-position: center;
+  border-radius: 14px;
+  border: 1px solid rgba(var(--fg-rgb), 0.1);
+  background: rgba(var(--fg-rgb), 0.05);
+  transition: transform 0.2s ease;
+}
+
+.juiz-team img:hover {
+  transform: scale(1.05);
+}
+
+.juiz-team__name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.25;
+  word-break: break-word;
+  color: var(--text);
+}
+
+.juiz-team__name--muted {
+  font-style: italic;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.juiz-match-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.juiz-match-time {
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--text);
+}
+
+.juiz-match-place,
+.juiz-match-date {
+  font-size: 0.66rem;
+  line-height: 1.3;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.juiz-score {
+  font-size: 1.45rem;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+
+.juiz-score .sep {
+  margin: 0 0.25rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.juiz-score-sets {
+  margin-top: 0.15rem;
+  font-size: 0.62rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+/* ---------- Badges / status ---------- */
+.juiz-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.juiz-status--done {
+  background: rgba(88, 214, 141, 0.16);
+  color: #58d68d;
+}
+
+.juiz-status--live {
+  background: rgba(245, 176, 65, 0.16);
+  color: #f5b041;
+}
+
+.juiz-status--pending {
+  background: rgba(var(--fg-rgb), 0.08);
+  color: var(--text-muted);
+}
+
+.juiz-status--wo {
+  background: rgba(245, 176, 65, 0.16);
+  color: #f5b041;
+}
+
+.juiz-status--blocked {
+  background: rgba(180, 130, 60, 0.15);
+  color: #b4823c;
+}
+
+.juiz-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: currentColor;
+  animation: juizPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes juizPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+.juiz-tag {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.75rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  background: rgba(var(--accent-rgb), 0.18);
+  color: var(--accent);
+}
+
+.juiz-tag--wo {
+  background: rgba(245, 176, 65, 0.18);
+  color: #f5b041;
+}
+
+.juiz-tag--wo + .juiz-tag {
+  right: 4.4rem;
+}
+
+/* ---------- Placar ---------- */
+.juiz-match-hero {
+  margin-bottom: 1.25rem;
+}
+
+.juiz-scoreboard {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding: 0.7rem;
+  border-radius: 12px;
+  border: 1px solid rgba(var(--fg-rgb), 0.07);
+  background: rgba(var(--fg-rgb), 0.03);
+  text-align: center;
+}
+
+.juiz-scoreboard__value {
+  font-size: 1.4rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--accent);
+}
+
+.juiz-scoreboard__label {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.juiz-scoreboard__mid {
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.juiz-set-row {
+  display: grid;
+  grid-template-columns: 1.1rem 1fr auto 1fr auto;
+  gap: 0.45rem;
+  align-items: center;
+  padding: 0.5rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid rgba(var(--fg-rgb), 0.08);
+  background: rgba(var(--fg-rgb), 0.03);
+}
+
+.juiz-set-row.is-confirmed {
+  border-color: rgba(88, 214, 141, 0.4);
+}
+
+.juiz-set-row__index {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.juiz-set-row input {
+  width: 100%;
+  padding: 0.35rem 0.25rem;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  background: rgba(var(--fg-rgb), 0.06);
+  border: 1px solid rgba(var(--fg-rgb), 0.15);
+  border-radius: 8px;
+  outline: none;
+}
+
+.juiz-set-row input[readonly] {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.juiz-set-row__sep {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: rgba(var(--fg-rgb), 0.3);
+}
+
+.juiz-score-input {
+  width: 84px;
+  padding: 0.5rem;
+  text-align: center;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text);
+  background: rgba(var(--fg-rgb), 0.06);
+  border: 1px solid rgba(var(--fg-rgb), 0.15);
+  border-radius: 12px;
+  outline: none;
+}
+
+.juiz-score-input:focus {
+  border-color: rgba(var(--accent-rgb), 0.6);
+  box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15);
+}
+
+.juiz-penalty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin: -0.25rem 0 1rem;
+}
+
+.juiz-penalty label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.juiz-penalty input {
+  width: 54px;
+  padding: 0.3rem;
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f5b041;
+  background: rgba(245, 176, 65, 0.08);
+  border: 1px solid rgba(245, 176, 65, 0.3);
+  border-radius: 8px;
+  outline: none;
+}
+
+.juiz-cards {
+  margin-bottom: 1rem;
+}
+
+.juiz-cards__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.juiz-cards__title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.juiz-cards__legend {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+.juiz-card-block {
+  padding: 0.6rem 0.7rem;
+  border-radius: 10px;
+  border: 1px solid rgba(var(--fg-rgb), 0.08);
+  background: rgba(var(--fg-rgb), 0.03);
+}
+
+.juiz-card-block + .juiz-card-block {
+  margin-top: 0.6rem;
+}
+
+.juiz-card-block__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.juiz-card-block__name {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.juiz-card-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+}
+
+.juiz-card-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.juiz-card-row select,
+.juiz-card-row input {
+  width: 100%;
+  padding: 0.28rem 0.35rem;
+  font-size: 0.72rem;
+  color: var(--text);
+  background: rgba(var(--fg-rgb), 0.06);
+  border: 1px solid rgba(var(--fg-rgb), 0.15);
+  border-radius: 6px;
+  outline: none;
+}
+
+.juiz-card-row input[type="number"] {
+  width: 58px;
+  text-align: center;
+}
+
+.juiz-card-row .juiz-btn {
+  grid-column: span 4;
+  width: 100%;
+}
+
+.juiz-note {
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(var(--fg-rgb), 0.1);
+  background: rgba(var(--fg-rgb), 0.03);
+}
+
+.juiz-note--warning {
+  border-color: rgba(245, 176, 65, 0.25);
+  background: rgba(245, 176, 65, 0.08);
+  text-align: center;
+}
+
+.juiz-note--blocked {
+  border-color: rgba(180, 130, 60, 0.25);
+  background: rgba(180, 130, 60, 0.1);
+  text-align: center;
+}
+
+.juiz-note--final {
+  border-color: rgba(245, 176, 65, 0.25);
+  background: rgba(245, 176, 65, 0.05);
+  padding: 0.35rem 0.5rem 0.5rem;
+}
+
+.juiz-note__title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.juiz-note__text {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.juiz-adiar {
+  margin-top: 0.85rem;
+  padding: 1rem;
+  border-radius: 12px;
+  border: 1px dashed rgba(245, 176, 65, 0.35);
+  background: rgba(245, 176, 65, 0.06);
+}
+
+.juiz-adiar__title {
+  margin-bottom: 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.juiz-adiar__current {
+  margin: 0 0 0.6rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.juiz-adiar__fields {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.juiz-adiar__fields .juiz-field {
+  flex: 1;
+  min-width: 130px;
+}
+
+.juiz-balles {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.juiz-balles .juiz-btn {
+  font-size: 0.65rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 8px;
+}
+
+/* ---------- Responsivo ---------- */
+@media (max-width: 640px) {
+  .juiz-page {
+    margin-top: 0.5rem;
+  }
+
+  .juiz-page-head {
+    padding: 1rem;
+  }
+
+  .juiz-page-head h1 {
+    font-size: 1.15rem;
+  }
+
+  .juiz-matches-grid,
+  .juiz-provas-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .juiz-team img {
+    width: 52px;
+    height: 52px;
+  }
+
+  .juiz-score-input {
+    width: 68px;
+    font-size: 1.5rem;
+  }
+
+  .juiz-table {
+    min-width: 440px;
+  }
+
+  .juiz-form-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .juiz-form-footer .juiz-btn {
+    width: 100%;
+  }
+
+  .juiz-form-inline {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .juiz-form-inline .juiz-btn {
+    width: 100%;
+  }
+}

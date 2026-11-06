@@ -39,7 +39,7 @@
     padding: 1.5rem 0 3rem;
 }
 
-.juiz-dashboard-header {
+.juiz-dashboard-page .juiz-dashboard-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -53,17 +53,17 @@
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.16);
 }
 
-.juiz-dashboard-header h1 {
+.juiz-dashboard-page .juiz-dashboard-header h1 {
     color: var(--text);
     font-weight: 800;
     letter-spacing: -0.02em;
 }
 
-.juiz-dashboard-header .panel-subtitle {
+.juiz-dashboard-page .juiz-dashboard-header .panel-subtitle {
     margin: 0.2rem 0 0;
 }
 
-.juiz-dashboard-status {
+.juiz-dashboard-page .juiz-dashboard-status {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
@@ -79,14 +79,14 @@
     white-space: nowrap;
 }
 
-.juiz-sports-grid {
+.juiz-dashboard-page .juiz-sports-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
     gap: 1.1rem;
     margin-top: 1.5rem;
 }
 
-.juiz-sport-card {
+.juiz-sports-grid .juiz-sport-card {
     position: relative;
     display: flex;
     flex-direction: column;
@@ -94,7 +94,7 @@
     justify-content: center;
     gap: 0.55rem;
     min-height: 150px;
-    margin-top: 0;
+    margin: 0;
     padding: 1.6rem 1.1rem;
     text-align: center;
     text-decoration: none;
@@ -107,7 +107,7 @@
     transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
-.juiz-sport-card::before {
+.juiz-sports-grid .juiz-sport-card::before {
     content: "";
     position: absolute;
     inset: 0 0 auto;
@@ -117,8 +117,8 @@
     transition: opacity 0.2s ease;
 }
 
-.juiz-sport-card:hover,
-.juiz-sport-card:focus-visible {
+.juiz-sports-grid .juiz-sport-card:hover,
+.juiz-sports-grid .juiz-sport-card:focus-visible {
     transform: translateY(-4px);
     border-color: rgba(var(--accent-rgb), 0.6);
     background:
@@ -127,12 +127,12 @@
     outline: none;
 }
 
-.juiz-sport-card:hover::before,
-.juiz-sport-card:focus-visible::before {
+.juiz-sports-grid .juiz-sport-card:hover::before,
+.juiz-sports-grid .juiz-sport-card:focus-visible::before {
     opacity: 1;
 }
 
-.juiz-sport-card h3 {
+.juiz-sports-grid .juiz-sport-card h3 {
     margin: 0;
     font-size: 1.1rem;
     font-weight: 750;
@@ -140,7 +140,7 @@
     letter-spacing: -0.01em;
 }
 
-.juiz-sport-card p {
+.juiz-sports-grid .juiz-sport-card p {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
@@ -151,15 +151,15 @@
     color: var(--accent);
 }
 
-.juiz-sport-card p span {
+.juiz-sports-grid .juiz-sport-card p span {
     transition: transform 0.2s ease;
 }
 
-.juiz-sport-card:hover p span {
+.juiz-sports-grid .juiz-sport-card:hover p span {
     transform: translateX(3px);
 }
 
-.juiz-empty-state {
+.juiz-dashboard-page .juiz-empty-state.mini-card {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -173,12 +173,12 @@
     background: rgba(var(--fg-rgb), 0.03);
 }
 
-.juiz-empty-state h2 {
+.juiz-dashboard-page .juiz-empty-state h2 {
     margin: 0;
     color: var(--text);
 }
 
-.juiz-empty-state .panel-subtitle {
+.juiz-dashboard-page .juiz-empty-state .panel-subtitle {
     margin: 0;
 }
 
@@ -187,16 +187,16 @@
         padding: 1rem 0 2rem;
     }
 
-    .juiz-dashboard-header {
+    .juiz-dashboard-page .juiz-dashboard-header {
         padding: 1rem 1.05rem;
     }
 
-    .juiz-sports-grid {
+    .juiz-dashboard-page .juiz-sports-grid {
         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
         gap: 0.8rem;
     }
 
-    .juiz-sport-card {
+    .juiz-sports-grid .juiz-sport-card {
         min-height: 128px;
         padding: 1.25rem 0.85rem;
     }

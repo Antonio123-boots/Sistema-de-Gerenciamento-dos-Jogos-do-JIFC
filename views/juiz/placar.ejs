@@ -4,63 +4,71 @@
   const modoEdicaoAtivo = typeof modoEdicao !== 'undefined' && modoEdicao;
   const fotoCasaReal = !!(jogo.fotoCasa && jogo.fotoCasa !== '/imagens/avatar.svg');
   const fotoForaReal = !!(jogo.fotoFora && jogo.fotoFora !== '/imagens/avatar.svg');
+  const esporteVolta = typeof esporteVoltar !== 'undefined' && esporteVoltar ? esporteVoltar : jogo.modalidade.split(' ')[0];
 %>
 
-<section class="panel-card" style="max-width:520px; margin:1rem auto;">
-  <div style="margin-bottom:1rem;">
-    <a href="/juiz/<%= encodeURIComponent(typeof esporteVoltar !== 'undefined' && esporteVoltar ? esporteVoltar : jogo.modalidade.split(' ')[0]) %>" style="color:rgba(var(--fg-rgb), 0.5); text-decoration:none; font-size:0.85rem;">← Voltar para <%= typeof esporteVoltar !== 'undefined' && esporteVoltar ? esporteVoltar : jogo.modalidade.split(' ')[0] %></a>
-  </div>
-
-  <h1 style="font-size:1.25rem; margin:0 0 0.25rem;">Atualizar Placar</h1>
-  <p class="panel-subtitle" style="margin:0 0 1.25rem;">Registre o resultado e o status do confronto.</p>
+<section class="juiz-page">
+  <header class="juiz-page-head">
+    <div>
+      <p class="juiz-page-kicker">Placar</p>
+      <h1>Atualizar placar</h1>
+      <p class="juiz-page-subtitle">Registre o resultado e o status do confronto.</p>
+    </div>
+    <a class="juiz-back-link" href="/juiz/<%= encodeURIComponent(esporteVolta) %>">← Voltar para <%= esporteVolta %></a>
+  </header>
 
   <% if (jogo.status === 'Em Andamento') { %>
-    <div style="display:inline-flex; align-items:center; gap:0.4rem; font-size:0.7rem; font-weight:700; padding:0.25rem 0.7rem; border-radius:999px; background:rgba(241,196,39,0.18); color:#f5b041; margin-bottom:1rem;">
-      <span style="width:0.5rem; height:0.5rem; border-radius:50%; background:#f5b041; animation: pulsarBool 1.2s infinite;"></span>
-      Em Andamento
+    <div class="juiz-status juiz-status--live" style="margin-top:1rem;">
+      <span class="juiz-dot"></span>
+      Em andamento
     </div>
-    <style>@keyframes pulsarBool { 0%,100% { opacity:1; } 50% { opacity:0.25; } }</style>
   <% } %>
 
   <% if (typeof mensagemErro !== 'undefined' && mensagemErro) { %>
-    <div class="alert alert-error auto-dismiss"><%= mensagemErro %></div>
+    <div class="juiz-alert juiz-alert--danger auto-dismiss"><%= mensagemErro %></div>
   <% } %>
 
   <% if (jogo.wo) { %>
-    <div style="background:rgba(245,176,65,0.1); border:1px solid rgba(245,176,65,0.25); border-radius:12px; padding:0.75rem 1rem; margin-bottom:1.25rem; text-align:center;">
-      <div style="font-size:0.9rem; font-weight:700; color:#f5b041;">W.O. aplicado</div>
-      <p style="font-size:0.75rem; color:var(--text-muted); margin:0.3rem 0 0;">Este jogo foi finalizado por Walk Over.</p>
+    <div class="juiz-note juiz-note--warning" style="margin-top:1rem;">
+      <div class="juiz-note__title" style="color:#f5b041;">W.O. aplicado</div>
+      <p class="juiz-note__text">Este jogo foi finalizado por Walk Over.</p>
     </div>
   <% } %>
 
-  <article class="panel-card" style="padding:1rem; background:rgba(var(--fg-rgb), 0.02); border:1px solid rgba(var(--fg-rgb), 0.08); border-radius:18px; margin-bottom:1.25rem;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; min-height:1.5rem;">
-      <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; line-height:1.3;"><%= jogo.modalidade %> · <%= jogo.genero %></div>
-    </div>
+  <article class="juiz-match-card juiz-match-hero" style="margin-top:1rem;">
+    <div class="juiz-match-card__meta"><%= jogo.modalidade %> · <%= jogo.genero %></div>
 
-    <div style="display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); gap:0.75rem; align-items:center; flex:1;">
-      <div style="text-align:center; min-width:0;">
-        <img src="<%= jogo.fotoCasa || '/imagens/avatar.svg' %>" alt="Foto do campus <%= jogo.casa %>" class="campus-photo campus-photo--md campus-photo--badge <%= fotoCasaReal ? 'campus-photo--real' : 'campus-photo--default' %>" style="margin:0 auto 0.55rem;">
-        <div style="font-size:0.75rem; color: var(--text); font-weight:600; line-height:1.2; word-break:break-word;"><%= (jogo.casa && jogo.casa !== 'Atleta não informado' && jogo.casa !== 'Campus não informado') ? jogo.casa : (jogo.rotuloCasa || 'A Definir') %></div>
+    <div class="juiz-versus">
+      <div class="juiz-team">
+        <img src="<%= jogo.fotoCasa || '/imagens/avatar.svg' %>"
+             alt="Foto do campus <%= jogo.casa %>"
+             class="campus-photo campus-photo--md campus-photo--badge <%= fotoCasaReal ? 'campus-photo--real' : 'campus-photo--default' %>">
+        <div class="juiz-team__name <%= (jogo.casa && jogo.casa !== 'Atleta não informado' && jogo.casa !== 'Campus não informado') ? '' : 'juiz-team__name--muted' %>">
+          <%= (jogo.casa && jogo.casa !== 'Atleta não informado' && jogo.casa !== 'Campus não informado') ? jogo.casa : (jogo.rotuloCasa || 'A definir') %>
+        </div>
       </div>
 
-      <div style="display:flex; flex-direction:column; gap:0.25rem; justify-items:center; text-align:center; align-items:center; flex-shrink:0;">
-        <div style="font-size:0.95rem; font-weight:700; color: var(--text); line-height:1.2;"><%= jogo.horario %></div>
-        <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.08em; line-height:1.2;"><%= jogo.localJogo || 'A def' %></div>
-        <div style="font-size:0.65rem; color:var(--text-muted); line-height:1.2;"><%= jogo.data %></div>
+      <div class="juiz-match-center">
+        <div class="juiz-match-time"><%= jogo.horario %></div>
+        <div class="juiz-match-place"><%= jogo.localJogo || 'A definir' %></div>
+        <div class="juiz-match-date"><%= jogo.data %></div>
       </div>
 
-      <div style="text-align:center; min-width:0;">
-        <img src="<%= jogo.fotoFora || '/imagens/avatar.svg' %>" alt="Foto do campus <%= jogo.fora %>" class="campus-photo campus-photo--md campus-photo--badge <%= fotoForaReal ? 'campus-photo--real' : 'campus-photo--default' %>" style="margin:0 auto 0.55rem;">
-        <div style="font-size:0.75rem; color: var(--text); font-weight:600; line-height:1.2; word-break:break-word;"><%= (jogo.fora && jogo.fora !== 'Atleta não informado' && jogo.fora !== 'Campus não informado') ? jogo.fora : (jogo.rotuloFora || 'A Definir') %></div>
+      <div class="juiz-team">
+        <img src="<%= jogo.fotoFora || '/imagens/avatar.svg' %>"
+             alt="Foto do campus <%= jogo.fora %>"
+             class="campus-photo campus-photo--md campus-photo--badge <%= fotoForaReal ? 'campus-photo--real' : 'campus-photo--default' %>">
+        <div class="juiz-team__name <%= (jogo.fora && jogo.fora !== 'Atleta não informado' && jogo.fora !== 'Campus não informado') ? '' : 'juiz-team__name--muted' %>">
+          <%= (jogo.fora && jogo.fora !== 'Atleta não informado' && jogo.fora !== 'Campus não informado') ? jogo.fora : (jogo.rotuloFora || 'A definir') %>
+        </div>
       </div>
     </div>
   </article>
 
   <% if (jogo.bloqueado) { %>
-    <div style="margin-top:1.25rem; text-align:center; padding:1.5rem 1rem; border-radius:12px; background:rgba(180,130,60,0.1); border:1px solid rgba(180,130,60,0.25);">
-      <p style="font-size:0.85rem; color:#b4823c; font-weight:600; margin:0 0 0.3rem;">Aguardando encerramento da fase anterior</p>
-      <p style="font-size:0.75rem; color:#8a7a5a; margin:0;">Este jogo será liberado automaticamente quando todos os jogos da fase anterior forem encerrados.</p>
+    <div class="juiz-note juiz-note--blocked">
+      <div class="juiz-note__title" style="color:#b4823c;">Aguardando encerramento da fase anterior</div>
+      <p class="juiz-note__text">Este jogo será liberado automaticamente quando todos os jogos da fase anterior forem encerrados.</p>
     </div>
   <% } else if (!jogo.wo && (jogo.status !== 'Encerrado' || modoEdicaoAtivo)) { %>
     <form action="/juiz/jogos/<%= jogo.id %>/placar" method="POST" style="margin-top:1.25rem;">
@@ -68,55 +76,62 @@
 
       <% if (temSets) { %>
         <div id="setsSection">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
-            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.06em;">Placar por Sets</span>
-            <span style="font-size:0.65rem; color:var(--text-muted);">Melhor de 3</span>
+          <div class="juiz-section-head" style="margin-bottom:0.6rem;">
+            <h2 style="font-size:0.85rem;">Placar por sets</h2>
+            <span class="juiz-hint">Melhor de 3</span>
           </div>
 
           <div id="setsContainer" style="display:flex; flex-direction:column; gap:0.5rem; margin-bottom:0.75rem;">
             <% for (let s = 1; s <= 3; s++) { %>
               <% const setSalvo = setsSalvos[s-1]; %>
               <% const confirmado = setSalvo && (Number(setSalvo.pontos_1 || 0) > 0 || Number(setSalvo.pontos_2 || 0) > 0); %>
-              <div class="set-row" data-set="<%= s %>" style="display:grid; grid-template-columns:0.6rem 1fr auto 1fr auto; gap:0.4rem; align-items:center; padding:0.45rem 0.6rem; border-radius:10px; background:rgba(var(--fg-rgb), 0.03); border:1px solid <%= confirmado ? 'rgba(88,214,141,0.4)' : 'rgba(var(--fg-rgb), 0.08)' %>;">
-                <span style="font-size:0.65rem; font-weight:700; color:var(--text-muted); text-align:center;"><%= s %>º</span>
-                <input type="number" name="sets[<%= s - 1 %>][pontos_1]" min="0" value="<%= setSalvo ? setSalvo.pontos_1 : 0 %>" class="set-input set-p1" <%= confirmado ? 'readonly' : '' %> style="width:100%; text-align:center; font-size:1rem; font-weight:700; background:rgba(var(--fg-rgb), 0.06); border:1px solid rgba(var(--fg-rgb), 0.15); border-radius:8px; color: var(--text); padding:0.35rem 0.25rem; outline:none; <%= confirmado ? 'opacity:0.6; cursor:default;' : '' %>">
-                <span style="font-size:0.8rem; font-weight:700; color:rgba(var(--fg-rgb), 0.3);">x</span>
-                <input type="number" name="sets[<%= s - 1 %>][pontos_2]" min="0" value="<%= setSalvo ? setSalvo.pontos_2 : 0 %>" class="set-input set-p2" <%= confirmado ? 'readonly' : '' %> style="width:100%; text-align:center; font-size:1rem; font-weight:700; background:rgba(var(--fg-rgb), 0.06); border:1px solid rgba(var(--fg-rgb), 0.15); border-radius:8px; color: var(--text); padding:0.35rem 0.25rem; outline:none; <%= confirmado ? 'opacity:0.6; cursor:default;' : '' %>">
-                <button type="button" class="btn-confirmar-set" data-set="<%= s %>" onclick="confirmarSet(<%= s %>)" style="font-size:0.6rem; font-weight:700; padding:0.3rem 0.5rem; border-radius:6px; background:<%= confirmado ? 'rgba(88,214,141,0.15)' : 'rgba(var(--fg-rgb), 0.06)' %>; border:1px solid <%= confirmado ? 'rgba(88,214,141,0.35)' : 'rgba(var(--fg-rgb), 0.12)' %>; color:<%= confirmado ? '#58d68d' : 'var(--text-muted)' %>; cursor:pointer; white-space:nowrap; transition:all 0.2s; <%= confirmado ? 'pointer-events:none;' : '' %>"><%= confirmado ? '✓' : 'OK' %></button>
+              <div class="juiz-set-row <%= confirmado ? 'is-confirmed' : '' %> set-row" data-set="<%= s %>">
+                <span class="juiz-set-row__index"><%= s %>º</span>
+                <input type="number" name="sets[<%= s - 1 %>][pontos_1]" min="0" value="<%= setSalvo ? setSalvo.pontos_1 : 0 %>" class="set-input set-p1" <%= confirmado ? 'readonly' : '' %>>
+                <span class="juiz-set-row__sep">x</span>
+                <input type="number" name="sets[<%= s - 1 %>][pontos_2]" min="0" value="<%= setSalvo ? setSalvo.pontos_2 : 0 %>" class="set-input set-p2" <%= confirmado ? 'readonly' : '' %>>
+                <button type="button" class="btn-confirmar-set juiz-btn <%= confirmado ? 'juiz-btn--success' : 'juiz-btn--ghost' %> juiz-btn--sm"
+                        data-set="<%= s %>" onclick="confirmarSet(<%= s %>)" <%= confirmado ? 'style="pointer-events:none;"' : '' %>>
+                  <%= confirmado ? '✓' : 'OK' %>
+                </button>
               </div>
             <% } %>
           </div>
 
-          <div id="setsSummary" style="display:grid; grid-template-columns:1fr auto 1fr; gap:0.5rem; align-items:center; text-align:center; margin-bottom:0.75rem; padding:0.5rem; border-radius:10px; background:rgba(var(--fg-rgb), 0.02); border:1px solid rgba(var(--fg-rgb), 0.06);">
+          <div id="setsSummary" class="juiz-scoreboard">
             <div>
-              <div style="font-size:1.3rem; font-weight:800; color:#58d68d;" id="setsVencidos1">0</div>
-              <div style="font-size:0.55rem; color:var(--text-muted); text-transform:uppercase;">Sets</div>
+              <div class="juiz-scoreboard__value" id="setsVencidos1">0</div>
+              <div class="juiz-scoreboard__label">Sets</div>
             </div>
-            <div style="font-size:0.65rem; color:var(--text-muted); font-weight:700;">SETS</div>
+            <div class="juiz-scoreboard__mid">SETS</div>
             <div>
-              <div style="font-size:1.3rem; font-weight:800; color:#58d68d;" id="setsVencidos2">0</div>
-              <div style="font-size:0.55rem; color:var(--text-muted); text-transform:uppercase;">Sets</div>
-            </div>
-          </div>
-
-          <div style="display:grid; grid-template-columns:1fr auto 1fr; gap:0.5rem; align-items:center; text-align:center; margin-bottom:0.75rem;">
-            <div>
-              <div style="font-size:1rem; font-weight:700; color: var(--text);" id="totalPontos1">0</div>
-              <div style="font-size:0.55rem; color:var(--text-muted); text-transform:uppercase;">Pontos Total</div>
-            </div>
-            <div style="font-size:0.65rem; color:var(--text-muted); font-weight:700;">PLACAR</div>
-            <div>
-              <div style="font-size:1rem; font-weight:700; color: var(--text);" id="totalPontos2">0</div>
-              <div style="font-size:0.55rem; color:var(--text-muted); text-transform:uppercase;">Pontos Total</div>
+              <div class="juiz-scoreboard__value" id="setsVencidos2">0</div>
+              <div class="juiz-scoreboard__label">Sets</div>
             </div>
           </div>
 
-          <div style="display:flex; justify-content:center; gap:0.75rem; margin-bottom:0.5rem; flex-wrap:wrap;">
+          <div class="juiz-scoreboard">
+            <div>
+              <div class="juiz-scoreboard__value" id="totalPontos1" style="color:var(--text);">0</div>
+              <div class="juiz-scoreboard__label">Pontos totais</div>
+            </div>
+            <div class="juiz-scoreboard__mid">PLACAR</div>
+            <div>
+              <div class="juiz-scoreboard__value" id="totalPontos2" style="color:var(--text);">0</div>
+              <div class="juiz-scoreboard__label">Pontos totais</div>
+            </div>
+          </div>
+
+          <div class="juiz-balles">
             <% if (jogo.casa && jogo.casa !== '—') { %>
-              <button type="button" class="btn-wo" onclick="confirmarWO('<%= jogo.tipoIndividual && jogo.atleta_1_id ? jogo.atleta_1_id : jogo.campus_1_id %>', '<%= jogo.casa %>')" style="font-size:0.65rem; font-weight:700; padding:0.3rem 0.6rem; border-radius:8px; background:rgba(245,176,65,0.1); border:1px solid rgba(245,176,65,0.25); color:#f5b041; cursor:pointer; white-space:nowrap; transition:all 0.2s;">W.O. <%= jogo.casa %></button>
+              <button type="button" class="juiz-btn juiz-btn--warning btn-wo" onclick="confirmarWO('<%= jogo.tipoIndividual && jogo.atleta_1_id ? jogo.atleta_1_id : jogo.campus_1_id %>', '<%= jogo.casa %>')">
+                W.O. <%= jogo.casa %>
+              </button>
             <% } %>
             <% if (jogo.fora && jogo.fora !== '—') { %>
-              <button type="button" class="btn-wo" onclick="confirmarWO('<%= jogo.tipoIndividual && jogo.atleta_2_id ? jogo.atleta_2_id : jogo.campus_2_id %>', '<%= jogo.fora %>')" style="font-size:0.65rem; font-weight:700; padding:0.3rem 0.6rem; border-radius:8px; background:rgba(245,176,65,0.1); border:1px solid rgba(245,176,65,0.25); color:#f5b041; cursor:pointer; white-space:nowrap; transition:all 0.2s;">W.O. <%= jogo.fora %></button>
+              <button type="button" class="juiz-btn juiz-btn--warning btn-wo" onclick="confirmarWO('<%= jogo.tipoIndividual && jogo.atleta_2_id ? jogo.atleta_2_id : jogo.campus_2_id %>', '<%= jogo.fora %>')">
+                W.O. <%= jogo.fora %>
+              </button>
             <% } %>
           </div>
         </div>
@@ -124,60 +139,60 @@
         <input type="hidden" name="placar1" id="placar1Hidden" value="<%= setsSalvos.reduce((acc, s) => acc + Number(s.pontos_1 || 0), 0) %>">
         <input type="hidden" name="placar2" id="placar2Hidden" value="<%= setsSalvos.reduce((acc, s) => acc + Number(s.pontos_2 || 0), 0) %>">
       <% } else { %>
-        <div style="display:grid; grid-template-columns:1fr auto 1fr; gap:0.5rem; align-items:start; margin-bottom:1rem;">
-          <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem;">
-            <input type="number" name="placar1" min="0" value="<%= jogo.placar_1 != null ? jogo.placar_1 : 0 %>" required style="width:80px; text-align:center; font-size:1.8rem; font-weight:700; background:rgba(var(--fg-rgb), 0.06); border:1px solid rgba(var(--fg-rgb), 0.15); border-radius:12px; color: var(--text); padding:0.5rem; outline:none;">
+        <div class="juiz-versus" style="margin-bottom:1rem;">
+          <div class="juiz-team">
+            <input type="number" name="placar1" min="0" value="<%= jogo.placar_1 != null ? jogo.placar_1 : 0 %>" required class="juiz-score-input">
             <% if (jogo.casa && jogo.casa !== '—') { %>
-              <button type="button" onclick="confirmarWO('<%= jogo.tipoIndividual && jogo.atleta_1_id ? jogo.atleta_1_id : jogo.campus_1_id %>', '<%= jogo.casa %>')" style="font-size:0.65rem; font-weight:700; padding:0.3rem 0.6rem; border-radius:8px; background:rgba(245,176,65,0.1); border:1px solid rgba(245,176,65,0.25); color:#f5b041; cursor:pointer; white-space:nowrap; transition:all 0.2s;">W.O.</button>
+              <button type="button" class="juiz-btn juiz-btn--warning juiz-btn--sm" onclick="confirmarWO('<%= jogo.tipoIndividual && jogo.atleta_1_id ? jogo.atleta_1_id : jogo.campus_1_id %>', '<%= jogo.casa %>')">W.O.</button>
             <% } %>
           </div>
 
-          <div style="display:flex; align-items:center; padding-top:0.3rem;">
-            <span style="font-size:1.1rem; font-weight:700; color:rgba(var(--fg-rgb), 0.4);">x</span>
+          <div class="juiz-match-center">
+            <span class="juiz-scoreboard__mid" style="font-size:1.1rem;">x</span>
           </div>
 
-          <div style="display:flex; flex-direction:column; align-items:center; gap:0.5rem;">
-            <input type="number" name="placar2" min="0" value="<%= jogo.placar_2 != null ? jogo.placar_2 : 0 %>" required style="width:80px; text-align:center; font-size:1.8rem; font-weight:700; background:rgba(var(--fg-rgb), 0.06); border:1px solid rgba(var(--fg-rgb), 0.15); border-radius:12px; color: var(--text); padding:0.5rem; outline:none;">
+          <div class="juiz-team">
+            <input type="number" name="placar2" min="0" value="<%= jogo.placar_2 != null ? jogo.placar_2 : 0 %>" required class="juiz-score-input">
             <% if (jogo.fora && jogo.fora !== '—') { %>
-              <button type="button" onclick="confirmarWO('<%= jogo.tipoIndividual && jogo.atleta_2_id ? jogo.atleta_2_id : jogo.campus_2_id %>', '<%= jogo.fora %>')" style="font-size:0.65rem; font-weight:700; padding:0.3rem 0.6rem; border-radius:8px; background:rgba(245,176,65,0.1); border:1px solid rgba(245,176,65,0.25); color:#f5b041; cursor:pointer; white-space:nowrap; transition:all 0.2s;">W.O.</button>
+              <button type="button" class="juiz-btn juiz-btn--warning juiz-btn--sm" onclick="confirmarWO('<%= jogo.tipoIndividual && jogo.atleta_2_id ? jogo.atleta_2_id : jogo.campus_2_id %>', '<%= jogo.fora %>')">W.O.</button>
             <% } %>
           </div>
         </div>
 
-          <% const fasesEliminatoria = ['Oitavas', 'Quartas', 'Semifinal', 'Final', 'Terceiro Lugar'];
-            const ehBasquete = /basquete/i.test(String(jogo.modalidade || ''));
-            if (fasesEliminatoria.includes(String(jogo.fase || '')) && !ehBasquete) { %>
-          <div style="display:flex; gap:0.6rem; justify-content:center; align-items:center; margin:-0.4rem 0 1rem; flex-wrap:wrap;">
-            <span style="font-size:0.68rem; color:var(--text-muted); font-weight:600;">Disputa (pênaltis / 7m / cesta livre)</span>
-            <input type="number" name="disputa1" min="0" value="<%= jogo.disputa_pontos_1 != null ? jogo.disputa_pontos_1 : '' %>" placeholder="—" style="width:52px; text-align:center; font-size:0.95rem; font-weight:700; background:rgba(245,176,65,0.08); border:1px solid rgba(245,176,65,0.3); border-radius:8px; color:#f5b041; padding:0.3rem; outline:none;">
+        <% const fasesEliminatoria = ['Oitavas', 'Quartas', 'Semifinal', 'Final', 'Terceiro Lugar'];
+          const ehBasquete = /basquete/i.test(String(jogo.modalidade || ''));
+          if (fasesEliminatoria.includes(String(jogo.fase || '')) && !ehBasquete) { %>
+          <div class="juiz-penalty">
+            <label>Disputa (pênaltis / 7m / cesta livre)</label>
+            <input type="number" name="disputa1" min="0" value="<%= jogo.disputa_pontos_1 != null ? jogo.disputa_pontos_1 : '' %>" placeholder="—">
             <span style="font-size:0.8rem; color:rgba(var(--fg-rgb), 0.4);">×</span>
-            <input type="number" name="disputa2" min="0" value="<%= jogo.disputa_pontos_2 != null ? jogo.disputa_pontos_2 : '' %>" placeholder="—" style="width:52px; text-align:center; font-size:0.95rem; font-weight:700; background:rgba(245,176,65,0.08); border:1px solid rgba(245,176,65,0.3); border-radius:8px; color:#f5b041; padding:0.3rem; outline:none;">
+            <input type="number" name="disputa2" min="0" value="<%= jogo.disputa_pontos_2 != null ? jogo.disputa_pontos_2 : '' %>" placeholder="—">
           </div>
         <% } %>
       <% } %>
 
       <% if (typeof regras !== 'undefined' && regras && regras.temCartoes && jogo.campus_1_id && jogo.campus_2_id) { %>
-        <div id="cartoesSection" style="margin-bottom:1rem;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
-            <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.06em;">Cartões (Fair Play)</span>
-            <span style="font-size:0.65rem; color:var(--text-muted);">Amarelo -1 · Vermelho -3</span>
+        <div id="cartoesSection" class="juiz-cards">
+          <div class="juiz-cards__head">
+            <span class="juiz-cards__title">Cartões (Fair Play)</span>
+            <span class="juiz-cards__legend">Amarelo −1 · Vermelho −3</span>
           </div>
 
-          <div style="display:flex; flex-direction:column; gap:0.6rem;">
-            <div class="cartao-campus-block" data-campus-id="<%= jogo.campus_1_id %>" style="padding:0.6rem 0.7rem; border-radius:10px; background:rgba(var(--fg-rgb), 0.03); border:1px solid rgba(var(--fg-rgb), 0.08);">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-size:0.72rem; font-weight:700; color: var(--text);"><%= jogo.casa %></span>
-                <button type="button" onclick="adicionarCartao(this.closest('.cartao-campus-block'))" style="font-size:0.62rem; font-weight:700; padding:0.25rem 0.5rem; border-radius:6px; background:rgba(88,214,141,0.12); border:1px solid rgba(88,214,141,0.3); color:#58d68d; cursor:pointer;">+ Cartão</button>
+          <div style="display:flex; flex-direction:column; gap:0;">
+            <div class="cartao-campus-block juiz-card-block" data-campus-id="<%= jogo.campus_1_id %>">
+              <div class="juiz-card-block__head">
+                <span class="juiz-card-block__name"><%= jogo.casa %></span>
+                <button type="button" class="juiz-btn juiz-btn--success juiz-btn--sm" onclick="adicionarCartao(this.closest('.cartao-campus-block'))">+ Cartão</button>
               </div>
-              <div class="cartao-rows" style="display:flex; flex-direction:column; gap:0.35rem; margin-top:0.45rem;"></div>
+              <div class="cartao-rows juiz-card-rows"></div>
             </div>
 
-            <div class="cartao-campus-block" data-campus-id="<%= jogo.campus_2_id %>" style="padding:0.6rem 0.7rem; border-radius:10px; background:rgba(var(--fg-rgb), 0.03); border:1px solid rgba(var(--fg-rgb), 0.08);">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-size:0.72rem; font-weight:700; color: var(--text);"><%= jogo.fora %></span>
-                <button type="button" onclick="adicionarCartao(this.closest('.cartao-campus-block'))" style="font-size:0.62rem; font-weight:700; padding:0.25rem 0.5rem; border-radius:6px; background:rgba(88,214,141,0.12); border:1px solid rgba(88,214,141,0.3); color:#58d68d; cursor:pointer;">+ Cartão</button>
+            <div class="cartao-campus-block juiz-card-block" data-campus-id="<%= jogo.campus_2_id %>">
+              <div class="juiz-card-block__head">
+                <span class="juiz-card-block__name"><%= jogo.fora %></span>
+                <button type="button" class="juiz-btn juiz-btn--success juiz-btn--sm" onclick="adicionarCartao(this.closest('.cartao-campus-block'))">+ Cartão</button>
               </div>
-              <div class="cartao-rows" style="display:flex; flex-direction:column; gap:0.35rem; margin-top:0.45rem;"></div>
+              <div class="cartao-rows juiz-card-rows"></div>
             </div>
           </div>
         </div>
@@ -186,33 +201,33 @@
       <input type="hidden" name="status" value="Encerrado">
 
       <div style="margin-top:1.25rem;">
-        <button type="submit" class="premium-action-btn primary-save-btn" id="btnEncerrar" style="width:100%;">
-          <span>Encerrar jogo</span>
+        <button type="submit" class="juiz-btn juiz-btn--primary juiz-btn--block" id="btnEncerrar">
+          Encerrar jogo
         </button>
       </div>
     </form>
 
     <div style="margin-top:1rem; text-align:center;">
-      <button type="button" id="btnAdiar" onclick="toggleAdiar()" style="font-size:0.85rem; font-weight:700; padding:0.55rem 1rem; border-radius:10px; background:rgba(245,176,65,0.1); border:1px solid rgba(245,176,65,0.35); color:#f5b041; cursor:pointer; transition:all 0.2s;">
+      <button type="button" id="btnAdiar" class="juiz-btn juiz-btn--warning" onclick="toggleAdiar()">
         Adiar partida
       </button>
 
-      <div id="adiarPanel" style="display:none; margin-top:0.85rem; text-align:left; padding:1rem; border:1px dashed rgba(245,176,65,0.35); border-radius:12px; background:rgba(245,176,65,0.06);">
-        <div style="font-size:0.75rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.6rem;">Marcar novo dia e horário</div>
-        <p style="font-size:0.7rem; color:var(--text-muted); margin:0 0 0.6rem;">Horário atual: <%= jogo.data %> às <%= jogo.horario %>.</p>
+      <div id="adiarPanel" class="juiz-adiar" hidden>
+        <div class="juiz-adiar__title">Marcar novo dia e horário</div>
+        <p class="juiz-adiar__current">Horário atual: <%= jogo.data %> às <%= jogo.horario %>.</p>
         <form action="/juiz/jogos/<%= jogo.id %>/adiar" method="POST">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-          <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
-            <div style="flex:1; min-width:140px;">
-              <label for="nova_data" style="display:block; font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.3rem;">Nova data</label>
-              <input type="date" name="nova_data" id="nova_data" required style="width:100%; font-size:0.85rem; font-weight:700; padding:0.45rem 0.5rem; border-radius:8px; background:rgba(var(--fg-rgb), 0.06); border:1px solid rgba(var(--fg-rgb), 0.15); color: var(--text); outline:none;">
+          <div class="juiz-adiar__fields">
+            <div class="juiz-field">
+              <label for="nova_data">Nova data</label>
+              <input type="date" name="nova_data" id="nova_data" required class="juiz-input">
             </div>
-            <div style="flex:1; min-width:110px;">
-              <label for="nova_hora" style="display:block; font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.3rem;">Novo horário</label>
-              <input type="time" name="nova_hora" id="nova_hora" required style="width:100%; font-size:0.85rem; font-weight:700; padding:0.45rem 0.5rem; border-radius:8px; background:rgba(var(--fg-rgb), 0.06); border:1px solid rgba(var(--fg-rgb), 0.15); color: var(--text); outline:none;">
+            <div class="juiz-field">
+              <label for="nova_hora">Novo horário</label>
+              <input type="time" name="nova_hora" id="nova_hora" required class="juiz-input">
             </div>
           </div>
-          <button type="submit" style="margin-top:0.85rem; width:100%; font-size:0.85rem; font-weight:700; padding:0.55rem 1rem; border-radius:10px; background:rgba(245,176,65,0.18); border:1px solid rgba(245,176,65,0.45); color:#f5b041; cursor:pointer; transition:all 0.2s;">
+          <button type="submit" class="juiz-btn juiz-btn--warning juiz-btn--block" style="margin-top:0.85rem;">
             Confirmar adiamento
           </button>
         </form>
@@ -220,16 +235,16 @@
     </div>
   <% } else if (jogo.status === 'Encerrado' && jogo.wo) { %>
     <div style="margin-top:1.25rem; text-align:center;">
-      <div style="font-size:0.75rem; font-weight:700; padding:0.2rem 0.7rem; border-radius:8px; display:inline-block; background:rgba(245,176,65,0.18); color:#f5b041;">W.O. aplicado</div>
+      <div class="juiz-status juiz-status--wo">W.O. aplicado</div>
       <form id="desfazerWOForm" action="/juiz/jogos/<%= jogo.id %>/desfazer-wo" method="POST" style="margin-top:0.9rem;">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        <button type="button" class="btn btn-ghost" onclick="abrirDesfazerWO()">Desfazer W.O.</button>
+        <button type="button" class="juiz-btn juiz-btn--ghost" onclick="abrirDesfazerWO()">Desfazer W.O.</button>
       </form>
     </div>
   <% } else if (jogo.status === 'Encerrado' && !jogo.wo) { %>
     <div style="margin-top:1.25rem; text-align:center;">
       <% if (temSets && setsSalvos.length > 0) { %>
-        <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.5rem;">Resultado por Sets</div>
+        <div class="juiz-scoreboard__label" style="margin-bottom:0.5rem;">Resultado por sets</div>
         <div style="display:flex; flex-direction:column; gap:0.3rem; margin-bottom:0.6rem;">
           <% let v1 = 0, v2 = 0; %>
           <% setsSalvos.forEach((s, i) => { %>
@@ -241,7 +256,7 @@
               if (ganhou1) v1++;
               if (ganhou2) v2++;
             %>
-            <div style="display:grid; grid-template-columns:0.5rem 1fr auto 1fr; gap:0.4rem; align-items:center; font-size:0.7rem;">
+            <div style="display:grid; grid-template-columns:0.6rem 1fr auto 1fr; gap:0.4rem; align-items:center; font-size:0.72rem;">
               <span style="color:var(--text-muted); text-align:center; font-weight:700;"><%= i + 1 %>º</span>
               <div style="text-align:right; font-weight:700; color:<%= ganhou1 ? '#58d68d' : 'var(--text-muted)' %>;"><%= s1 %></div>
               <span style="color:var(--text-muted); font-weight:400;">x</span>
@@ -249,22 +264,22 @@
             </div>
           <% }); %>
         </div>
-        <div style="font-size:1.15rem; font-weight:800; color: var(--text); line-height:1.2; letter-spacing:0.02em; margin-bottom:0.2rem;">
+        <div class="juiz-score" style="margin-bottom:0.35rem;">
           <span><%= v1 %></span>
-          <span style="color:var(--text-muted); margin:0 0.25rem; font-weight:400;">x</span>
+          <span class="sep">x</span>
           <span><%= v2 %></span>
           <span style="font-size:0.6rem; color:var(--text-muted); font-weight:600; margin-left:0.2rem;">sets</span>
         </div>
       <% } else { %>
-        <div style="font-size:1.15rem; font-weight:800; color: var(--text); line-height:1.2; letter-spacing:0.02em; margin-bottom:0.5rem;">
+        <div class="juiz-score" style="margin-bottom:0.5rem;">
           <span><%= jogo.placar_1 != null ? jogo.placar_1 : 0 %></span>
-          <span style="color:var(--text-muted); margin:0 0.25rem; font-weight:400;">x</span>
+          <span class="sep">x</span>
           <span><%= jogo.placar_2 != null ? jogo.placar_2 : 0 %></span>
         </div>
       <% } %>
-      <div style="font-size:0.75rem; font-weight:700; padding:0.2rem 0.7rem; border-radius:8px; display:inline-block; background:rgba(88,214,141,0.18); color:#58d68d;">Encerrado</div>
+      <div class="juiz-status juiz-status--done">Encerrado</div>
       <div style="margin-top:0.9rem;">
-        <a class="btn btn-secondary" href="/juiz/jogos/<%= jogo.id %>/placar?editar=1">Corrigir placar</a>
+        <a class="juiz-btn juiz-btn--ghost" href="/juiz/jogos/<%= jogo.id %>/placar?editar=1">Corrigir placar</a>
       </div>
     </div>
   <% } %>
@@ -306,8 +321,8 @@ function toggleAdiar() {
   const panel = document.getElementById('adiarPanel');
   const btn = document.getElementById('btnAdiar');
   if (!panel) return;
-  const aberto = panel.style.display !== 'none';
-  panel.style.display = aberto ? 'none' : 'block';
+  const aberto = !panel.hidden;
+  panel.hidden = aberto;
   btn.textContent = aberto ? 'Adiar partida' : 'Cancelar';
 }
 let cartaoIndex = 0;
@@ -316,8 +331,7 @@ function adicionarCartao(block) {
   const rows = block.querySelector('.cartao-rows');
   const i = cartaoIndex++;
   const row = document.createElement('div');
-  row.className = 'cartao-row';
-  row.style.cssText = 'display:grid; grid-template-columns:auto 1fr auto auto; gap:0.35rem; align-items:center;';
+  row.className = 'cartao-row juiz-card-row';
 
   const btnStyle = 'font-size:0.68rem; padding:0.28rem 0.3rem; border-radius:6px; background:rgba(var(--fg-rgb), 0.06); border:1px solid rgba(var(--fg-rgb), 0.15); color: var(--text);';
 
@@ -432,14 +446,13 @@ function confirmarSet(numeroSet) {
   p1.style.cursor = 'default';
   p2.style.opacity = '0.6';
   p2.style.cursor = 'default';
-  row.style.borderColor = 'rgba(88,214,141,0.4)';
+  row.classList.add('is-confirmed');
 
   const btn = row.querySelector('.btn-confirmar-set');
   if (btn) {
     btn.textContent = '✓';
-    btn.style.background = 'rgba(88,214,141,0.15)';
-    btn.style.borderColor = 'rgba(88,214,141,0.35)';
-    btn.style.color = '#58d68d';
+    btn.classList.remove('juiz-btn--ghost');
+    btn.classList.add('juiz-btn--success');
     btn.style.pointerEvents = 'none';
   }
 
@@ -492,9 +505,9 @@ function calcularSets() {
     const row = inputs1[i].closest('.set-row');
     if (row && !inputs1[i].readOnly) {
       if (v1 > v2 || v2 > v1) {
-        row.style.borderColor = 'rgba(245,176,65,0.4)';
+        row.classList.add('is-confirmed');
       } else {
-        row.style.borderColor = 'rgba(var(--fg-rgb), 0.08)';
+        row.classList.remove('is-confirmed');
       }
     }
   }

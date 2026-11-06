@@ -3,6 +3,11 @@ const resultadosIndividuaisService = require('../services/resultadosIndividuaisS
 const { ehTenisDeMesa, normalizarSubCategoriaFiltro } = require('../services/jogoService');
 const { validationResult } = require('express-validator');
 const { obterRegras } = require('../utils/sportClassificationRules');
+const {
+  normalizarNomeModalidade,
+  removerGeneroDoNomeModalidade,
+  generoDoNomeModalidade
+} = require('../utils/modalidadeHelpers');
 
 function extrairErros(req) {
   const erros = validationResult(req);
@@ -10,15 +15,21 @@ function extrairErros(req) {
 }
 
 function juizPodeEditarModalidade(esportesDoJuiz, modalidadeNome, modalidadeGenero) {
-  const candidatos = [modalidadeNome];
-  if (modalidadeGenero) candidatos.push(`${modalidadeNome} ${modalidadeGenero}`);
-  return esportesDoJuiz.some((esporte) =>
-    candidatos.some((candidato) =>
-      esporte === candidato ||
-      `${esporte} Masculino` === candidato ||
-      `${esporte} Feminino` === candidato
-    )
+  const alvoBase = removerGeneroDoNomeModalidade(modalidadeNome);
+  const alvoGenero = normalizarNomeModalidade(
+    modalidadeGenero || generoDoNomeModalidade(modalidadeNome) || ''
   );
+
+  return (Array.isArray(esportesDoJuiz) ? esportesDoJuiz : []).some((esporte) => {
+    if (removerGeneroDoNomeModalidade(esporte) !== alvoBase) {
+      return false;
+    }
+    const generoEsporte = normalizarNomeModalidade(generoDoNomeModalidade(esporte));
+    if (generoEsporte && alvoGenero && generoEsporte !== alvoGenero) {
+      return false;
+    }
+    return true;
+  });
 }
 
 async function obterNomeModalidadePorId(modalidadeId) {
@@ -686,6 +697,7 @@ async function handleSalvarResultadosXadrez(req, res) {
 }
 
 module.exports = {
+  juizPodeEditarModalidade,
   renderListar,
   renderCadastrar,
   handleCadastrar,
