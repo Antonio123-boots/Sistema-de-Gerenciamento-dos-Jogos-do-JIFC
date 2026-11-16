@@ -1,8 +1,9 @@
 # Environment variables
 .env
 
-# Scripts de debug (nao devem ir para producao)
-scripts/debug_*.js
+# Scripts de debug/temporarios (nao devem ir para producao)
+scripts/dev/debug_*.js
+scripts/dev/_tmp_*
 tests/debug_*.js
 
 # Saidas de debug na raiz do projeto

@@ -7,7 +7,12 @@
     "dev": "nodemon app.js",
     "start": "node app.js",
     "test": "node tests/run-all.js",
-    "seed:full": "node scripts/seed_full.js"
+    "lint": "node scripts/dev/lint.js",
+    "lint:syntax": "node scripts/dev/lint.js",
+    "seed:full": "node scripts/seeds/seed_full.js",
+    "seed:test": "node scripts/seeds/seed_test_data.js",
+    "seed:jifc": "node scripts/seeds/seed_jifc_completo.js",
+    "tunnel:ngrok": "node scripts/dev/ngrok-forward.js"
   },
   "keywords": [
     "jifc",

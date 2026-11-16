@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const path = require('path');
 const bodyParser = require('body-parser');
 const methodOverride = require('method-override');
@@ -27,10 +27,28 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(expressLayouts);
 app.set('layout', 'layout');
 
-// CSP desabilitada de propósito: as views usam <script> inline extensivamente.
-// HSTS só em produção (COOKIE_SECURE=true), para não forçar HTTPS em desenvolvimento.
+// CSP: baseline restritiva por origem; 'unsafe-inline' mantido temporariamente
+// porque as views ainda usam scripts/estilos inline (remover progressivamente).
 const usandoHttps = String(process.env.COOKIE_SECURE || '').trim().toLowerCase() === 'true';
-app.use(helmet({ contentSecurityPolicy: false, hsts: usandoHttps }));
+app.use(helmet({
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      "default-src": ["'self'"],
+      "script-src": ["'self'", "'unsafe-inline'"],
+      "script-src-attr": ["'unsafe-inline'"],
+      "style-src": ["'self'", "'unsafe-inline'"],
+      "img-src": ["'self'", "data:", "blob:"],
+      "font-src": ["'self'", "data:"],
+      "connect-src": ["'self'"],
+      "object-src": ["'none'"],
+      "base-uri": ["'self'"],
+      "form-action": ["'self'"],
+      "frame-ancestors": ["'self'"]
+    }
+  },
+  hsts: usandoHttps
+}));
 
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1h', etag: true }));
 

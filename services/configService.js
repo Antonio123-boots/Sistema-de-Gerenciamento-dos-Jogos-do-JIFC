@@ -53,6 +53,12 @@ async function salvarConfiguracoes(novosDados, persistirFn = persistirConfigurac
     estadoParaGravar.configuracoes = novasConfiguracoes;
     writeState(estadoParaGravar);
 
+    try {
+      require('../config/edicaoAtual').invalidarAnoEvento();
+    } catch (_) {
+      // cache indisponível: próxima leitura recarrega do banco/estado
+    }
+
     return getConfiguracoes();
   } catch (error) {
     throw error;
@@ -106,18 +112,7 @@ async function persistirConfiguracoesNoBanco(config) {
 
 function getAnoJifc() {
   const configuracoes = getConfiguracoes();
-  const anoBase = Number(configuracoes.ano_evento) || new Date().getFullYear();
-
-  if (!configuracoes.fim_evento) {
-    return anoBase;
-  }
-
-  const limiteEvento = new Date(`${configuracoes.fim_evento}T23:59:59`);
-  if (Number.isNaN(limiteEvento.getTime())) {
-    return anoBase;
-  }
-
-  return new Date() > limiteEvento ? anoBase + 1 : anoBase;
+  return Number(configuracoes.ano_evento) || new Date().getFullYear();
 }
 
 async function getConfiguracoesBanco() {

@@ -176,6 +176,7 @@ let subCategoriaGarantida = false;
    das chaves para permitir uma chave por edição. Sem isso, o sorteio de uma nova
    edição apaga/ conflita com a edição anterior (mesma modalidade_id). */
 async function garantirAnoEventoChavesJogos() {
+  await garantirSubCategoriaChavesJogos();
   const ano = await obterAnoEventoAtual();
 
   for (const tabela of TABELAS_SUB_CATEGORIA) {
@@ -233,11 +234,9 @@ async function garantirSubCategoriaChavesJogos() {
   }
 
   try {
-    await pool.query('ALTER TABLE chaves ADD UNIQUE KEY uq_modalidade_sub_numero (modalidade_id, sub_categoria, numero_chave)');
-  } catch (error) {
-    if (!/Duplicate key name|already exists/i.test(error.message || '')) {
-      throw error;
-    }
+    await pool.query('ALTER TABLE chaves DROP INDEX uq_modalidade_sub_numero');
+  } catch (_) {
+    // Índice antigo já removido/inexistente: ignora silenciosamente
   }
 
   try {
@@ -864,8 +863,8 @@ async function ensureSchema() {
   await ensureJogoWoColumn();
   await ensureModalidadeRegrasColumn();
   await ensureModalidadeLimiteColumn();
-  await garantirAnoEventoChavesJogos();
   await garantirSubCategoriaChavesJogos();
+  await garantirAnoEventoChavesJogos();
   await ensureJuizModalidadeTable();
   await ensureCartoesTable();
   await ensureResultadosPorSetsTable();

@@ -572,11 +572,20 @@ async function efetuarChaveamentoMatematico(modalidadeId, subCategoria = '') {
     const inicioEvento = String(configuracoesEvento?.inicio_evento || '').trim();
     const dataBaseJogo = inicioEvento ? new Date(`${inicioEvento}T08:00:00`) : new Date();
 
-    if (subEfetiva !== 'individual') {
-      await db.query('UPDATE campus_modalidade SET chave_id = NULL, ordem_sorteio = NULL WHERE modalidade_id = ?', [id]);
-    }
     const anoEvento = await obterAnoEventoAtual();
     const filtroAno = await filtroAnoEvento();
+
+    if (subEfetiva !== 'individual') {
+      await db.query(
+        `UPDATE campus_modalidade
+         SET chave_id = NULL, ordem_sorteio = NULL
+         WHERE modalidade_id = ?
+           AND (chave_id IS NULL OR chave_id IN (
+             SELECT id FROM chaves WHERE modalidade_id = ? AND ano_evento = ?
+           ))`,
+        [id, id, anoEvento]
+      );
+    }
     await db.query(`DELETE FROM jogos WHERE modalidade_id = ? AND sub_categoria = ? AND ${filtroAno}`, [id, subEfetiva]);
     await db.query(`DELETE FROM chaves WHERE modalidade_id = ? AND sub_categoria = ? AND ${filtroAno}`, [id, subEfetiva]);
 

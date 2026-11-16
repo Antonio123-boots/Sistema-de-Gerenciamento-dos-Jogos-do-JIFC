@@ -10,6 +10,7 @@ const { obterStatusPrazos } = require('../utils/statusPrazos');
 const exemploEdicaoService = require('../services/exemploEdicaoService');
 const edicaoWizardService = require('../services/edicaoWizardService');
 const { gerarPlanilhaAtletas } = require('../services/exportAtletasExcelService');
+const { filtroAnoEvento, obterAnoEventoAtual } = require('../config/edicaoAtual');
 
 async function renderConfigurar(req, res) {
   try {
@@ -291,7 +292,9 @@ async function renderChaveamento(req, res) {
     let listaModalidades = [];
     try {
       listaModalidades = await adminModel.getModalidadesBanco();
-      const [jogosPorModalidade] = await db.query('SELECT modalidade_id, COUNT(*) AS total FROM jogos GROUP BY modalidade_id');
+      const [jogosPorModalidade] = await db.query(
+        `SELECT modalidade_id, COUNT(*) AS total FROM jogos WHERE ${await filtroAnoEvento()} GROUP BY modalidade_id`
+      );
       const quantidadeJogos = new Map(jogosPorModalidade.map((item) => [Number(item.modalidade_id), Number(item.total)]));
       const modalidadesUnicas = new Map();
       listaModalidades.forEach((modalidade) => {
@@ -786,28 +789,38 @@ async function gerarChaveamento(req, res) {
   }
 }
 
-async function apagarJogosEDadosDaModalidade(modalidadeId) {
+async function apagarJogosEDadosDaModalidade(modalidadeId, opcoes = {}) {
   const id = Number(modalidadeId || 0);
   if (!id) return;
 
+  const ano = Number(opcoes.anoJifc || await obterAnoEventoAtual());
+  const subCategoria = String(opcoes.subCategoria || '').trim().toLowerCase();
+  const filtroSubJogos = subCategoria ? ' AND sub_categoria = ?' : '';
+  const filtroSubChaves = subCategoria ? ' AND sub_categoria = ?' : '';
+  const paramsJogos = subCategoria ? [id, ano, subCategoria] : [id, ano];
+  const paramsChaves = subCategoria ? [id, ano, subCategoria] : [id, ano];
+  const subJogos = `SELECT id FROM jogos WHERE modalidade_id = ? AND ano_evento = ?${filtroSubJogos}`;
+
+  await db.query(`DELETE FROM cartoes WHERE jogo_id IN (${subJogos})`, paramsJogos);
+  await db.query(`DELETE FROM resultados_por_sets WHERE jogo_id IN (${subJogos})`, paramsJogos);
+  await db.query(`DELETE FROM resultados_coletivos WHERE jogo_id IN (${subJogos})`, paramsJogos);
   await db.query(
-    'DELETE FROM cartoes WHERE jogo_id IN (SELECT id FROM jogos WHERE modalidade_id = ?)',
-    [id]
+    `UPDATE campus_modalidade SET chave_id = NULL
+     WHERE modalidade_id = ? AND chave_id IN (
+       SELECT id FROM chaves WHERE modalidade_id = ? AND ano_evento = ?${filtroSubChaves}
+     )`,
+    [id, ...paramsChaves]
   );
-  await db.query(
-    'DELETE FROM resultados_por_sets WHERE jogo_id IN (SELECT id FROM jogos WHERE modalidade_id = ?)',
-    [id]
-  );
-  await db.query(
-    'DELETE FROM resultados_coletivos WHERE jogo_id IN (SELECT id FROM jogos WHERE modalidade_id = ?)',
-    [id]
-  );
-  await db.query('UPDATE campus_modalidade SET chave_id = NULL WHERE modalidade_id = ?', [id]);
   await db.query('DELETE FROM resultados_atletismo WHERE prova_id IN (SELECT id FROM provas WHERE modalidade_id = ?)', [id]);
   await db.query('DELETE FROM resultados_xadrez WHERE modalidade_id = ?', [id]);
-  await db.query('DELETE FROM classificacao_grupos WHERE modalidade_id = ?', [id]);
-  await db.query('DELETE FROM jogos WHERE modalidade_id = ?', [id]);
-  await db.query('DELETE FROM chaves WHERE modalidade_id = ?', [id]);
+  await db.query(
+    `DELETE FROM classificacao_grupos WHERE chave_id IN (
+       SELECT id FROM chaves WHERE modalidade_id = ? AND ano_evento = ?${filtroSubChaves}
+     )`,
+    paramsChaves
+  );
+  await db.query(`DELETE FROM jogos WHERE modalidade_id = ? AND ano_evento = ?${filtroSubJogos}`, paramsJogos);
+  await db.query(`DELETE FROM chaves WHERE modalidade_id = ? AND ano_evento = ?${filtroSubChaves}`, paramsChaves);
 }
 
 async function limparChaveamento(req, res) {
@@ -821,22 +834,7 @@ async function limparChaveamento(req, res) {
 
     if (ehTenisMesa) {
       const subAlvo = String(subCategoria || '').trim().toLowerCase() === 'dupla' ? 'dupla' : 'individual';
-      await db.query(
-        `DELETE FROM cartoes WHERE jogo_id IN (SELECT id FROM jogos WHERE modalidade_id = ? AND sub_categoria = ?)`,
-        [modalidadeId, subAlvo]
-      );
-      await db.query(
-        `DELETE FROM resultados_por_sets WHERE jogo_id IN (SELECT id FROM jogos WHERE modalidade_id = ? AND sub_categoria = ?)`,
-        [modalidadeId, subAlvo]
-      );
-      await db.query(
-        `DELETE FROM resultados_coletivos WHERE jogo_id IN (SELECT id FROM jogos WHERE modalidade_id = ? AND sub_categoria = ?)`,
-        [modalidadeId, subAlvo]
-      );
-      await db.query('UPDATE campus_modalidade SET chave_id = NULL WHERE modalidade_id = ?', [modalidadeId]);
-      await db.query('DELETE FROM classificacao_grupos WHERE modalidade_id = ?', [modalidadeId]);
-      await db.query('DELETE FROM jogos WHERE modalidade_id = ? AND sub_categoria = ?', [modalidadeId, subAlvo]);
-      await db.query('DELETE FROM chaves WHERE modalidade_id = ? AND sub_categoria = ?', [modalidadeId, subAlvo]);
+      await apagarJogosEDadosDaModalidade(modalidadeId, { subCategoria: subAlvo });
     } else {
       await apagarJogosEDadosDaModalidade(modalidadeId);
     }
@@ -885,7 +883,10 @@ async function excluirPublicacao(req, res) {
       return res.redirect(`/admin/chaveamento?${montarDestinoChaveamento(modalidadeId, subCategoria)}erro=` + encodeURIComponent('Nenhuma modalidade selecionada.'));
     }
     const placeholders = selecionadas.map(() => '?').join(',');
-    await db.query(`UPDATE jogos SET publicado = 0 WHERE modalidade_id IN (${placeholders})`, selecionadas);
+    await db.query(
+      `UPDATE jogos SET publicado = 0 WHERE modalidade_id IN (${placeholders}) AND ${await filtroAnoEvento()}`,
+      selecionadas
+    );
     await db.query(`UPDATE provas SET publicado = 0 WHERE modalidade_id IN (${placeholders})`, selecionadas);
     await db.query(`UPDATE resultados_xadrez SET publicado = 0 WHERE modalidade_id IN (${placeholders})`, selecionadas);
     res.redirect(`/admin/chaveamento?${montarDestinoChaveamento(modalidadeId, subCategoria)}sucesso=` + encodeURIComponent('Publicação excluída das modalidades selecionadas. Chaves e sorteio mantidos.'));
@@ -909,10 +910,16 @@ async function gerarEliminatoria(req, res) {
 async function cancelarSorteio(req, res) {
   const { modalidadeId, subCategoria } = req.body;
   try {
-    const [modalidades] = await db.query('SELECT id, nome FROM modalidades');
+    const ano = await obterAnoEventoAtual();
+    const [modalidades] = await db.query(
+      `SELECT DISTINCT modalidade_id AS id FROM chaves WHERE ano_evento = ?
+       UNION
+       SELECT DISTINCT modalidade_id AS id FROM jogos WHERE ano_evento = ?`,
+      [ano, ano]
+    );
 
     for (const modalidade of modalidades) {
-      await apagarJogosEDadosDaModalidade(modalidade.id);
+      await apagarJogosEDadosDaModalidade(modalidade.id, { anoJifc: ano });
     }
 
     res.redirect(`/admin/chaveamento?${montarDestinoChaveamento(modalidadeId, subCategoria)}sucesso=${encodeURIComponent('Todos os sorteios foram cancelados.')}`);
@@ -1098,6 +1105,9 @@ async function renderBoletins(req, res) {
     const statusJifc = await adminModel.obterStatusJifc();
     const anoAtual = adminModel.getAnoJifc();
     const boletimAtual = await adminModel.obterBoletimPorAno(anoAtual);
+    const edicoes = await adminModel.listarEdicoes();
+    const anosComBoletim = new Set((boletins || []).map((boletim) => Number(boletim.ano_jifc)));
+    const edicoesSemBoletim = (edicoes || []).filter((edicao) => !anosComBoletim.has(Number(edicao.ano)));
 
     res.render('adm/boletins', {
       title: 'Boletins Finais',
@@ -1107,6 +1117,7 @@ async function renderBoletins(req, res) {
       statusJifc,
       anoAtual,
       boletimAtual,
+      edicoesSemBoletim,
       mensagemErro: req.query.erro || '',
       mensagemSucesso: req.query.sucesso || ''
     });

@@ -3,6 +3,7 @@ const boletimService = require('./boletimService');
 const resultadosIndividuaisService = require('./resultadosIndividuaisService');
 const modalidadeService = require('./modalidadeService');
 const jogoService = require('./jogoService');
+const { obterAnoEventoAtual } = require('../config/edicaoAtual');
 
 const FORMATO_VERSAO = 1;
 
@@ -59,8 +60,15 @@ async function capturarInscricoesModalidades() {
   }));
 }
 
-async function capturarChaves() {
-  const [rows] = await db.query('SELECT id, modalidade_id, numero_chave, nome_chave, sub_categoria FROM chaves');
+async function capturarChaves(anoJifc) {
+  const ano = Number(anoJifc || await obterAnoEventoAtual());
+  const [rows] = await db.query(
+    `SELECT id, modalidade_id, numero_chave, nome_chave, sub_categoria
+     FROM chaves
+     WHERE ano_evento = ?
+     ORDER BY modalidade_id ASC, sub_categoria ASC, numero_chave ASC`,
+    [ano]
+  );
   return (rows || []).map((c) => ({
     id: c.id,
     modalidadeId: c.modalidade_id,
@@ -70,7 +78,8 @@ async function capturarChaves() {
   }));
 }
 
-async function capturarGrupos() {
+async function capturarGrupos(anoJifc) {
+  const ano = Number(anoJifc || await obterAnoEventoAtual());
   const [rows] = await db.query(`
     SELECT cg.id, cg.modalidade_id, cg.chave_id, cg.campus_id, cg.atleta_id,
            cg.pontos, cg.jogos_jogados, cg.vitorias, cg.empates, cg.derrotas,
@@ -78,12 +87,14 @@ async function capturarGrupos() {
            cg.cartoes_amarelos, cg.cartoes_vermelhos, cg.sets_ganhos, cg.sets_perdidos,
            c.nome_exibicao AS campus_nome, a.nome AS atleta_nome
     FROM classificacao_grupos cg
+    JOIN chaves ch ON ch.id = cg.chave_id
     LEFT JOIN campus c ON cg.campus_id = c.id
     LEFT JOIN atletas a ON cg.atleta_id = a.id
+    WHERE ch.ano_evento = ?
     ORDER BY cg.modalidade_id ASC, cg.chave_id ASC, cg.pontos DESC, cg.vitorias DESC
-  `);
+  `, [ano]);
 
-  const chaves = await capturarChaves();
+  const chaves = await capturarChaves(ano);
   const mapaChaves = new Map(chaves.map((c) => [c.id, c.nomeChave]));
 
   return (rows || []).map((g) => ({
@@ -311,12 +322,13 @@ async function capturarBoletim(ano) {
 
   const [rankingRows] = await db.query(`
     SELECT c.nome_exibicao AS campus,
-           COALESCE(SUM(cg.pontos), 0) AS pontos
+           COALESCE(SUM(CASE WHEN ch.ano_evento = ? THEN cg.pontos ELSE 0 END), 0) AS pontos
     FROM campus c
     LEFT JOIN classificacao_grupos cg ON cg.campus_id = c.id
+    LEFT JOIN chaves ch ON ch.id = cg.chave_id
     GROUP BY c.id, c.nome_exibicao
     ORDER BY pontos DESC, c.nome_exibicao ASC
-  `);
+  `, [ano]);
 
   const [modalidadesRows] = await db.query(`
     SELECT m.id AS modalidade_id,
@@ -325,18 +337,30 @@ async function capturarBoletim(ano) {
            c.nome_exibicao AS campeao,
            c2.nome_exibicao AS vice
     FROM modalidades m
-    LEFT JOIN classificacao_grupos cg ON cg.modalidade_id = m.id AND cg.pontos = (
-      SELECT MAX(cg2.pontos) FROM classificacao_grupos cg2 WHERE cg2.modalidade_id = m.id LIMIT 1
-    )
+    LEFT JOIN classificacao_grupos cg ON cg.modalidade_id = m.id
+      AND cg.chave_id IN (SELECT id FROM chaves WHERE modalidade_id = m.id AND ano_evento = ?)
+      AND cg.pontos = (
+        SELECT MAX(cg2.pontos)
+        FROM classificacao_grupos cg2
+        JOIN chaves ch2 ON ch2.id = cg2.chave_id
+        WHERE cg2.modalidade_id = m.id AND ch2.ano_evento = ?
+        LIMIT 1
+      )
     LEFT JOIN campus c ON c.id = cg.campus_id
-    LEFT JOIN classificacao_grupos cg3 ON cg3.modalidade_id = m.id AND cg3.pontos = (
-      SELECT MAX(cg4.pontos) FROM classificacao_grupos cg4 WHERE cg4.modalidade_id = m.id AND cg4.id <> cg.id LIMIT 1
-    )
+    LEFT JOIN classificacao_grupos cg3 ON cg3.modalidade_id = m.id
+      AND cg3.chave_id IN (SELECT id FROM chaves WHERE modalidade_id = m.id AND ano_evento = ?)
+      AND cg3.pontos = (
+        SELECT MAX(cg4.pontos)
+        FROM classificacao_grupos cg4
+        JOIN chaves ch4 ON ch4.id = cg4.chave_id
+        WHERE cg4.modalidade_id = m.id AND ch4.ano_evento = ? AND cg4.id <> cg.id
+        LIMIT 1
+      )
     LEFT JOIN campus c2 ON c2.id = cg3.campus_id
     GROUP BY m.id, m.nome, c.nome_exibicao, c2.nome_exibicao
     ORDER BY m.nome ASC
-  `);
-  const finaisRows = await boletimService.obterResultadosFinaisModalidades();
+  `, [ano, ano, ano, ano]);
+  const finaisRows = await boletimService.obterResultadosFinaisModalidades(ano);
   const podiosComFinais = boletimService.aplicarFinaisAoBoletim(modalidadesRows || [], finaisRows);
   const podiosIndividuais = await boletimService.aplicarClassificacoesIndividuaisAoBoletim(podiosComFinais);
   const modalidades = podiosIndividuais
@@ -358,7 +382,11 @@ async function capturarBoletim(ano) {
 }
 
 async function capturarEdicaoAtual(anoJifc, opcoes = {}) {
-  const ano = Number(anoJifc || new Date().getFullYear());
+  const anoEventoAtual = await obterAnoEventoAtual();
+  const ano = Number(anoJifc || anoEventoAtual);
+  if (ano !== anoEventoAtual) {
+    throw new Error(`A edição ativa é ${anoEventoAtual}; não é possível arquivar ${ano} como edição atual.`);
+  }
   const incluirNaoPublicados = Boolean(opcoes && opcoes.incluirNaoPublicados);
   const statusJifc = await boletimService.obterStatusJifc();
   if (!statusJifc.encerrado) {
@@ -369,8 +397,8 @@ async function capturarEdicaoAtual(anoJifc, opcoes = {}) {
     capturarCampi(),
     capturarModalidades(),
     capturarInscricoesModalidades(),
-    capturarChaves(),
-    capturarGrupos(),
+    capturarChaves(ano),
+    capturarGrupos(ano),
     capturarJogos(incluirNaoPublicados),
     capturarBoletim(ano)
   ]);

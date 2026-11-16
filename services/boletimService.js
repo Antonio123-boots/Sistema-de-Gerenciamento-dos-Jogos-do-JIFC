@@ -1,5 +1,5 @@
 const db = require('../config/db');
-const { filtroAnoEvento } = require('../config/edicaoAtual');
+const { obterAnoEventoAtual } = require('../config/edicaoAtual');
 
 /**
  * Um jogo 'Cancelado' é terminal: ele não impede o encerramento do JIFC.
@@ -22,7 +22,8 @@ function detectarEncerramentoJifc({ totalJogos = 0, totalEncerrados = 0, totalAg
   return encerrados + cancelados === total && pendentes === 0;
 }
 
-async function obterStatusJifc() {
+async function obterStatusJifc(anoJifc) {
+  const ano = Number(anoJifc || await obterAnoEventoAtual());
   const [linhas] = await db.query(`
     SELECT
       COUNT(*) AS total_jogos,
@@ -32,8 +33,8 @@ async function obterStatusJifc() {
       SUM(CASE WHEN status = 'Cancelado' THEN 1 ELSE 0 END) AS total_cancelados,
       SUM(CASE WHEN status IS NULL OR status NOT IN ('Encerrado', 'Cancelado') THEN 1 ELSE 0 END) AS total_pendentes
     FROM jogos
-    WHERE ${await filtroAnoEvento()}
-  `);
+    WHERE ano_evento = ?
+  `, [ano]);
 
   const dados = linhas[0] || {};
   const encerrado = detectarEncerramentoJifc({
@@ -176,7 +177,8 @@ async function aplicarClassificacoesIndividuaisAoBoletim(modalidades = []) {
   });
 }
 
-async function obterResultadosFinaisModalidades() {
+async function obterResultadosFinaisModalidades(anoJifc) {
+  const ano = Number(anoJifc || await obterAnoEventoAtual());
   const [rows] = await db.query(`
     SELECT j.modalidade_id, j.sub_categoria, j.status,
            j.campus_1_id, j.campus_2_id, j.atleta_1_id, j.atleta_2_id,
@@ -193,9 +195,9 @@ async function obterResultadosFinaisModalidades() {
     LEFT JOIN atletas a2 ON a2.id = j.atleta_2_id
     LEFT JOIN campus c1 ON c1.id = COALESCE(j.campus_1_id, a1.campus_id)
     LEFT JOIN campus c2 ON c2.id = COALESCE(j.campus_2_id, a2.campus_id)
-    WHERE j.fase = 'Final' AND j.status = 'Encerrado'
+    WHERE j.fase = 'Final' AND j.status = 'Encerrado' AND j.ano_evento = ?
     ORDER BY j.modalidade_id, j.sub_categoria, j.numero_jogo
-  `);
+  `, [ano]);
   return rows || [];
 }
 
@@ -227,6 +229,14 @@ async function obterBoletimPorAno(anoJifc) {
 async function montarSnapshotCompleto(ano) {
   try {
     const edicaoService = require('./edicaoService');
+    const anoAtual = await obterAnoEventoAtual();
+    if (Number(ano) !== Number(anoAtual)) {
+      const edicao = await edicaoService.obterEdicao(ano);
+      if (edicao && edicao.dados && typeof edicao.dados === 'object') {
+        return edicao.dados;
+      }
+    }
+
     const capturar = edicaoService.capturarEdicaoAtual;
     if (typeof capturar === 'function') {
       const dados = await capturar(ano, { incluirNaoPublicados: true });
@@ -241,8 +251,8 @@ async function montarSnapshotCompleto(ano) {
 }
 
 async function gerarBoletimFinal(anoJifc) {
-  const ano = Number(anoJifc || new Date().getFullYear());
-  const statusJifc = await obterStatusJifc();
+  const ano = Number(anoJifc || await obterAnoEventoAtual());
+  const statusJifc = await obterStatusJifc(ano);
 
   if (!statusJifc.encerrado) {
     throw new Error('Não é possível gerar o boletim final enquanto o JIFC não estiver encerrado.');
@@ -251,12 +261,13 @@ async function gerarBoletimFinal(anoJifc) {
   const [rankingRows] = await db.query(`
     SELECT
       c.nome_exibicao AS campus,
-      COALESCE(SUM(cg.pontos), 0) AS pontos
+      COALESCE(SUM(CASE WHEN ch.ano_evento = ? THEN cg.pontos ELSE 0 END), 0) AS pontos
     FROM campus c
     LEFT JOIN classificacao_grupos cg ON cg.campus_id = c.id
+    LEFT JOIN chaves ch ON ch.id = cg.chave_id
     GROUP BY c.id, c.nome_exibicao
     ORDER BY pontos DESC, c.nome_exibicao ASC
-  `);
+  `, [ano]);
 
   const [modalidadesRows] = await db.query(`
     SELECT m.id AS modalidade_id,
@@ -265,25 +276,31 @@ async function gerarBoletimFinal(anoJifc) {
            c.nome_exibicao AS campeao,
            c2.nome_exibicao AS vice
     FROM modalidades m
-    LEFT JOIN classificacao_grupos cg ON cg.modalidade_id = m.id AND cg.pontos = (
-      SELECT MAX(cg2.pontos)
-      FROM classificacao_grupos cg2
-      WHERE cg2.modalidade_id = m.id
-      LIMIT 1
-    )
+    LEFT JOIN classificacao_grupos cg ON cg.modalidade_id = m.id
+      AND cg.chave_id IN (SELECT id FROM chaves WHERE modalidade_id = m.id AND ano_evento = ?)
+      AND cg.pontos = (
+        SELECT MAX(cg2.pontos)
+        FROM classificacao_grupos cg2
+        JOIN chaves ch2 ON ch2.id = cg2.chave_id
+        WHERE cg2.modalidade_id = m.id AND ch2.ano_evento = ?
+        LIMIT 1
+      )
     LEFT JOIN campus c ON c.id = cg.campus_id
-    LEFT JOIN classificacao_grupos cg3 ON cg3.modalidade_id = m.id AND cg3.pontos = (
-      SELECT MAX(cg4.pontos)
-      FROM classificacao_grupos cg4
-      WHERE cg4.modalidade_id = m.id AND cg4.id <> cg.id
-      LIMIT 1
-    )
+    LEFT JOIN classificacao_grupos cg3 ON cg3.modalidade_id = m.id
+      AND cg3.chave_id IN (SELECT id FROM chaves WHERE modalidade_id = m.id AND ano_evento = ?)
+      AND cg3.pontos = (
+        SELECT MAX(cg4.pontos)
+        FROM classificacao_grupos cg4
+        JOIN chaves ch4 ON ch4.id = cg4.chave_id
+        WHERE cg4.modalidade_id = m.id AND ch4.ano_evento = ? AND cg4.id <> cg.id
+        LIMIT 1
+      )
     LEFT JOIN campus c2 ON c2.id = cg3.campus_id
     GROUP BY m.id, m.nome, c.nome_exibicao, c2.nome_exibicao
     ORDER BY m.nome ASC
-  `);
+  `, [ano, ano, ano, ano]);
 
-  const finaisRows = await obterResultadosFinaisModalidades();
+  const finaisRows = await obterResultadosFinaisModalidades(ano);
 
   const podiosComFinais = aplicarFinaisAoBoletim(modalidadesRows || [], finaisRows);
   const podiosFinais = await aplicarClassificacoesIndividuaisAoBoletim(podiosComFinais);

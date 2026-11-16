@@ -30,7 +30,11 @@
         <div class="menu-container">
             <div class="menu-left">
                 <div class="logo-area">
-                    <a href="/"><img src="/imagens/jifc original-Picsart-AiImageEnhancer.jfif" alt="logo" class="logo-menu"></a>
+                    <a href="/"><img src="/imagens/jifc original-Picsart-AiImageEnhancer.jfif"
+                        data-logo-navy="/imagens/jifc original-Picsart-AiImageEnhancer.jfif"
+                        data-logo-dark="/imagens/logojifc2.png"
+                        data-logo-light="/imagens/logojifc3.png"
+                        alt="Logo JIFC" class="logo-menu"></a>
                 </div>
                 <div class="nav-buttons">
                     <a href="/equipes" class="nav-btn">EQUIPES</a>
@@ -357,9 +361,19 @@
             var dropdown = document.getElementById('theme-dropdown');
             if (!btn || !dropdown) return;
 
+            function sincronizarLogo() {
+                var logo = document.querySelector('.logo-menu');
+                if (!logo) return;
+
+                var tema = document.documentElement.getAttribute('data-theme') || 'navy';
+                logo.src = logo.getAttribute('data-logo-' + tema) || logo.getAttribute('data-logo-navy');
+            }
+
             function temaAtual() {
                 return document.documentElement.getAttribute('data-theme') || 'navy';
             }
+
+            sincronizarLogo();
 
             function sincronizarMeta() {
                 var meta = document.querySelector('meta[name="theme-color"]');
@@ -396,6 +410,7 @@
                     raiz.classList.remove('theme-anim');
                 }, 500);
                 raiz.setAttribute('data-theme', escolhido);
+                sincronizarLogo();
                 try { localStorage.setItem('jifc-theme', escolhido); } catch (e) {}
                 sincronizarMeta();
                 marcarOpcaoAtiva();
