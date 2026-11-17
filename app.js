@@ -4,7 +4,7 @@ const bodyParser = require('body-parser');
 const methodOverride = require('method-override');
 const expressLayouts = require('express-ejs-layouts');
 const cookieParser = require('cookie-parser');
-const csurf = require('csurf');
+const csrfProtection = require('./middleware/csrfProtection');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 
@@ -57,8 +57,12 @@ app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 app.use(methodOverride('_method'));
 app.use(cookieParser());
 
-const csrfProtection = csurf({ cookie: true });
-app.use(csrfProtection);
+app.use((req, res, next) => {
+    if (req.is('multipart/form-data')) {
+        return next();
+    }
+    return csrfProtection(req, res, next);
+});
 
 const loginLimiter = rateLimit({
     windowMs: 60 * 1000,
@@ -84,7 +88,7 @@ app.use((req, res, next) => {
     res.locals.mostrarFiltros = false;
     res.locals.configuracoes = adminModel.getConfiguracoes();
     res.locals.anoJifc = adminModel.getAnoJifc();
-    res.locals.csrfToken = req.csrfToken();
+    res.locals.csrfToken = typeof req.csrfToken === 'function' ? req.csrfToken() : '';
     next();
 });
 

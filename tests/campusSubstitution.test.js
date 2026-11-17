@@ -144,8 +144,8 @@ function criarRequest() {
     });
     const campoComprovante = htmlComCadastroAberto.match(/<input type="file" name="documentoSubstituicao"[^>]*>/)[0];
     assert.doesNotMatch(campoComprovante, /\srequired(?:\s|>)/);
-    assert.match(htmlComCadastroAberto, /formaction="\/campus\/atletas\/cadastrar" onclick="this\.form\.elements\.documentoSubstituicao\.required = false"/);
-    assert.match(htmlComCadastroAberto, /formaction="\/campus\/atletas\/substituir" onclick="this\.form\.elements\.documentoSubstituicao\.required = true"/);
+    assert.match(htmlComCadastroAberto, /formaction="\/campus\/atletas\/cadastrar" onclick="if \(this\.form\.elements\.documentoSubstituicao\) this\.form\.elements\.documentoSubstituicao\.required = false"/);
+    assert.match(htmlComCadastroAberto, /formaction="\/campus\/atletas\/substituir" onclick="if \(this\.form\.elements\.documentoSubstituicao\) this\.form\.elements\.documentoSubstituicao\.required = true"/);
 
     console.log('Substituição respeita o prazo, exige dados próprios e comprovante sem bloquear cadastro normal.');
   } finally {

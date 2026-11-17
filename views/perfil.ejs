@@ -286,6 +286,7 @@
 
               function abrir(botaoOrigem) {
                 mostrarView(botaoOrigem.getAttribute('data-modal-view-inicial') || 'dados');
+                document.body.classList.add('profile-modal-open');
                 modal.hidden = false;
                 document.body.style.overflow = 'hidden';
                 const visaoAtiva = modal.querySelector('[data-modal-view]:not([hidden])');
@@ -297,6 +298,7 @@
 
               function fechar() {
                 modal.hidden = true;
+                document.body.classList.remove('profile-modal-open');
                 document.body.style.overflow = '';
               }
 

@@ -917,7 +917,7 @@ async function apagarJogosEDadosDaModalidade(modalidadeId, opcoes = {}) {
   await db.query(`DELETE FROM resultados_por_sets WHERE jogo_id IN (${subJogos})`, paramsJogos);
   await db.query(`DELETE FROM resultados_coletivos WHERE jogo_id IN (${subJogos})`, paramsJogos);
   await db.query(
-    `UPDATE campus_modalidade SET chave_id = NULL
+    `UPDATE campus_modalidade SET chave_id = NULL, ordem_sorteio = NULL
      WHERE modalidade_id = ? AND chave_id IN (
        SELECT id FROM chaves WHERE modalidade_id = ? AND ano_evento = ?${filtroSubChaves}
      )`,

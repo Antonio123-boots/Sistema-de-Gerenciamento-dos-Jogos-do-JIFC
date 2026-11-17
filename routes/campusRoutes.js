@@ -5,6 +5,7 @@ const campusController = require('../controllers/campusController');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { handleValidationForm } = require('../middleware/validation');
 const substitutionDocumentUpload = require('../middleware/substitutionDocumentUpload');
+const csrfProtection = require('../middleware/csrfProtection');
 
 router.use(requireAuth, requireRole('campus'));
 
@@ -36,12 +37,13 @@ router.post('/inscricoes/salvar', modalidadesValidation, handleValidationForm, c
 
 router.get('/atletas', campusController.renderAtletas);
 router.get('/atletas/exportar', campusController.exportarAtletasExcel);
-router.post('/atletas/cadastrar', substitutionDocumentUpload, atletaValidation, campusController.cadastrarAtleta);
+router.post('/atletas/cadastrar', substitutionDocumentUpload, csrfProtection, atletaValidation, campusController.cadastrarAtleta);
 router.get('/atletas/editar/:id', atletaIdParam, handleValidationForm, campusController.editarAtleta);
-router.post('/atletas/atualizar/:id', substitutionDocumentUpload, atletaIdParam, atletaValidation, campusController.atualizarAtleta);
+router.post('/atletas/atualizar/:id', substitutionDocumentUpload, csrfProtection, atletaIdParam, atletaValidation, campusController.atualizarAtleta);
 router.post('/atletas/excluir/:id', atletaIdParam, handleValidationForm, campusController.excluirAtleta);
 router.post('/atletas/substituir', [
     substitutionDocumentUpload,
+    csrfProtection,
     ...atletaValidation,
     body('atletaSubstituidoId').isInt({ min: 1 }).withMessage('Selecione o atleta que será substituído.')
 ], campusController.substituirAtleta);

@@ -850,14 +850,16 @@ async function getChavesModalidade(modalidadeId, subCategoria = '') {
     for (const chave of chavesRows) {
       const [participantes] = exibirPorAtleta
         ? await db.query(
-            `SELECT DISTINCT a.id AS id, a.nome AS nome_atleta, c.nome AS campus_nome, c.nome_exibicao
+            `SELECT a.id AS id, a.nome AS nome_atleta, c.nome AS campus_nome, c.nome_exibicao,
+                    MIN(j.id) AS ordem_sorteio
              FROM jogos j
              JOIN atletas a ON a.id = j.atleta_1_id OR a.id = j.atleta_2_id
              JOIN campus c ON c.id = a.campus_id
              JOIN modalidades m ON m.id = j.modalidade_id
              WHERE j.modalidade_id = ? AND j.chave_id = ? AND ${await filtroAnoEvento('j')}
                AND (m.genero IS NULL OR m.genero = '' OR m.genero = 'Misto' OR a.genero = m.genero)
-             ORDER BY a.nome ASC`,
+             GROUP BY a.id, a.nome, c.nome, c.nome_exibicao
+             ORDER BY ordem_sorteio ASC, a.nome ASC`,
             [id, chave.id]
           )
         : await db.query(
@@ -881,6 +883,7 @@ async function getChavesModalidade(modalidadeId, subCategoria = '') {
           nomeCampus: participante.nome_exibicao || participante.nome || participante.nome_atleta || 'Campus sem nome',
           nome: participante.nome_exibicao || participante.nome || participante.nome_atleta || 'Campus sem nome',
           nomeAtleta: participante.nome_atleta || participante.nome_exibicao || participante.nome || 'Campus sem nome',
+          ordemSorteio: Number(participante.ordem_sorteio || 0),
           numeroInscrito: 0,
           pontosFaseDeGrupos: 0
         }))
@@ -902,10 +905,13 @@ async function getChavesModalidade(modalidadeId, subCategoria = '') {
         integrante.pontosFaseDeGrupos = pontos;
       }
     });
-    grupo.integrantes.sort((a, b) =>
-      (b.pontosFaseDeGrupos - a.pontosFaseDeGrupos)
-      || String(a.nomeCampus || '').localeCompare(String(b.nomeCampus || ''), 'pt-BR')
-    );
+    grupo.integrantes.sort((a, b) => {
+      const ordemA = Number(a.ordemSorteio) || Number.MAX_SAFE_INTEGER;
+      const ordemB = Number(b.ordemSorteio) || Number.MAX_SAFE_INTEGER;
+      return (b.pontosFaseDeGrupos - a.pontosFaseDeGrupos)
+        || (ordemA - ordemB)
+        || String(a.nomeCampus || '').localeCompare(String(b.nomeCampus || ''), 'pt-BR');
+    });
   });
 
   return grupos;

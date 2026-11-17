@@ -155,7 +155,17 @@
   font-size: 0.82rem;
 }
 
+body.profile-modal-open .profile-card--wide {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
 .profile-modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   z-index: 2200;
   padding: 1rem;
   background: rgba(5, 8, 18, 0.78);

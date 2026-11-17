@@ -356,10 +356,10 @@
                 <button type="submit" class="btn btn-success primary-save-btn" style="border: none; height: 43px; align-self: end;">Salvar alterações</button>
               <% } else { %>
                 <% if (mostrarCadastroAtletas) { %>
-                  <button type="submit" formaction="/campus/atletas/cadastrar" onclick="this.form.elements.documentoSubstituicao.required = false" class="btn btn-success primary-save-btn" style="border: none; height: 43px; align-self: end;">Adicionar Atleta</button>
+                  <button type="submit" formaction="/campus/atletas/cadastrar" onclick="if (this.form.elements.documentoSubstituicao) this.form.elements.documentoSubstituicao.required = false" class="btn btn-success primary-save-btn" style="border: none; height: 43px; align-self: end;">Adicionar Atleta</button>
                 <% } %>
                 <% if (mostrarSubstituicao && atletasSalvos.some((atleta) => !atleta.substituido)) { %>
-                  <button type="submit" formaction="/campus/atletas/substituir" onclick="this.form.elements.documentoSubstituicao.required = true" class="btn btn-secondary" style="height: 43px; align-self: end;">Substituir Atleta</button>
+                  <button type="submit" formaction="/campus/atletas/substituir" onclick="if (this.form.elements.documentoSubstituicao) this.form.elements.documentoSubstituicao.required = true" class="btn btn-secondary" style="height: 43px; align-self: end;">Substituir Atleta</button>
                 <% } %>
                 <% if (mostrarSubstituicao && !atletasSalvos.some((atleta) => !atleta.substituido)) { %>
                   <p style="margin:0; color: rgba(var(--fg-rgb), 0.65);">Não há atletas ativos para substituir.</p>
