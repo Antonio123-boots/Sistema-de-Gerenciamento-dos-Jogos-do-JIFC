@@ -79,10 +79,19 @@
       <% } else { %>
         <button id="generate-draw-button" type="button" class="btn btn-primary">Realizar Sorteio</button>
       <% } %>
+      <% if (typeof permitirGerarSorteioTodos !== 'undefined' && permitirGerarSorteioTodos) { %>
+        <button id="generate-all-draw-button" type="button" class="btn btn-primary" title="Sortear todas as modalidades elegíveis que ainda não possuem chaveamento">
+          Sortear Todas (<%= sorteiosPendentes.length %>)
+        </button>
+      <% } %>
       <form id="generate-draw-form" action="/admin/chaveamento/gerar" method="POST" style="display: inline-block;">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <input type="hidden" name="modalidadeId" value="<%= modalidadeAtiva.id %>">
         <input type="hidden" name="subCategoria" value="<%= subCategoriaAtiva %>">
+        <input type="hidden" name="forcar" value="1">
+      </form>
+      <form id="generate-all-draw-form" action="/admin/chaveamento/gerar" method="POST" style="display: inline-block;">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <input type="hidden" name="forcar" value="1">
       </form>
       <form id="publish-draw-form" action="/admin/chaveamento/publicar" method="POST" style="display: inline-block;">
@@ -124,6 +133,20 @@
           </div>
         </div>
       </div>
+
+      <% if (typeof permitirGerarSorteioTodos !== 'undefined' && permitirGerarSorteioTodos) { %>
+        <div id="generate-all-draw-modal" class="confirm-modal-overlay" hidden>
+          <div class="confirm-modal-card" role="dialog" aria-modal="true" aria-labelledby="generate-all-draw-title">
+            <div class="confirm-modal-icon">🎲</div>
+            <h3 id="generate-all-draw-title">Sortear todas as modalidades?</h3>
+            <p>O sistema vai realizar <strong><%= sorteiosPendentes.length %> sorteio(s) pendente(s)</strong>, exceto Atletismo e Xadrez. Modalidades que já possuem chaveamento serão mantidas.</p>
+            <div class="confirm-modal-actions">
+              <button type="button" class="btn btn-ghost" data-generate-all-cancel>Cancelar</button>
+              <button type="button" class="btn btn-success" data-generate-all-confirm>Confirmar</button>
+            </div>
+          </div>
+        </div>
+      <% } %>
 
       <div id="cancel-draw-modal" class="confirm-modal-overlay" hidden>
         <div class="confirm-modal-card" role="dialog" aria-modal="true" aria-labelledby="cancel-draw-title">
@@ -196,6 +219,9 @@
           const generateButton = document.getElementById('generate-draw-button');
           const generateForm = document.getElementById('generate-draw-form');
           const generateModal = document.getElementById('generate-draw-modal');
+          const generateAllButton = document.getElementById('generate-all-draw-button');
+          const generateAllForm = document.getElementById('generate-all-draw-form');
+          const generateAllModal = document.getElementById('generate-all-draw-modal');
           const cancelForm = document.getElementById('cancel-draw-form');
           const cancelModal = document.getElementById('cancel-draw-modal');
           const publishButton = document.getElementById('confirm-publish-button');
@@ -218,6 +244,22 @@
 
             generateModal.querySelector('[data-generate-confirm]')?.addEventListener('click', function () {
               generateForm.submit();
+            });
+          }
+
+          if (generateAllButton && generateAllForm && generateAllModal) {
+            generateAllButton.addEventListener('click', function () {
+              generateAllModal.hidden = false;
+              generateAllModal.classList.add('active');
+            });
+
+            generateAllModal.querySelector('[data-generate-all-cancel]')?.addEventListener('click', function () {
+              generateAllModal.hidden = true;
+              generateAllModal.classList.remove('active');
+            });
+
+            generateAllModal.querySelector('[data-generate-all-confirm]')?.addEventListener('click', function () {
+              generateAllForm.submit();
             });
           }
 
@@ -336,7 +378,7 @@
       </div>
     </section>
   <% } %>
-  <% if (!inscricoesAbertas && !permitirGerarSorteio) { %>
+  <% if (!inscricoesAbertas && !permitirGerarSorteio && !permitirGerarSorteioTodos) { %>
     <section class="panel-card" style="margin-top:1rem; border:1px solid rgba(var(--fg-rgb), 0.08); background:rgba(var(--fg-rgb), 0.03);">
       <div class="welcome-card" style="padding:1rem; background:transparent; border:none;">
         <p class="panel-subtitle">O painel de chaveamento exibe as inscrições, mas o sorteio só estará liberado a partir de <strong><%= inicioSorteio || 'após o fim das inscrições' %></strong>.</p>

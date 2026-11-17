@@ -11,6 +11,7 @@ const exemploEdicaoService = require('../services/exemploEdicaoService');
 const edicaoWizardService = require('../services/edicaoWizardService');
 const { gerarPlanilhaAtletas } = require('../services/exportAtletasExcelService');
 const { filtroAnoEvento, obterAnoEventoAtual } = require('../config/edicaoAtual');
+const { STATUS_ATLETA_APROVADO } = require('../utils/statusAtleta');
 
 async function renderConfigurar(req, res) {
   try {
@@ -323,6 +324,18 @@ async function renderChaveamento(req, res) {
     let subProva = '';
     let modalidadeSorteavel = true;
     let permitirGerarSorteio = false;
+    let sorteiosPendentes = [];
+    let permitirGerarSorteioTodos = false;
+
+    if (inscricoesEncerradas && prazoSorteioAberto) {
+      try {
+        sorteiosPendentes = await listarSorteiosPendentes();
+        permitirGerarSorteioTodos = sorteiosPendentes.length > 0;
+      } catch (error) {
+        console.error('Erro ao listar sorteios pendentes:', error);
+        sorteiosPendentes = [];
+      }
+    }
 
     if (listaModalidades.length > 0) {
       modalidadeAtiva = listaModalidades[0];
@@ -582,6 +595,8 @@ async function renderChaveamento(req, res) {
         chaveamentoBloqueado: false,
         sorteioBloqueado,
         permitirGerarSorteio,
+        permitirGerarSorteioTodos,
+        sorteiosPendentes,
         modalidadeSorteavel,
         inicioSorteio,
         fimSorteio,
@@ -716,6 +731,83 @@ function montarDestinoChaveamento(modalidadeId, subCategoria) {
   return `modalidade=${id}&sub=${encodeURIComponent(sub)}&`;
 }
 
+async function modalidadePossuiChaveamento(modalidadeId, subCategoria, anoEvento) {
+  const sub = String(subCategoria || '').trim().toLowerCase();
+  const filtroSub = sub ? ' AND sub_categoria = ?' : '';
+  const params = sub ? [modalidadeId, anoEvento, sub] : [modalidadeId, anoEvento];
+
+  const [chaves] = await db.query(
+    `SELECT 1 FROM chaves WHERE modalidade_id = ? AND ano_evento = ?${filtroSub} LIMIT 1`,
+    params
+  );
+  if (chaves.length) return true;
+
+  const [jogos] = await db.query(
+    `SELECT 1 FROM jogos WHERE modalidade_id = ? AND ano_evento = ?${filtroSub} LIMIT 1`,
+    params
+  );
+  return jogos.length > 0;
+}
+
+async function modalidadePossuiParticipantes(modalidade, subCategoria) {
+  const sub = String(subCategoria || '').trim().toLowerCase();
+  const nome = String(modalidade.nome || '');
+
+  if (adminModel.isModalidadeTenisMesa(nome) && sub === 'individual') {
+    const modalidadeMista = String(modalidade.genero || '').trim().toLowerCase() === 'misto';
+    const [atletas] = await db.query(
+      `SELECT 1
+       FROM atleta_modalidade am
+       JOIN atletas a ON a.id = am.atleta_id
+       WHERE am.modalidade_id = ? AND a.status = ?${modalidadeMista ? '' : ' AND a.genero = ?'}
+       LIMIT 1`,
+      modalidadeMista
+        ? [modalidade.id, STATUS_ATLETA_APROVADO]
+        : [modalidade.id, STATUS_ATLETA_APROVADO, modalidade.genero]
+    );
+    return atletas.length > 0;
+  }
+
+  const [campi] = await db.query(
+    'SELECT 1 FROM campus_modalidade WHERE modalidade_id = ? LIMIT 1',
+    [modalidade.id]
+  );
+  return campi.length > 0;
+}
+
+async function listarSorteiosPendentes(anoEventoParam) {
+  const anoEvento = Number(anoEventoParam || await obterAnoEventoAtual());
+  const [modalidades] = await db.query('SELECT id, nome, tipo_confronto, genero FROM modalidades ORDER BY nome ASC');
+  const pendentes = [];
+
+  for (const modalidade of modalidades) {
+    const nome = String(modalidade.nome || '');
+    if (!adminModel.isModalidadeSorteavel(nome, modalidade.tipo_confronto)) continue;
+
+    if (adminModel.isModalidadeTenisMesa(nome)) {
+      for (const subCategoria of ['individual', 'dupla']) {
+        if (!adminModel.isModalidadeSorteavel(nome, modalidade.tipo_confronto, subCategoria)) continue;
+        if (await modalidadePossuiChaveamento(modalidade.id, subCategoria, anoEvento)) continue;
+        if (!(await modalidadePossuiParticipantes(modalidade, subCategoria))) continue;
+        pendentes.push({ modalidade, subCategoria });
+      }
+      continue;
+    }
+
+    if (await modalidadePossuiChaveamento(modalidade.id, '', anoEvento)) continue;
+    if (!(await modalidadePossuiParticipantes(modalidade, ''))) continue;
+    pendentes.push({ modalidade, subCategoria: '' });
+  }
+
+  return pendentes;
+}
+
+function descreverSorteio(item) {
+  const nome = String(item?.modalidade?.nome || 'Modalidade').trim();
+  const sub = String(item?.subCategoria || '').trim();
+  return sub ? `${nome} (${sub})` : nome;
+}
+
 async function gerarChaveamento(req, res) {
   try {
     const { modalidadeId, subCategoria, forcar } = req.body;
@@ -735,31 +827,51 @@ async function gerarChaveamento(req, res) {
     }
 
     if (!modalidadeIdNum) {
-      const [modalidades] = await db.query('SELECT id, nome, tipo_confronto FROM modalidades ORDER BY nome ASC');
-      const elegiveis = modalidades.filter((modalidade) => {
-        const nome = String(modalidade.nome || '').trim().toLowerCase();
-        if (nome.includes('atletismo') || nome.includes('xadrez')) {
-          return false;
-        }
+      const pendentes = await listarSorteiosPendentes();
 
-        return adminModel.isModalidadeSorteavel(modalidade.nome, modalidade.tipo_confronto, subCategoria || '');
-      });
-
-      if (!elegiveis.length) {
-        return res.redirect(`/admin/chaveamento?${montarDestinoChaveamento(modalidadeIdNum, subCategoria)}erro=${encodeURIComponent('Nenhuma modalidade elegível para sorteio automático.')}`);
+      if (!pendentes.length) {
+        return res.redirect(`/admin/chaveamento?erro=${encodeURIComponent('Nenhuma modalidade pendente de sorteio. As modalidades elegíveis já possuem chaveamento ou não têm participantes.')}`);
       }
 
-      for (const modalidade of elegiveis) {
-        if (adminModel.isModalidadeTenisMesa(modalidade.nome)) {
-          await adminModel.efetuarChaveamentoMatematico(modalidade.id, 'individual');
-          await adminModel.efetuarChaveamentoMatematico(modalidade.id, 'dupla');
-          continue;
-        }
+      let totalChaves = 0;
+      let totalJogos = 0;
+      const semParticipantes = [];
+      const falhas = [];
 
-        await adminModel.efetuarChaveamentoMatematico(modalidade.id, subCategoria || '');
+      for (const item of pendentes) {
+        try {
+          const resultado = await adminModel.efetuarChaveamentoMatematico(item.modalidade.id, item.subCategoria);
+          const chavesCriadas = Array.isArray(resultado?.chaves) ? resultado.chaves.length : 0;
+          const jogosCriados = Array.isArray(resultado?.jogos) ? resultado.jogos.length : 0;
+          totalChaves += chavesCriadas;
+          totalJogos += jogosCriados;
+
+          if (!chavesCriadas && !jogosCriados) {
+            semParticipantes.push(descreverSorteio(item));
+          }
+        } catch (error) {
+          console.error(`Erro ao sortear ${descreverSorteio(item)}:`, error);
+          falhas.push(descreverSorteio(item));
+        }
       }
 
-      return res.redirect(`/admin/chaveamento?${montarDestinoChaveamento(modalidadeIdNum, subCategoria)}sucesso=${encodeURIComponent('Sorteio realizado para todas as modalidades elegíveis, exceto atletismo e xadrez.')}`);
+      const partes = [];
+      if (totalChaves || totalJogos) {
+        partes.push(`Sorteio realizado: ${totalChaves} chave(s) e ${totalJogos} jogo(s) criados.`);
+      }
+      if (semParticipantes.length) {
+        partes.push(`Sem participantes: ${semParticipantes.join(', ')}.`);
+      }
+
+      const params = [];
+      if (partes.length) {
+        params.push(`sucesso=${encodeURIComponent(partes.join(' '))}`);
+      }
+      if (falhas.length) {
+        params.push(`erro=${encodeURIComponent(`Não foi possível sortear: ${falhas.join(', ')}.`)}`);
+      }
+
+      return res.redirect(`/admin/chaveamento?${params.join('&')}`);
     }
 
     const [mod] = await db.query('SELECT tipo_confronto, nome FROM modalidades WHERE id = ?', [modalidadeIdNum]);
